@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 test*.py
+.python-version
 
 # 分发与打包
 .Python
@@ -37,6 +38,7 @@ nosetests.xml
 coverage.xml
 *.cover
 .hypothesis/
+test*.*
 
 # 日志
 *.log
@@ -46,6 +48,7 @@ coverage.xml
 .vscode/
 *.swp
 *.swo
+.cursor/
 
 # macOS
 .DS_Store

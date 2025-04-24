@@ -1,0 +1,11 @@
+[project]
+name = "opengewechat"
+version = "0.0.2"
+description = "一个基于Gewechat的Python微信机器人框架，支持个人微信的自动化操作"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "flask>=3.1.0",
+    "pilk>=0.2.4",
+    "requests>=2.32.3",
+]

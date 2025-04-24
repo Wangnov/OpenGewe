@@ -1,79 +1,195 @@
 # OpenGewechat
 
-OpenGewechat 是一个用于 Gewechat API 的 Python 客户端，提供对象化的接口调用方式。
+OpenGewechat 是一个基于Gewechat的Python微信机器人框架，支持个人微信的自动化操作。该包提供了简单易用的API，帮助开发者快速实现微信自动化功能。
+
+## 特性
+
+- 完整的微信API封装，支持登录、消息收发、群管理等功能
+- 31种微信消息类型的标准化处理
+- 模块化设计，易于扩展
+- 简洁的API接口，降低使用门槛
+- 完善的类型提示，提高开发效率
 
 ## 安装
 
 ```bash
-pip install -e .
+pip install opengewechat
 ```
 
-## 功能模块
+## 快速开始
 
-- 登录模块：支持获取 Token、扫码登录、设置回调等功能
-- 联系人模块：支持获取通讯录、搜索好友、添加/删除好友等功能
-- 群组模块：支持创建群组、管理群成员、设置群公告等功能 
-- 消息模块：支持发送各类消息（文本、图片、文件、链接等）和下载图片
-- 标签模块：支持添加/删除标签、管理好友标签等功能
-- 个人模块：支持获取个人资料、设置头像等功能
-- 收藏模块：支持同步和管理收藏夹内容
-- 账号模块：支持断线重连、退出登录等功能
-
-## 使用示例
+### 基础使用
 
 ```python
-import time
 from opengewechat import GewechatClient
 
-# 创建客户端实例，需要提供API基础URL和下载URL
+# 初始化客户端
 client = GewechatClient(
-    base_url="https://api.gewechat.com",
-    download_url="https://download.gewechat.com"
+    base_url="http://gewechat部署的镜像ip:2531/v2/api",
+    download_url="http://gewechat部署的镜像ip:2532/download",
+    callback_url="http://你的回调服务器地址:端口/callback",
+    app_id="",  # 首次登录传空
+    token=""    # 首次登录传空
 )
 
-# 获取并设置token
-token_response = client.login.get_token()
-if token_response["ret"] == 200:
-    client.set_token(token_response["data"])
+# 登录微信
+client.start_login()
 
-# 获取登录二维码
-qrcode_response = client.login.get_qrcode()
-if qrcode_response["ret"] == 200:
-    data = qrcode_response["data"]
-    app_id = data["appId"]
-    uuid = data["uuid"]
-    qrcode_url = data["qrData"]
-    print(f"请用微信扫描二维码: {qrcode_url}")
-
-# 循环检查登录状态
-login_success = False
-for _ in range(10):  # 尝试10次，每次间隔5秒
-    login_response = client.login.login(app_id, uuid)
-    if login_response["ret"] == 200:
-        data = login_response["data"]
-        status = data.get("status")
-        if status == 2 and data.get("loginInfo"):  # 登录成功
-            login_success = True
-            print("登录成功!")
-            wxid = data["loginInfo"]["wxid"]
-            break
-    time.sleep(5)
-
-# 设置回调地址
-if login_success:
-    client.login.set_callback("http://your-callback-url.com/callback")
-    
-    # 发送文本消息
-    message_response = client.message.send_text("wxid_friend123", "你好，这是测试消息")
-    if message_response["ret"] == 200:
-        print("消息发送成功")
-    
-    # 下载图片 (使用download_url)
-    image_response = client.message.download_image("message_id_123456")
-    if image_response["ret"] == 200:
-        print("图片下载成功")
+# 发送文本消息
+client.message.send_text("filehelper", "Hello, World!")
 ```
 
-## 详细文档
+### 处理回调消息
 
-请参考 [Gewechat API 文档](https://apifox.com/apidoc/shared/69ba62ca-cb7d-437e-85e4-6f3d3df271b1) 
+```python
+from flask import Flask, request
+from opengewechat import MessageFactory, MessageType
+
+app = Flask(__name__)
+factory = MessageFactory()
+
+@app.route('/callback', methods=['POST'])
+def callback():
+    data = request.json
+    message = factory.process_json(data)
+    
+    if message:
+        if message.type == MessageType.TEXT:
+            print(f"收到文本消息: {message.text}")
+        elif message.type == MessageType.IMAGE:
+            print(f"收到图片消息: {message.url}")
+    
+    return "success"
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
+```
+
+## 主要模块
+
+### 客户端(Client)
+
+`GewechatClient` 是包的核心类，提供了所有API的调用入口，主要功能包括：
+
+- 初始化各个功能模块
+- 管理登录状态和Token
+- 处理API请求
+
+### 功能模块(Modules)
+
+包含8个主要功能模块，每个模块负责特定的功能区域：
+
+- `login`: 登录、二维码获取、登录状态检查
+- `message`: 发送各类消息（文本、图片、文件等）
+- `contact`: 通讯录管理（好友列表、添加好友等）
+- `group`: 群聊管理（创建群聊、邀请成员等）
+- `tag`: 标签管理
+- `personal`: 个人信息管理
+- `favorite`: 收藏管理
+- `account`: 账号管理
+
+### 消息处理(Message)
+
+消息模块提供了对微信回调消息的处理能力：
+
+- `MessageFactory`: 消息工厂，负责识别和处理各类消息
+- `MessageType`: 消息类型枚举，定义了所有支持的消息类型
+- `BaseHandler`: 消息处理基类，用于自定义消息处理逻辑
+
+## 示例
+
+### 自动回复消息
+
+```python
+from flask import Flask, request
+from opengewechat import GewechatClient, MessageFactory, MessageType
+
+app = Flask(__name__)
+
+client = GewechatClient(
+    base_url="http://gewechat部署的镜像ip:2531/v2/api",
+    download_url="http://gewechat部署的镜像ip:2532/download",
+    callback_url="http://你的回调服务器地址:端口/callback",
+    app_id="你的app_id",
+    token="你的token"
+)
+
+factory = MessageFactory()
+
+@app.route('/callback', methods=['POST'])
+def callback():
+    data = request.json
+    message = factory.process_json(data)
+    
+    if message and message.type == MessageType.TEXT:
+        # 自动回复
+        if message.from_user != client.app_id:  # 避免回复自己
+            client.message.send_text(message.from_user, f"收到您的消息：{message.text}")
+    
+    return "success"
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
+```
+
+### 自定义消息处理器
+
+```python
+from opengewechat import MessageFactory, BaseHandler, MessageType, BaseMessage
+from dataclasses import dataclass
+
+# 自定义消息模型
+@dataclass
+class CustomMessage(BaseMessage):
+    custom_field: str = ""
+
+# 自定义处理器
+class CustomHandler(BaseHandler):
+    def can_handle(self, data):
+        # 自定义判断逻辑
+        return data.get("TypeName") == "CustomType"
+    
+    def handle(self, data):
+        message = CustomMessage(type=MessageType.UNKNOWN)
+        message.custom_field = data.get("CustomField", "")
+        return message
+
+# 注册自定义处理器
+factory = MessageFactory()
+factory.register_handler(CustomHandler)
+```
+
+## 待办事项
+
+- [ ] 实现31种消息类型的完整模型参数，包括：
+  - 文本消息
+  - 图片消息
+  - 语音消息
+  - 视频消息
+  - 小程序消息
+  - 链接消息
+  - 文件消息
+  - 位置消息
+  - 名片消息
+  - 系统消息（群创建、成员变更等）
+  - 撤回消息
+  - 引用消息
+  - 表情消息
+  - 公众号消息
+  - 群邀请消息
+  - 转账消息
+  - 红包消息
+  - 拍一拍消息
+  - 朋友圈消息
+  - 好友变更消息
+  - 联系人信息变更
+  - 其他消息类型
+
+## 贡献
+
+欢迎提交Issue和Pull Request，共同改进OpenGewechat！
+
+## 许可证
+
+本项目采用 MIT 许可证。
+
