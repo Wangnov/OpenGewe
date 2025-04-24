@@ -22,14 +22,14 @@ class FileNoticeMessageHandler(BaseHandler):
         if data["Data"].get("MsgType") != 49:
             return False
 
-        # 获取Content内容
-        content = data["Data"].get("Content", {}).get("string", "")
-        if not content:
+        # 获取处理过的XML内容
+        xml_content = self.extract_xml_content(data)
+        if not xml_content:
             return False
 
         # 解析XML
         try:
-            root = ET.fromstring(content)
+            root = ET.fromstring(xml_content)
             appmsg = root.find("appmsg")
             if appmsg is not None:
                 appmsg_type = appmsg.find("type")
@@ -60,14 +60,14 @@ class FileMessageHandler(BaseHandler):
         if data["Data"].get("MsgType") != 49:
             return False
 
-        # 获取Content内容
-        content = data["Data"].get("Content", {}).get("string", "")
-        if not content:
+        # 获取处理过的XML内容
+        xml_content = self.extract_xml_content(data)
+        if not xml_content:
             return False
 
         # 解析XML
         try:
-            root = ET.fromstring(content)
+            root = ET.fromstring(xml_content)
             appmsg = root.find("appmsg")
             if appmsg is not None:
                 appmsg_type = appmsg.find("type")

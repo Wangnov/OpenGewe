@@ -27,14 +27,14 @@ class LinkMessageHandler(BaseHandler):
         if data["Data"].get("MsgType") != 49:
             return False
 
-        # 获取Content内容
-        content = data["Data"].get("Content", {}).get("string", "")
-        if not content:
+        # 获取处理过的XML内容
+        xml_content = self.extract_xml_content(data)
+        if not xml_content:
             return False
 
         # 解析XML
         try:
-            root = ET.fromstring(content)
+            root = ET.fromstring(xml_content)
             appmsg = root.find("appmsg")
             if appmsg is not None:
                 appmsg_type = appmsg.find("type")
@@ -67,21 +67,23 @@ class FinderHandler(BaseHandler):
         if data["Data"].get("MsgType") != 49:
             return False
 
-        # 获取内容进一步判断
-        content = data["Data"].get("Content", {}).get("string", "")
-        try:
-            if content:
-                root = ET.fromstring(content)
-                appmsg = root.find("appmsg")
-                if appmsg is not None:
-                    # 视频号消息的类型标识为19(视频号视频分享)或22(视频号直播分享)
-                    type_node = appmsg.find("type")
-                    if type_node is not None and type_node.text in ["19", "22"]:
-                        return True
+        # 获取处理过的XML内容
+        xml_content = self.extract_xml_content(data)
+        if not xml_content:
+            return False
 
-                    # 查找finderFeed节点，存在则为视频号消息
-                    finder_feed = appmsg.find("finderFeed")
-                    return finder_feed is not None
+        try:
+            root = ET.fromstring(xml_content)
+            appmsg = root.find("appmsg")
+            if appmsg is not None:
+                # 视频号消息的类型标识为19(视频号视频分享)或22(视频号直播分享)
+                type_node = appmsg.find("type")
+                if type_node is not None and type_node.text in ["19", "22"]:
+                    return True
+
+                # 查找finderFeed节点，存在则为视频号消息
+                finder_feed = appmsg.find("finderFeed")
+                return finder_feed is not None
         except Exception:
             pass
 
@@ -108,16 +110,18 @@ class MiniappHandler(BaseHandler):
         if data["Data"].get("MsgType") != 49:  # 小程序消息使用与链接相同的消息类型49
             return False
 
-        # 获取内容进一步判断
-        content = data["Data"].get("Content", {}).get("string", "")
+        # 获取处理过的XML内容
+        xml_content = self.extract_xml_content(data)
+        if not xml_content:
+            return False
+
         try:
-            if content:
-                root = ET.fromstring(content)
-                appmsg = root.find("appmsg")
-                if appmsg is not None:
-                    # 小程序消息的类型标识为33
-                    type_node = appmsg.find("type")
-                    return type_node is not None and type_node.text == "33"
+            root = ET.fromstring(xml_content)
+            appmsg = root.find("appmsg")
+            if appmsg is not None:
+                # 小程序消息的类型标识为33
+                type_node = appmsg.find("type")
+                return type_node is not None and type_node.text == "33"
         except Exception:
             pass
 

@@ -47,6 +47,9 @@ class ImageMessage(BaseMessage):
             if "Content" in msg_data and "string" in msg_data["Content"]:
                 msg.content = msg_data["Content"]["string"]
 
+                # 处理群消息发送者
+                msg._process_group_message()
+
                 # 如果提供了GewechatClient实例，使用API获取下载链接
                 try:
                     if client and msg.content:
@@ -159,6 +162,9 @@ class VoiceMessage(BaseMessage):
             if "Content" in msg_data and "string" in msg_data["Content"]:
                 msg.content = msg_data["Content"]["string"]
 
+                # 处理群消息发送者
+                msg._process_group_message()
+
                 # 解析XML获取语音信息
                 try:
                     root = ET.fromstring(msg.content)
@@ -246,6 +252,9 @@ class VideoMessage(BaseMessage):
             if "Content" in msg_data and "string" in msg_data["Content"]:
                 msg.content = msg_data["Content"]["string"]
 
+                # 处理群消息发送者
+                msg._process_group_message()
+
                 # 解析XML获取视频信息
                 try:
                     root = ET.fromstring(msg.content)
@@ -318,6 +327,9 @@ class EmojiMessage(BaseMessage):
             if "Content" in msg_data and "string" in msg_data["Content"]:
                 msg.content = msg_data["Content"]["string"]
 
+                # 处理群消息发送者
+                msg._process_group_message()
+
                 # 解析XML获取表情信息
                 try:
                     root = ET.fromstring(msg.content)
@@ -370,6 +382,9 @@ class FinderMessage(BaseMessage):
 
             if "Content" in msg_data and "string" in msg_data["Content"]:
                 msg.content = msg_data["Content"]["string"]
+
+                # 处理群消息发送者
+                msg._process_group_message()
 
                 # 解析XML获取视频号信息
                 try:

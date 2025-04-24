@@ -46,6 +46,9 @@ class TransferMessage(BaseMessage):
             if "Content" in msg_data and "string" in msg_data["Content"]:
                 msg.content = msg_data["Content"]["string"]
 
+                # 处理群消息发送者
+                msg._process_group_message()
+
                 # 解析XML获取转账信息
                 try:
                     root = ET.fromstring(msg.content)

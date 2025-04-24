@@ -92,6 +92,7 @@ __all__ = [
     "FriendRequestMessage",
     "ContactUpdateMessage",
     "ContactDeletedMessage",
+    "GroupInviteMessage",
     "GroupInvitedMessage",
     "GroupRemovedMessage",
     "GroupKickMessage",

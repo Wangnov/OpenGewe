@@ -99,6 +99,9 @@ class PatMessage(BaseMessage):
             if "Content" in msg_data and "string" in msg_data["Content"]:
                 msg.content = msg_data["Content"]["string"]
 
+                # 处理群消息发送者
+                msg._process_group_message()
+
                 # 解析XML获取拍一拍信息
                 try:
                     root = ET.fromstring(msg.content)
@@ -191,9 +194,6 @@ class SyncMessage(BaseMessage):
 class OfflineMessage(BaseMessage):
     """掉线通知消息"""
 
-    reason: str = ""  # 掉线原因
-    code: int = 0  # 错误码
-
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "OfflineMessage":
         """从字典创建掉线通知消息对象"""
@@ -204,17 +204,5 @@ class OfflineMessage(BaseMessage):
             typename=data.get("TypeName", ""),
             raw_data=data,
         )
-
-        # 掉线通知的消息格式与其他消息不同
-        if "ErrorMsg" in data:
-            msg.reason = data.get("ErrorMsg", "")
-
-        if "Data" in data:
-            # 尝试获取错误码
-            try:
-                # 有些情况下Data可能包含错误码
-                msg.code = int(data["Data"])
-            except (ValueError, TypeError):
-                pass
 
         return msg

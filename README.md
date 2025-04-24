@@ -159,6 +159,85 @@ factory = MessageFactory()
 factory.register_handler(CustomHandler)
 ```
 
+## 插件系统
+
+OpenGewechat 现在支持插件系统，让你可以轻松扩展功能。以下是使用插件系统的示例：
+
+### 创建自定义插件
+
+创建一个自定义插件，只需继承 `BasePlugin` 类并实现相应方法：
+
+```python
+from opengewechat import BasePlugin
+from opengewechat.message.models import BaseMessage, TextMessage
+from opengewechat.message.types import MessageType
+
+class MyPlugin(BasePlugin):
+    def __init__(self, client=None):
+        super().__init__(client)
+        self.name = "MyPlugin"
+        self.description = "我的自定义插件"
+        self.version = "0.1.0"
+    
+    def can_handle(self, message: BaseMessage) -> bool:
+        # 检查是否为文本消息
+        if message.type != MessageType.TEXT:
+            return False
+        
+        if not isinstance(message, TextMessage):
+            return False
+        
+        # 处理特定内容的消息
+        return message.content == "你好"
+    
+    def handle(self, message: BaseMessage) -> None:
+        if not self.client:
+            return
+        
+        # 文本消息的接收者可能是群聊或个人
+        to_wxid = message.room_wxid if message.room_wxid else message.wxid
+        
+        # 发送回复
+        self.client.message.send_text(to_wxid, "你好啊！")
+```
+
+### 加载和使用插件
+
+```python
+from opengewechat import GewechatClient, MessageFactory
+from my_plugins import MyPlugin
+
+# 创建客户端和消息工厂
+client = GewechatClient(...)
+factory = MessageFactory(client)
+
+# 加载插件
+factory.load_plugin(MyPlugin)
+
+# 或者从目录加载所有插件
+factory.load_plugins_from_directory("./plugins")
+
+# 启用插件
+factory.enable_plugin("MyPlugin")
+
+# 获取所有插件
+all_plugins = factory.get_all_plugins()
+for plugin in all_plugins:
+    print(f"插件: {plugin.name}, 状态: {'启用' if plugin.enabled else '禁用'}")
+```
+
+### 内置示例插件
+
+OpenGewechat 提供了一些示例插件，位于 `opengewechat.plugins.examples` 包中：
+
+- `CheckinPlugin`: 当收到"签到"消息时回复"签到成功"
+
+你可以参考这些示例插件来创建自己的插件。
+
+### 完整示例
+
+请查看 `plugin_example.py` 文件，了解如何在实际应用中使用插件系统。
+
 ## 待办事项
 
 - [ ] 实现31种消息类型的完整模型参数，包括：

@@ -91,3 +91,8 @@ DEFAULT_HANDLERS = [
     RedPacketHandler,
     FinderHandler,
 ]
+
+__all__ = [
+    "BaseHandler",
+    "DEFAULT_HANDLERS",
+]

@@ -39,6 +39,11 @@ class TextMessage(BaseMessage):
                 msg.content = msg_data["Content"]["string"]
                 msg.text = msg_data["Content"]["string"]
 
+                # 处理群消息发送者
+                msg._process_group_message()
+                # 同步更新text字段
+                msg.text = msg.content
+
         return msg
 
 
@@ -75,6 +80,9 @@ class QuoteMessage(BaseMessage):
 
             if "Content" in msg_data and "string" in msg_data["Content"]:
                 msg.content = msg_data["Content"]["string"]
+
+                # 处理群消息发送者
+                msg._process_group_message()
 
                 # 解析引用消息内容
                 try:

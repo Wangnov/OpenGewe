@@ -4,8 +4,9 @@ Flask服务器示例：使用opengewechat.message处理微信回调消息
 
 from flask import Flask, request, jsonify
 import logging
-from opengewechat.message import MessageFactory, MessageType
-from opengewechat.client import GewechatClient
+import os
+from opengewechat import MessageFactory, GewechatClient, MessageType
+from opengewechat.plugins.examples import CheckinPlugin
 
 # 配置日志
 logging.basicConfig(
@@ -20,8 +21,9 @@ app = Flask(__name__)
 base_url = "http://14.103.138.115:2531/v2/api"
 download_url = "http://14.103.138.115:2532/download"
 callback_url = "http://14.103.138.115:5432/callback"
-app_id = "wx_cwP_BogkA4zaHyP8k5aEt"
-token = "cd3382cb2e5145128db30342df28a6a5"
+app_id = "wx_s-dMlUFNk56cmVraJ59Q6"
+token = "e534251fa40b4981adf611d73f48ccac"
+
 # 创建 GewechatClient 实例
 client = GewechatClient(
     base_url,
@@ -30,43 +32,43 @@ client = GewechatClient(
     app_id,
     token,
 )
-# 创建消息工厂
-factory = MessageFactory(client)
+# 创建消息工厂，设置线程池大小
+factory = MessageFactory(client, max_workers=20)
+factory.load_plugin(CheckinPlugin)
+
+# 方法2：从目录加载外部插件
+# 确保plugins目录存在
+if os.path.exists("./plugins"):
+    plugins = factory.load_plugins_from_directory("./plugins")
+    logger.info(f"从外部目录加载了 {len(plugins)} 个插件")
+
+# 启用所有插件
+for plugin in factory.get_all_plugins():
+    factory.enable_plugin(plugin.name)
+    logger.info(f"已加载并启用插件: {plugin}")
 
 
-# 消息处理回调函数
 def on_message(message):
-    """处理所有类型的消息"""
-    logger.info(
-        f"收到消息: 类型={message.type.name}, 发送者={message.from_user}, 接收者={message.to_user}, RAW消息内容={message.raw_data}"
-    )
+    # 获取message对象的所有属性
+    attrs = [
+        attr
+        for attr in dir(message)
+        if not attr.startswith("_") and attr != "raw_data" and attr != "from_dict"
+    ]
+    # 构建属性信息字符串
+    attr_info = []
+    for attr in attrs:
+        try:
+            value = getattr(message, attr)
+            attr_info.append(f"{attr}={value}")
+        except Exception as e:
+            attr_info.append(f"{attr}=<获取失败: {str(e)}>")
+    # 打印所有属性信息
+    logger.info(f"收到{message.type.name}消息: {', '.join(attr_info)}")
 
-    # 根据消息类型做不同处理
     if message.type == MessageType.TEXT:
-        logger.info(f"文本内容: {message.text}")
-        # 这里可以添加更多处理逻辑，如关键词回复等
-    elif message.type == MessageType.EMOJI:
-        logger.info(f"表情内容: {message.emoji_md5}")
-    elif message.type == MessageType.IMAGE:
-        logger.info(f"图片下载链接: {message.img_download_url}")
-        # 可以进一步处理图片，如保存到本地、转发等
-
-    elif message.type == MessageType.VOICE:
-        logger.info(
-            f"语音长度: {message.voice_length}ms, 下载链接: {message.voice_url}"
-        )
-
-    elif message.type == MessageType.FILE:
-        logger.info("收到文件消息")
-        # 处理文件消息
-
-    elif message.type == MessageType.GROUP_RENAME:
-        logger.info("群名称被修改")
-        # 记录群名称变更
-
-    elif message.type == MessageType.OFFLINE:
-        logger.warning("微信账号掉线，wxid={message.wxid}")
-        # 可以发送通知给管理员
+        if message.text == "测试":
+            client.message.send_text(message.from_user, "测试成功")
 
 
 # 注册消息回调
@@ -84,13 +86,10 @@ def webhook():
             logger.error("接收到无效的请求数据")
             return jsonify({"status": "error", "message": "无效的请求数据"}), 400
 
-        # 处理消息
-        message = factory.process(data)
+        # 异步处理消息，立即返回响应，不阻塞HTTP请求
+        factory.process_async(data)
 
-        if not message:
-            logger.warning(f"无法识别的消息类型: {data.get('TypeName')}")
-
-        # 返回成功，避免微信重试
+        # 直接返回成功，异步处理消息不会影响响应速度
         return jsonify({"status": "success"}), 200
 
     except Exception as e:

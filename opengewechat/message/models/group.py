@@ -41,6 +41,9 @@ class GroupInviteMessage(BaseMessage):
             if "Content" in msg_data and "string" in msg_data["Content"]:
                 msg.content = msg_data["Content"]["string"]
 
+                # 处理群消息发送者
+                msg._process_group_message()
+
                 # 解析XML获取群邀请确认信息
                 try:
                     root = ET.fromstring(msg.content)
@@ -119,94 +122,79 @@ class GroupInvitedMessage(BaseMessage):
             if "Content" in msg_data and "string" in msg_data["Content"]:
                 msg.content = msg_data["Content"]["string"]
 
-                # 处理xml前缀
-                if ":" in msg.content and "<" in msg.content:
-                    # 尝试分离非XML前缀
-                    parts = msg.content.split(":", 1)
-                    if len(parts) == 2 and "<" in parts[1]:
-                        msg.content = parts[1]
+                # 处理群消息发送者
+                msg._process_group_message()
 
-                    # 解析XML获取群邀请信息
-                    try:
-                        root = ET.fromstring(msg.content)
-                        # 检查是否为系统消息
-                        if root.tag == "sysmsg":
-                            sysmsg_type = root.get("type", "")
+                # 解析XML获取群邀请信息
+                try:
+                    root = ET.fromstring(msg.content)
+                    # 检查是否为系统消息
+                    if root.tag == "sysmsg":
+                        sysmsg_type = root.get("type", "")
 
-                            # 处理sysmsgtemplate类型的群邀请消息
-                            if sysmsg_type == "sysmsgtemplate":
-                                template_node = root.find(".//template")
-                                if (
-                                    template_node is not None
-                                    and template_node.text
-                                    and "邀请你加入了群聊" in template_node.text
-                                ):
-                                    # 获取邀请人信息
-                                    username_link = root.find(
-                                        ".//link[@name='username']"
+                        # 处理sysmsgtemplate类型的群邀请消息
+                        if sysmsg_type == "sysmsgtemplate":
+                            template_node = root.find(".//template")
+                            if (
+                                template_node is not None
+                                and template_node.text
+                                and "邀请你加入了群聊" in template_node.text
+                            ):
+                                # 获取邀请人信息
+                                username_link = root.find(".//link[@name='username']")
+                                if username_link is not None:
+                                    member_node = username_link.find(
+                                        ".//memberlist/member"
                                     )
-                                    if username_link is not None:
-                                        member_node = username_link.find(
-                                            ".//memberlist/member"
-                                        )
-                                        if member_node is not None:
-                                            # 获取邀请人wxid
-                                            username_node = member_node.find("username")
-                                            if (
-                                                username_node is not None
-                                                and username_node.text
-                                            ):
-                                                msg.inviter_wxid = (
-                                                    username_node.text.strip(
-                                                        "![CDATA[]]"
-                                                    )
-                                                )
+                                    if member_node is not None:
+                                        # 获取邀请人wxid
+                                        username_node = member_node.find("username")
+                                        if (
+                                            username_node is not None
+                                            and username_node.text
+                                        ):
+                                            msg.inviter_wxid = username_node.text.strip(
+                                                "![CDATA[]]"
+                                            )
 
-                                            # 获取邀请人昵称
-                                            nickname_node = member_node.find("nickname")
-                                            if (
-                                                nickname_node is not None
-                                                and nickname_node.text
-                                            ):
-                                                msg.inviter_nickname = (
-                                                    nickname_node.text.strip(
-                                                        "![CDATA[]]"
-                                                    )
-                                                )
+                                        # 获取邀请人昵称
+                                        nickname_node = member_node.find("nickname")
+                                        if (
+                                            nickname_node is not None
+                                            and nickname_node.text
+                                        ):
+                                            msg.inviter_nickname = (
+                                                nickname_node.text.strip("![CDATA[]]")
+                                            )
 
-                                    # 获取其他群成员信息
-                                    others_link = root.find(".//link[@name='others']")
-                                    if others_link is not None:
-                                        members = others_link.findall(".//member")
-                                        for member in members:
-                                            # 获取成员昵称
-                                            nickname_node = member.find("nickname")
-                                            if (
-                                                nickname_node is not None
-                                                and nickname_node.text
-                                            ):
-                                                # 清理CDATA标记并添加成员昵称
-                                                msg.other_members.append(
-                                                    nickname_node.text.strip(
-                                                        "![CDATA[]]"
-                                                    )
-                                                )
+                                # 获取其他群成员信息
+                                others_link = root.find(".//link[@name='others']")
+                                if others_link is not None:
+                                    members = others_link.findall(".//member")
+                                    for member in members:
+                                        # 获取成员昵称
+                                        nickname_node = member.find("nickname")
+                                        if (
+                                            nickname_node is not None
+                                            and nickname_node.text
+                                        ):
+                                            # 清理CDATA标记并添加成员昵称
+                                            msg.other_members.append(
+                                                nickname_node.text.strip("![CDATA[]]")
+                                            )
 
-                                            # 获取成员wxid
-                                            username_node = member.find("username")
-                                            if (
-                                                username_node is not None
-                                                and username_node.text
-                                            ):
-                                                # 清理CDATA标记并添加成员wxid
-                                                msg.other_members_wxids.append(
-                                                    username_node.text.strip(
-                                                        "![CDATA[]]"
-                                                    )
-                                                )
-
-                    except Exception:
-                        pass
+                                        # 获取成员wxid
+                                        username_node = member.find("username")
+                                        if (
+                                            username_node is not None
+                                            and username_node.text
+                                        ):
+                                            # 清理CDATA标记并添加成员wxid
+                                            msg.other_members_wxids.append(
+                                                username_node.text.strip("![CDATA[]]")
+                                            )
+                except Exception:
+                    pass
 
         return msg
 
