@@ -9,6 +9,8 @@ from opengewechat.modules.tag import TagModule
 from opengewechat.modules.personal import PersonalModule
 from opengewechat.modules.favorite import FavoriteModule
 from opengewechat.modules.account import AccountModule
+from opengewechat.modules.sns import SnsModule
+from opengewechat.modules.finder import FinderModule
 import qrcode
 
 
@@ -40,6 +42,8 @@ class GewechatClient:
         personal: 个人信息模块
         favorite: 收藏模块
         account: 账号模块
+        sns: 朋友圈模块
+        finder: 视频号模块
     """
 
     def __init__(
@@ -76,6 +80,8 @@ class GewechatClient:
         self.personal = PersonalModule(self)
         self.favorite = FavoriteModule(self)
         self.account = AccountModule(self)
+        self.sns = SnsModule(self)
+        self.finder = FinderModule(self)
 
     def __str__(self):
         return f"GewechatClient(base_url={self.base_url}, download_url={self.download_url}, callback_url={self.callback_url}, app_id={self.app_id}, token={self.token})"

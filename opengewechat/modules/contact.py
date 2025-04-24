@@ -265,7 +265,65 @@ class ContactModule:
         return self.client.request("/contacts/setFriendRemark", data)
 
     def get_phone_address_list(self) -> Dict:
-        """获取手机通讯录
+        """获取手机通讯录列表
+
+        Returns:
+            Dict: Gewechat返回结果，格式如下:
+                {
+                    "ret": int,  # 返回码，200表示成功
+                    "msg": str,  # 返回信息
+                    "data": [
+                        {
+                            "name": str,  # 通讯录联系人名称
+                            "phoneNumber": str,  # 手机号码
+                            "wxContacts": List[Dict]  # 微信中存在的联系人信息
+                        }
+                    ]
+                }
+        """
+        data = {"appId": self.client.app_id}
+        return self.client.request("/contacts/getPhoneAddressList", data)
+
+    def check_relation(self, wxids: list) -> Dict:
+        """检测好友关系
+
+        Summary:
+            检测好友关系，支持批量检测
+
+        Args:
+            wxids (list): 好友的wxid列表，最多支持20个wxid
+
+        Returns:
+            Dict: Gewechat返回结果，格式如下:
+                {
+                    "ret": int,  # 返回码，200表示成功
+                    "msg": str,  # 返回信息
+                    "data": [
+                        {
+                            "wxid": str,  # 好友的wxid
+                            "relation": int  # 0:正常 1:删除 2:拉黑
+                        }
+                    ]
+                }
+        """
+        if not self.client.is_gewe:
+            return {
+                "ret": 403,
+                "msg": "该接口仅限付费版gewe调用，详情请见gewe文档：http://doc.geweapi.com/",
+                "data": None,
+            }
+        data = {"appId": self.client.app_id, "wxids": wxids}
+        return self.client.request("/contacts/checkRelation", data)
+
+    def im_search(self, scene: int, content: str) -> Dict:
+        """搜索企微
+
+        Summary:
+            搜索企微，支持企微二维码搜索
+
+        Args:
+            scene (int): 搜索类型 1：企微二维码
+            content (str): 企微二维码信息
 
         Returns:
             Dict: Gewechat返回结果，格式如下:
@@ -273,14 +331,117 @@ class ContactModule:
                     "ret": int,  # 返回码，200表示成功
                     "msg": str,  # 返回信息
                     "data": {
-                        "list": [
-                            {
-                                "name": str,  # 联系人姓名
-                                "mobile": str  # 联系人手机号
-                            }
-                        ]
+                        "nickName": str,  # 昵称
+                        "sex": int,  # 性别
+                        "signature": str,  # 签名
+                        "bigHeadImgUrl": str,  # 大头像链接
+                        "smallHeadImgUrl": str,  # 小头像链接
+                        "v3": str,  # v3
+                        "v4": str  # v4
                     }
                 }
         """
+        if not self.client.is_gewe:
+            return {
+                "ret": 403,
+                "msg": "该接口仅限付费版gewe调用，详情请见gewe文档：http://doc.geweapi.com/",
+                "data": None,
+            }
+        data = {"appId": self.client.app_id, "scene": scene, "content": content}
+        return self.client.request("/im/search", data)
+
+    def im_add(self, v3: str, v4: str) -> Dict:
+        """添加企微好友
+
+        Summary:
+            添加企微好友，需要先搜索获取v3和v4
+
+        Args:
+            v3 (str): 搜索接口返回的v3
+            v4 (str): 搜索接口返回的v4
+
+        Returns:
+            Dict: Gewechat返回结果，格式如下:
+                {
+                    "ret": int,  # 返回码，200表示成功
+                    "msg": str  # 返回信息
+                }
+        """
+        if not self.client.is_gewe:
+            return {
+                "ret": 403,
+                "msg": "该接口仅限付费版gewe调用，详情请见gewe文档：http://doc.geweapi.com/",
+                "data": None,
+            }
+        data = {"appId": self.client.app_id, "v3": v3, "v4": v4}
+        return self.client.request("/im/add", data)
+
+    def im_sync(self) -> Dict:
+        """同步企微好友
+
+        Summary:
+            同步企微好友列表
+
+        Returns:
+            Dict: Gewechat返回结果，格式如下:
+                {
+                    "ret": int,  # 返回码，200表示成功
+                    "msg": str,  # 返回信息
+                    "data": [
+                        {
+                            "userName": str,  # 企微号
+                            "nickName": str,  # 昵称
+                            "remark": str,  # 备注
+                            "bigHeadImg": str,  # 大头像
+                            "smallHeadImg": str,  # 小头像
+                            "appId": str,  # appid
+                            "descWordingId": str  # 所在企业id
+                        }
+                    ]
+                }
+        """
+        if not self.client.is_gewe:
+            return {
+                "ret": 403,
+                "msg": "该接口仅限付费版gewe调用，详情请见gewe文档：http://doc.geweapi.com/",
+                "data": None,
+            }
         data = {"appId": self.client.app_id}
-        return self.client.request("/contacts/getPhoneAddressList", data)
+        return self.client.request("/im/sync", data)
+
+    def im_detail(self, to_user_name: str) -> Dict:
+        """获取企微好友详情
+
+        Summary:
+            获取企微好友详细信息
+
+        Args:
+            to_user_name (str): 企微好友的userName
+
+        Returns:
+            Dict: Gewechat返回结果，格式如下:
+                {
+                    "ret": int,  # 返回码，200表示成功
+                    "msg": str,  # 返回信息
+                    "data": {
+                        "userName": str,  # 企微号
+                        "nickName": str,  # 昵称
+                        "remark": str,  # 备注
+                        "bigHeadImg": str,  # 头像地址
+                        "smallHeadImg": str,  # 头像地址小
+                        "appId": str,  # appid
+                        "descWordingId": str,  # 企业id
+                        "wording": str,  # 企业名称
+                        "wordingPinyin": str,  # 企业名称拼音
+                        "wordingQuanpin": str  # 企业名称全拼
+                    }
+                }
+        """
+        if not self.client.is_gewe:
+            return {
+                "ret": 403,
+                "msg": "该接口仅限付费版gewe调用，详情请见gewe文档：http://doc.geweapi.com/",
+                "data": None,
+            }
+        data = {"appId": self.client.app_id, "toUserName": to_user_name}
+        return self.client.request("/im/detail", data)

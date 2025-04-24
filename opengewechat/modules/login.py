@@ -41,6 +41,58 @@ class LoginModule:
         else:
             return response, False
 
+    def dialog_login(self, region_id: str, proxy_ip: str = "") -> Dict:
+        """弹框登录
+
+        Summary:
+            本接口一般用于主动下线后，需要重新登录时使用，和取码登录区别在于，一个是手机需要扫码，另一个是手机弹框确认登录。
+            调用本接口后手机会弹框确认登录页面，点确认后调用执行登录接口检测是否登录成功。
+
+            regionId：微信登陆地区ID，登录时请选择最近的地区，目前支持以下地区：
+            110000:北京市, 120000:天津市, 130000:河北省, 140000:山西省
+            310000:上海市, 320000:江苏省, 330000:浙江省, 340000:安徽省
+            350000:福建省, 360000:江西省, 370000:山东省, 410000:河南省
+            420000:湖北省, 430000:湖南省, 440000:广东省, 460000:海南省
+            500000:重庆市, 510000:四川省, 530000:云南省, 610000:陕西省
+
+            若目前支持的regionId中没有您所在的地区，可以自行采购socks5协议代理IP，填写到proxyIp参数中。
+
+            使用本接口登录并非100%成功，本接口返回失败后，可通过扫码登录的方式登录。
+            以下几种情况无法使用本接口登录：手机点击退出登录、新设备登录次日、官方风控下线。
+
+        Args:
+            region_id (str): 微信登录地区ID，如："320000"
+            proxy_ip (str, optional): 代理IP 格式：socks5://username:password@123.2.2.2. Defaults to "".
+
+        Returns:
+            Dict: Gewechat返回结果，格式如下:
+                {
+                    "ret": int,  # 返回码，200表示成功
+                    "msg": str,  # 返回信息
+                    "data": {
+                        "appId": str,  # 设备ID
+                        "uuid": str  # 二维码uuid，执行登录时会用到
+                    }
+                }
+        """
+        if not self.client.is_gewe:
+            return {
+                "ret": 403,
+                "msg": "该接口仅限付费版gewe调用，详情请见gewe文档：http://doc.geweapi.com/",
+                "data": None,
+            }
+
+        data = {"appId": self.client.app_id, "regionId": region_id, "proxyIp": proxy_ip}
+
+        response = self.client.request("/login/dialogLogin", data)
+        if response["ret"] == 200 and "data" in response:
+            # 更新客户端的appId和uuid
+            self.client.app_id = response["data"]["appId"]
+            self.client.uuid = response["data"]["uuid"]
+            return response, True
+        else:
+            return response, False
+
     def check_login(self) -> Dict:
         """执行登录
 
