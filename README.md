@@ -252,6 +252,28 @@ for plugin in all_plugins:
   - 联系人信息变更
   - 其他消息类型
 
+## 语音消息处理
+
+### 保存语音缓冲区为Silk文件
+
+接收到的语音消息有时会包含语音buffer数据，您可以使用VoiceMessage类的`save_voice_buffer_to_silk()`方法将其保存为silk文件：
+
+```python
+def on_message(message: BaseMessage) -> None:
+    # 处理语音消息
+    if message.type == MessageType.VOICE:
+        voice_msg = message  # 类型已经是VoiceMessage
+        
+        # 检查是否有语音buffer
+        if voice_msg.voice_buffer:
+            # 将语音buffer保存为silk文件
+            filepath = voice_msg.save_voice_buffer_to_silk()
+            if filepath:
+                print(f"语音文件已保存到: {filepath}")
+```
+
+完整示例请参考 [examples/save_voice_to_silk.py](examples/save_voice_to_silk.py)。
+
 ## 贡献
 
 欢迎提交Issue和Pull Request，共同改进OpenGewechat！

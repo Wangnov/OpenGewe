@@ -5,6 +5,6 @@
 
 from opengewechat.plugins.built_in.text_quote_plugin import TextQuotePlugin
 from opengewechat.plugins.built_in.message_logger_plugin import MessageLoggerPlugin
-from opengewechat.plugins.built_in.audio_to_silk_plugin import AudioToSilkPlugin
+from opengewechat.plugins.built_in.silk_convert_plugin import SilkConvertPlugin
 
-__all__ = ["TextQuotePlugin", "MessageLoggerPlugin", "AudioToSilkPlugin"]
+__all__ = ["TextQuotePlugin", "MessageLoggerPlugin", "SilkConvertPlugin"]

@@ -78,8 +78,14 @@ def on_message(message):
             client.message.send_voice(
                 message.from_user,
                 "http://14.103.138.115:5432/download/test.silk",
-                result["duration"],
+                1000,
             )
+    if message.type == MessageType.VOICE:
+        result = client.utils.convert_silk_to_audio(
+            message.save_voice_buffer_to_silk(),
+            "/root/opengewechat/downloads",
+        )
+        print(result)
 
 
 # 注册消息回调

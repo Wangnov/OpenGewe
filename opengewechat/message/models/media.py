@@ -131,6 +131,48 @@ class VoiceMessage(BaseMessage):
     voice_md5: str = ""  # 语音MD5值
     aes_key: str = ""  # AES密钥
 
+    def save_voice_buffer_to_silk(self, filename: str = None) -> str:
+        """将语音buffer保存为silk文件
+        
+        Args:
+            filename: 文件名，如果为None，则使用消息ID作为文件名
+            
+        Returns:
+            保存后的文件路径，如果保存失败则返回空字符串
+        """
+        import os
+        import hashlib
+        
+        if not self.voice_buffer:
+            return ""
+            
+        if not filename:
+            # 使用消息ID或生成一个基于内容的临时文件名
+            if self.msg_id:
+                filename = f"voice_{self.msg_id}.silk"
+            else:
+                # 使用buffer内容的哈希值作为文件名
+                hash_obj = hashlib.md5(self.voice_buffer)
+                filename = f"voice_{hash_obj.hexdigest()}.silk"
+        
+        # 确保filename有.silk扩展名
+        if not filename.endswith('.silk'):
+            filename += '.silk'
+            
+        # 确保下载目录存在
+        download_dir = os.path.join(os.getcwd(), "downloads")
+        os.makedirs(download_dir, exist_ok=True)
+        
+        filepath = os.path.join(download_dir, filename)
+        
+        try:
+            with open(filepath, "wb") as f:
+                f.write(self.voice_buffer)
+            return filepath
+        except Exception as e:
+            print(f"保存语音文件失败: {e}")
+            return ""
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any], client=None) -> "VoiceMessage":
         """从字典创建语音消息对象

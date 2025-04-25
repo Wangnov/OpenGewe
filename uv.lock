@@ -174,6 +174,7 @@ dependencies = [
     { name = "numpy" },
     { name = "pilk" },
     { name = "pyav" },
+    { name = "pydub" },
     { name = "requests" },
 ]
 
@@ -183,6 +184,7 @@ requires-dist = [
     { name = "numpy", specifier = ">=2.2.5" },
     { name = "pilk", specifier = ">=0.2.4" },
     { name = "pyav", specifier = ">=14.2.1" },
+    { name = "pydub", specifier = ">=0.25.1" },
     { name = "requests", specifier = ">=2.32.3" },
 ]
 
@@ -206,6 +208,15 @@ wheels = [
     { url = "https://mirrors.aliyun.com/pypi/packages/3e/12/730cf4691610f28353baf4d14d8b4855378a7c93ae0b0693b46ac53f9776/pyav-14.2.1-cp313-cp313-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:f41cf05bcddc9ed91a1015a49899181e47c24fe74dac93efa7472eef7ba04cb9" },
     { url = "https://mirrors.aliyun.com/pypi/packages/f2/77/375835a1317b4096f44659b2ec3d2c09cfc1de550865aa3a14e1fd59305c/pyav-14.2.1-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:800993f5b945450d6f2aaa3a4a14122f146b40bee2505c18f368400fb9eb482b" },
     { url = "https://mirrors.aliyun.com/pypi/packages/f8/9e/cbd16b4083955303a7f8b4690cab2e465dfaf5a2089156d3cf98bc22f0d0/pyav-14.2.1-cp313-cp313-win_amd64.whl", hash = "sha256:4167cc4e57e53794d22161448a8d66afe9ab5aab38c55a5cd06401edbcc9222a" },
+]
+
+[[package]]
+name = "pydub"
+version = "0.25.1"
+source = { registry = "https://mirrors.aliyun.com/pypi/simple" }
+sdist = { url = "https://mirrors.aliyun.com/pypi/packages/fe/9a/e6bca0eed82db26562c73b5076539a4a08d3cffd19c3cc5913a3e61145fd/pydub-0.25.1.tar.gz", hash = "sha256:980a33ce9949cab2a569606b65674d748ecbca4f0796887fd6f46173a7b0d30f" }
+wheels = [
+    { url = "https://mirrors.aliyun.com/pypi/packages/a6/53/d78dc063216e62fc55f6b2eebb447f6a4b0a59f55c8406376f76bf959b08/pydub-0.25.1-py2.py3-none-any.whl", hash = "sha256:65617e33033874b59d87db603aa1ed450633288aefead953b30bded59cb599a6" },
 ]
 
 [[package]]

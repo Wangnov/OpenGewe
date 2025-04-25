@@ -9,5 +9,6 @@ dependencies = [
     "numpy>=2.2.5",
     "pilk>=0.2.4",
     "pyav>=14.2.1",
+    "pydub>=0.25.1",
     "requests>=2.32.3",
 ]
