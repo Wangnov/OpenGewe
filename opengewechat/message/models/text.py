@@ -101,8 +101,9 @@ class QuoteMessage(BaseMessage):
                     content_node = root.find(".//content")
                     if content_node is not None and content_node.text:
                         msg.text = content_node.text
-                except Exception:
-                    # 解析失败时不影响消息处理
+                except Exception as e:
+                    # 解析失败时记录异常信息但不影响消息处理
+                    print(f"解析引用消息XML失败: {e}")
                     pass
 
         return msg

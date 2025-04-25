@@ -5,6 +5,8 @@
 
 from opengewechat.plugins.base_plugin import BasePlugin
 from opengewechat.plugins.plugin_manager import PluginManager
-from opengewechat.plugins.message_logger_plugin import MessageLoggerPlugin
+from opengewechat.plugins.built_in import __all__ as builtin_plugins_names
+from opengewechat.plugins.built_in import *  # noqa: F403
 
-__all__ = ["BasePlugin", "PluginManager", "MessageLoggerPlugin"]
+# 构建__all__列表
+__all__ = ["BasePlugin", "PluginManager"] + builtin_plugins_names

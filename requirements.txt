@@ -1,2 +1,4 @@
 requests>=2.25.0
 typing>=3.7.4 
+pilk>=0.2.4
+av>=14.2.1 

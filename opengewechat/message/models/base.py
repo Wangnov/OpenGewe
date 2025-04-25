@@ -19,6 +19,7 @@ class BaseMessage:
     to_user: str = ""  # 接收者ID
     content: str = ""  # 消息内容
     room_wxid: str = ""  # 群聊ID
+    actural_user_wxid: str = ""  # 实际发送者微信ID
     raw_data: Dict[str, Any] = field(default_factory=dict)  # 原始数据
 
     @property
@@ -78,5 +79,7 @@ class BaseMessage:
                     or "@" in sender_id
                 ):
                     # 更新发送者和内容
-                    self.from_user = sender_id
+                    self.actural_user_wxid = sender_id
                     self.content = real_content
+        else:
+            self.actural_user_wxid = self.from_user

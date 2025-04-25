@@ -55,10 +55,6 @@ class MessageLoggerPlugin(BasePlugin):
             handler.setFormatter(formatter)
             self.logger.addHandler(handler)
 
-        self.logger.info(
-            f"MessageLoggerPlugin 初始化完成，日志保存目录: {self.log_dir}"
-        )
-
     def can_handle(self, message: BaseMessage) -> bool:
         """判断是否可以处理该消息
 

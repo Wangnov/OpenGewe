@@ -45,13 +45,20 @@ class PluginManager:
     def _load_builtin_plugins(self):
         """加载内置插件"""
         try:
-            # 加载消息日志记录插件
-            from opengewechat.plugins.message_logger_plugin import MessageLoggerPlugin
+            # 直接从built_in包中导入所有内置插件
+            from opengewechat.plugins.built_in import __all__ as builtin_plugins
+            import opengewechat.plugins.built_in as built_in_module
 
-            logger_plugin = MessageLoggerPlugin(self.client)
-            self.plugins[logger_plugin.name] = logger_plugin
-            logger_plugin.on_load()
-            logging.info(f"内置插件 {logger_plugin.name} 已加载")
+            # 加载所有内置插件
+            for plugin_name in builtin_plugins:
+                # 获取插件类
+                plugin_cls = getattr(built_in_module, plugin_name)
+
+                # 实例化并加载插件
+                plugin = plugin_cls(self.client)
+                self.plugins[plugin.name] = plugin
+                plugin.on_load()
+                logging.info(f"内置插件 {plugin.name} 已加载")
         except Exception as e:
             logging.error(f"加载内置插件时出错: {e}")
 
@@ -261,9 +268,13 @@ class PluginManager:
             return False
 
         try:
-            logger_plugin = self.plugins["MessageLoggerPlugin"]
-            logger_plugin.change_log_directory(log_dir)
-            return True
+            plugin = self.plugins["MessageLoggerPlugin"]
+            if hasattr(plugin, "change_log_directory"):
+                plugin.change_log_directory(log_dir)
+                return True
+            else:
+                logging.error("消息日志记录插件不支持更改日志目录")
+                return False
         except Exception as e:
             logging.error(f"配置消息日志记录插件时出错: {e}")
             return False

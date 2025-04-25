@@ -21,7 +21,7 @@ class GewechatClient:
         base_url: 调用Gewechat服务的基础URL，通常为http://Gewechat部署的镜像ip:2531/v2/api
         download_url: 从Gewechat镜像中下载内容的URL，通常为http://Gewechat部署的镜像ip:2532/download。注意：如果你需要生成的下载链接为公网可以访问，则需要使用公网IP或域名
         callback_url: 自行搭建的回调服务器URL，用于接收微信发来的回调消息，注意: 回调地址不可为127.0.0.1
-        app_id: 需在Gewechat镜像内登录的设备ID
+        app_id: 在Gewechat镜像内登录的设备ID
         token: 登录token
         debug: 是否开启调试模式，默认关闭
         is_gewe: 是否使用付费版gewe，默认为False，当base_url是 http://api.geweapi.com/gewe/v2/api 时自动设为True

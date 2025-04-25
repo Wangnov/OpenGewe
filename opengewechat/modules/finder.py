@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Union, Any, Tuple
+from typing import Dict, List
 
 
 class FinderModule:
@@ -36,10 +36,7 @@ class FinderModule:
         if not self._check_is_gewe():
             return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
 
-        data = {
-            "appId": self.client.app_id,
-            "finderUsername": finder_username
-        }
+        data = {"appId": self.client.app_id, "finderUsername": finder_username}
         return self.client.request("/gewe/v2/api/finder/follow", data)
 
     def comment(self, vid: str, content: str) -> Dict:
@@ -55,11 +52,7 @@ class FinderModule:
         if not self._check_is_gewe():
             return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
 
-        data = {
-            "appId": self.client.app_id,
-            "vid": vid,
-            "content": content
-        }
+        data = {"appId": self.client.app_id, "vid": vid, "content": content}
         return self.client.request("/gewe/v2/api/finder/comment", data)
 
     def view(self, vid: str) -> Dict:
@@ -74,10 +67,7 @@ class FinderModule:
         if not self._check_is_gewe():
             return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
 
-        data = {
-            "appId": self.client.app_id,
-            "vid": vid
-        }
+        data = {"appId": self.client.app_id, "vid": vid}
         return self.client.request("/gewe/v2/api/finder/view", data)
 
     def get_user_profile(self, finder_username: str) -> Dict:
@@ -92,10 +82,7 @@ class FinderModule:
         if not self._check_is_gewe():
             return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
 
-        data = {
-            "appId": self.client.app_id,
-            "finderUsername": finder_username
-        }
+        data = {"appId": self.client.app_id, "finderUsername": finder_username}
         return self.client.request("/gewe/v2/api/finder/userProfile", data)
 
     def get_follow_list(self, page: int = 1, page_size: int = 20) -> Dict:
@@ -111,11 +98,7 @@ class FinderModule:
         if not self._check_is_gewe():
             return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
 
-        data = {
-            "appId": self.client.app_id,
-            "page": page,
-            "pageSize": page_size
-        }
+        data = {"appId": self.client.app_id, "page": page, "pageSize": page_size}
         return self.client.request("/gewe/v2/api/finder/followList", data)
 
     def get_message_list(self, page: int = 1, page_size: int = 20) -> Dict:
@@ -131,11 +114,7 @@ class FinderModule:
         if not self._check_is_gewe():
             return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
 
-        data = {
-            "appId": self.client.app_id,
-            "page": page,
-            "pageSize": page_size
-        }
+        data = {"appId": self.client.app_id, "page": page, "pageSize": page_size}
         return self.client.request("/gewe/v2/api/finder/messageList", data)
 
     def get_comment_list(self, vid: str, page: int = 1, page_size: int = 20) -> Dict:
@@ -156,7 +135,7 @@ class FinderModule:
             "appId": self.client.app_id,
             "vid": vid,
             "page": page,
-            "pageSize": page_size
+            "pageSize": page_size,
         }
         return self.client.request("/gewe/v2/api/finder/commentList", data)
 
@@ -173,11 +152,7 @@ class FinderModule:
         if not self._check_is_gewe():
             return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
 
-        data = {
-            "appId": self.client.app_id,
-            "page": page,
-            "pageSize": page_size
-        }
+        data = {"appId": self.client.app_id, "page": page, "pageSize": page_size}
         return self.client.request("/gewe/v2/api/finder/likeAndFavoriteList", data)
 
     def search(self, keyword: str, page: int = 1, page_size: int = 20) -> Dict:
@@ -198,7 +173,7 @@ class FinderModule:
             "appId": self.client.app_id,
             "keyword": keyword,
             "page": page,
-            "pageSize": page_size
+            "pageSize": page_size,
         }
         return self.client.request("/gewe/v2/api/finder/search", data)
 
@@ -216,17 +191,14 @@ class FinderModule:
         if not self._check_is_gewe():
             return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
 
-        data = {
-            "appId": self.client.app_id,
-            "name": name
-        }
-        
+        data = {"appId": self.client.app_id, "name": name}
+
         if intro:
             data["intro"] = intro
-            
+
         if avatar_url:
             data["avatarUrl"] = avatar_url
-            
+
         return self.client.request("/gewe/v2/api/finder/create", data)
 
     def sync_private_messages(self, finder_username: str) -> Dict:
@@ -241,10 +213,7 @@ class FinderModule:
         if not self._check_is_gewe():
             return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
 
-        data = {
-            "appId": self.client.app_id,
-            "finderUsername": finder_username
-        }
+        data = {"appId": self.client.app_id, "finderUsername": finder_username}
         return self.client.request("/gewe/v2/api/finder/syncPrivateMessages", data)
 
     def like_by_id(self, vid: str) -> Dict:
@@ -259,10 +228,7 @@ class FinderModule:
         if not self._check_is_gewe():
             return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
 
-        data = {
-            "appId": self.client.app_id,
-            "vid": vid
-        }
+        data = {"appId": self.client.app_id, "vid": vid}
         return self.client.request("/gewe/v2/api/finder/likeById", data)
 
     def heart_by_id(self, vid: str) -> Dict:
@@ -277,10 +243,7 @@ class FinderModule:
         if not self._check_is_gewe():
             return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
 
-        data = {
-            "appId": self.client.app_id,
-            "vid": vid
-        }
+        data = {"appId": self.client.app_id, "vid": vid}
         return self.client.request("/gewe/v2/api/finder/heartById", data)
 
     def get_my_finder_info(self) -> Dict:
@@ -292,12 +255,12 @@ class FinderModule:
         if not self._check_is_gewe():
             return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
 
-        data = {
-            "appId": self.client.app_id
-        }
+        data = {"appId": self.client.app_id}
         return self.client.request("/gewe/v2/api/finder/myFinderInfo", data)
 
-    def update_my_finder_info(self, name: str = None, intro: str = None, avatar_url: str = None) -> Dict:
+    def update_my_finder_info(
+        self, name: str = None, intro: str = None, avatar_url: str = None
+    ) -> Dict:
         """修改我的视频号信息
 
         Args:
@@ -311,19 +274,17 @@ class FinderModule:
         if not self._check_is_gewe():
             return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
 
-        data = {
-            "appId": self.client.app_id
-        }
-        
+        data = {"appId": self.client.app_id}
+
         if name is not None:
             data["name"] = name
-            
+
         if intro is not None:
             data["intro"] = intro
-            
+
         if avatar_url is not None:
             data["avatarUrl"] = avatar_url
-            
+
         return self.client.request("/gewe/v2/api/finder/updateMyFinderInfo", data)
 
     def send_finder_message(self, finder_username: str, content: str) -> Dict:
@@ -342,7 +303,7 @@ class FinderModule:
         data = {
             "appId": self.client.app_id,
             "finderUsername": finder_username,
-            "content": content
+            "content": content,
         }
         return self.client.request("/gewe/v2/api/finder/sendFinderMessage", data)
 
@@ -359,14 +320,11 @@ class FinderModule:
         if not self._check_is_gewe():
             return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
 
-        data = {
-            "appId": self.client.app_id,
-            "content": content
-        }
-        
+        data = {"appId": self.client.app_id, "content": content}
+
         if media_urls:
             data["mediaUrls"] = media_urls
-            
+
         return self.client.request("/gewe/v2/api/finder/sendFinderMoment", data)
 
     def get_private_chat_user_info(self, finder_username: str) -> Dict:
@@ -381,12 +339,9 @@ class FinderModule:
         if not self._check_is_gewe():
             return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
 
-        data = {
-            "appId": self.client.app_id,
-            "finderUsername": finder_username
-        }
+        data = {"appId": self.client.app_id, "finderUsername": finder_username}
         return self.client.request("/gewe/v2/api/finder/getPrivateChatUserInfo", data)
-        
+
     def send_private_text_message(self, finder_username: str, content: str) -> Dict:
         """发送私信文本消息
 
@@ -403,10 +358,10 @@ class FinderModule:
         data = {
             "appId": self.client.app_id,
             "finderUsername": finder_username,
-            "content": content
+            "content": content,
         }
         return self.client.request("/gewe/v2/api/finder/sendPrivateTextMessage", data)
-        
+
     def send_private_image_message(self, finder_username: str, image_url: str) -> Dict:
         """发送私信图片消息
 
@@ -423,10 +378,10 @@ class FinderModule:
         data = {
             "appId": self.client.app_id,
             "finderUsername": finder_username,
-            "imageUrl": image_url
+            "imageUrl": image_url,
         }
         return self.client.request("/gewe/v2/api/finder/sendPrivateImageMessage", data)
-        
+
     def scan_follow(self, qrcode_url: str) -> Dict:
         """扫码关注视频号
 
@@ -439,12 +394,9 @@ class FinderModule:
         if not self._check_is_gewe():
             return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
 
-        data = {
-            "appId": self.client.app_id,
-            "qrcodeUrl": qrcode_url
-        }
+        data = {"appId": self.client.app_id, "qrcodeUrl": qrcode_url}
         return self.client.request("/gewe/v2/api/finder/scanFollow", data)
-        
+
     def search_and_follow(self, keyword: str) -> Dict:
         """搜索并关注视频号
 
@@ -457,12 +409,9 @@ class FinderModule:
         if not self._check_is_gewe():
             return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
 
-        data = {
-            "appId": self.client.app_id,
-            "keyword": keyword
-        }
+        data = {"appId": self.client.app_id, "keyword": keyword}
         return self.client.request("/gewe/v2/api/finder/searchAndFollow", data)
-        
+
     def scan_view(self, qrcode_url: str) -> Dict:
         """扫码浏览视频号
 
@@ -475,12 +424,9 @@ class FinderModule:
         if not self._check_is_gewe():
             return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
 
-        data = {
-            "appId": self.client.app_id,
-            "qrcodeUrl": qrcode_url
-        }
+        data = {"appId": self.client.app_id, "qrcodeUrl": qrcode_url}
         return self.client.request("/gewe/v2/api/finder/scanView", data)
-        
+
     def scan_comment(self, qrcode_url: str, content: str) -> Dict:
         """扫码评论视频号
 
@@ -497,10 +443,10 @@ class FinderModule:
         data = {
             "appId": self.client.app_id,
             "qrcodeUrl": qrcode_url,
-            "content": content
+            "content": content,
         }
         return self.client.request("/gewe/v2/api/finder/scanComment", data)
-        
+
     def scan_like(self, qrcode_url: str) -> Dict:
         """扫码点赞视频号
 
@@ -513,12 +459,9 @@ class FinderModule:
         if not self._check_is_gewe():
             return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
 
-        data = {
-            "appId": self.client.app_id,
-            "qrcodeUrl": qrcode_url
-        }
+        data = {"appId": self.client.app_id, "qrcodeUrl": qrcode_url}
         return self.client.request("/gewe/v2/api/finder/scanLike", data)
-        
+
     def scan_heart(self, qrcode_url: str) -> Dict:
         """扫码点小红心
 
@@ -531,13 +474,12 @@ class FinderModule:
         if not self._check_is_gewe():
             return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
 
-        data = {
-            "appId": self.client.app_id,
-            "qrcodeUrl": qrcode_url
-        }
+        data = {"appId": self.client.app_id, "qrcodeUrl": qrcode_url}
         return self.client.request("/gewe/v2/api/finder/scanHeart", data)
-        
-    def delay_like_heart(self, vid: str, delay_seconds: int = 60, action_type: str = "like") -> Dict:
+
+    def delay_like_heart(
+        self, vid: str, delay_seconds: int = 60, action_type: str = "like"
+    ) -> Dict:
         """延迟点赞、小红心
 
         Args:
@@ -555,10 +497,10 @@ class FinderModule:
             "appId": self.client.app_id,
             "vid": vid,
             "delaySeconds": delay_seconds,
-            "actionType": action_type
+            "actionType": action_type,
         }
         return self.client.request("/gewe/v2/api/finder/delayLikeHeart", data)
-        
+
     def scan_login_assistant(self, qrcode_url: str) -> Dict:
         """扫码登录视频号助手
 
@@ -571,12 +513,9 @@ class FinderModule:
         if not self._check_is_gewe():
             return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
 
-        data = {
-            "appId": self.client.app_id,
-            "qrcodeUrl": qrcode_url
-        }
+        data = {"appId": self.client.app_id, "qrcodeUrl": qrcode_url}
         return self.client.request("/gewe/v2/api/finder/scanLoginAssistant", data)
-        
+
     def scan_get_video_detail(self, qrcode_url: str) -> Dict:
         """扫码获取视频详情
 
@@ -589,12 +528,9 @@ class FinderModule:
         if not self._check_is_gewe():
             return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
 
-        data = {
-            "appId": self.client.app_id,
-            "qrcodeUrl": qrcode_url
-        }
+        data = {"appId": self.client.app_id, "qrcodeUrl": qrcode_url}
         return self.client.request("/gewe/v2/api/finder/scanGetVideoDetail", data)
-        
+
     def get_my_finder_qrcode(self) -> Dict:
         """获取我的视频号二维码
 
@@ -604,12 +540,12 @@ class FinderModule:
         if not self._check_is_gewe():
             return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
 
-        data = {
-            "appId": self.client.app_id
-        }
+        data = {"appId": self.client.app_id}
         return self.client.request("/gewe/v2/api/finder/myFinderQrcode", data)
-        
-    def upload_cdn_video(self, video_url: str, thumb_url: str = None, title: str = None) -> Dict:
+
+    def upload_cdn_video(
+        self, video_url: str, thumb_url: str = None, title: str = None
+    ) -> Dict:
         """上传CDN视频
 
         Args:
@@ -623,20 +559,23 @@ class FinderModule:
         if not self._check_is_gewe():
             return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
 
-        data = {
-            "appId": self.client.app_id,
-            "videoUrl": video_url
-        }
-        
+        data = {"appId": self.client.app_id, "videoUrl": video_url}
+
         if thumb_url:
             data["thumbUrl"] = thumb_url
-            
+
         if title:
             data["title"] = title
-            
+
         return self.client.request("/gewe/v2/api/finder/uploadCdnVideo", data)
-        
-    def publish_cdn_video(self, video_id: str, title: str = None, description: str = None, tags: List[str] = None) -> Dict:
+
+    def publish_cdn_video(
+        self,
+        video_id: str,
+        title: str = None,
+        description: str = None,
+        tags: List[str] = None,
+    ) -> Dict:
         """发布CDN视频
 
         Args:
@@ -651,24 +590,27 @@ class FinderModule:
         if not self._check_is_gewe():
             return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
 
-        data = {
-            "appId": self.client.app_id,
-            "videoId": video_id
-        }
-        
+        data = {"appId": self.client.app_id, "videoId": video_id}
+
         if title:
             data["title"] = title
-            
+
         if description:
             data["description"] = description
-            
+
         if tags:
             data["tags"] = tags
-            
+
         return self.client.request("/gewe/v2/api/finder/publishCdnVideo", data)
-        
-    def publish_video(self, video_url: str, thumb_url: str = None, title: str = None, 
-                     description: str = None, tags: List[str] = None) -> Dict:
+
+    def publish_video(
+        self,
+        video_url: str,
+        thumb_url: str = None,
+        title: str = None,
+        description: str = None,
+        tags: List[str] = None,
+    ) -> Dict:
         """发布视频
 
         Args:
@@ -684,27 +626,31 @@ class FinderModule:
         if not self._check_is_gewe():
             return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
 
-        data = {
-            "appId": self.client.app_id,
-            "videoUrl": video_url
-        }
-        
+        data = {"appId": self.client.app_id, "videoUrl": video_url}
+
         if thumb_url:
             data["thumbUrl"] = thumb_url
-            
+
         if title:
             data["title"] = title
-            
+
         if description:
             data["description"] = description
-            
+
         if tags:
             data["tags"] = tags
-            
+
         return self.client.request("/gewe/v2/api/finder/publishVideo", data)
-        
-    def publish_video_new(self, video_url: str, thumb_url: str = None, title: str = None,
-                        description: str = None, tags: List[str] = None, location: str = None) -> Dict:
+
+    def publish_video_new(
+        self,
+        video_url: str,
+        thumb_url: str = None,
+        title: str = None,
+        description: str = None,
+        tags: List[str] = None,
+        location: str = None,
+    ) -> Dict:
         """发布视频-新
 
         Args:
@@ -721,24 +667,21 @@ class FinderModule:
         if not self._check_is_gewe():
             return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
 
-        data = {
-            "appId": self.client.app_id,
-            "videoUrl": video_url
-        }
-        
+        data = {"appId": self.client.app_id, "videoUrl": video_url}
+
         if thumb_url:
             data["thumbUrl"] = thumb_url
-            
+
         if title:
             data["title"] = title
-            
+
         if description:
             data["description"] = description
-            
+
         if tags:
             data["tags"] = tags
-            
+
         if location:
             data["location"] = location
-            
-        return self.client.request("/gewe/v2/api/finder/publishVideoNew", data) 
+
+        return self.client.request("/gewe/v2/api/finder/publishVideoNew", data)

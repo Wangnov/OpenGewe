@@ -226,18 +226,6 @@ for plugin in all_plugins:
     print(f"插件: {plugin.name}, 状态: {'启用' if plugin.enabled else '禁用'}")
 ```
 
-### 内置示例插件
-
-OpenGewechat 提供了一些示例插件，位于 `opengewechat.plugins.examples` 包中：
-
-- `CheckinPlugin`: 当收到"签到"消息时回复"签到成功"
-
-你可以参考这些示例插件来创建自己的插件。
-
-### 完整示例
-
-请查看 `plugin_example.py` 文件，了解如何在实际应用中使用插件系统。
-
 ## 待办事项
 
 - [ ] 实现31种消息类型的完整模型参数，包括：

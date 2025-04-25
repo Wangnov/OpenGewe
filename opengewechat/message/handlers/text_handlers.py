@@ -1,6 +1,7 @@
 """文本相关消息处理器"""
 
 from typing import Dict, Any, Optional
+import xml.etree.ElementTree as ET
 
 from opengewechat.message.models import BaseMessage, TextMessage, QuoteMessage
 from opengewechat.message.handlers.base_handler import BaseHandler
@@ -42,9 +43,18 @@ class QuoteHandler(BaseHandler):
 
         content = data["Data"].get("Content", {}).get("string", "")
         try:
-            import xml.etree.ElementTree as ET
+            # 处理可能包含非XML前缀的内容（如"chatroom:"或"wxid_xxx:\n"）
+            xml_content = content
 
-            root = ET.fromstring(content)
+            # 处理群聊消息中的发送者前缀
+            if ":" in content and "<" in content:
+                # 尝试分离发送者ID和实际内容
+                parts = content.split(":", 1)
+                if len(parts) == 2 and "<" in parts[1]:
+                    # 去除可能的换行符
+                    xml_content = parts[1].strip()
+
+            root = ET.fromstring(xml_content)
             appmsg = root.find(".//appmsg")
             if appmsg is None:
                 return False
