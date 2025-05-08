@@ -100,7 +100,7 @@ from opengewechat import GewechatClient
 # 创建Gewe客户端实例
 client = GewechatClient(
     base_url="http://api.geweapi.com/gewe/v2/api",  # Gewe API地址
-    download_url="http://api.geweapi.com/gewe/download",  # Gewe下载链接
+    download_url="",  # Gewe无需传入下载链接头
     callback_url="http://your_callback_server/callback",  # 您的回调服务器
     app_id="your_app_id",  # Gewe提供的app_id
     token="your_token",  # Gewe提供的token
