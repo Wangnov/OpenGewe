@@ -33,6 +33,7 @@ class MessageLoggerPlugin(BasePlugin):
         self.description = "消息日志记录插件，记录所有接收到的消息到日志文件中"
         self.version = "1.0.0"
         self.enabled = True  # 默认启用
+        self._loaded = False  # 用于标记插件是否已经加载过
 
         # 设置日志目录
         if log_dir:
@@ -54,6 +55,17 @@ class MessageLoggerPlugin(BasePlugin):
             )
             handler.setFormatter(formatter)
             self.logger.addHandler(handler)
+
+    def on_load(self) -> None:
+        """插件加载时调用"""
+        super().on_load()
+
+        # 只有首次加载时才输出日志信息
+        if not self._loaded:
+            self.logger.info(
+                f"MessageLoggerPlugin 初始化完成，日志保存目录: {self.log_dir}"
+            )
+            self._loaded = True
 
     def can_handle(self, message: BaseMessage) -> bool:
         """判断是否可以处理该消息

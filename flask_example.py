@@ -1,5 +1,5 @@
 """
-Flask服务器示例：使用opengewechat.message处理微信回调消息
+Flask服务器示例
 """
 
 from flask import Flask, request, jsonify, send_from_directory
@@ -16,12 +16,12 @@ logger = logging.getLogger(__name__)
 # 创建Flask应用
 app = Flask(__name__)
 
-# 配置参数
-base_url = "http://14.103.138.115:2531/v2/api"
-download_url = "http://14.103.138.115:2532/download"
-callback_url = "http://14.103.138.115:5432/callback"
-app_id = "wx_s-dMlUFNk56cmVraJ59Q6"
-token = "e534251fa40b4981adf611d73f48ccac"
+# 配置参数，这里需要登录后传入有效的app_id和token
+base_url = "http://ip:2531/v2/api"
+download_url = "http://ip:2532/download"
+callback_url = "http://ip:5432/callback"
+app_id = ""
+token = ""
 
 # 创建 GewechatClient 实例
 client = GewechatClient(
@@ -34,17 +34,27 @@ client = GewechatClient(
 # 创建消息工厂，设置线程池大小
 factory = MessageFactory(client, max_workers=20)
 
-# 方法2：从目录加载外部插件
-# 确保plugins目录存在
+# 获取所有已加载的内置插件名称列表，避免重复加载
+loaded_plugin_names = [p.name for p in factory.get_all_plugins()]
+logger.info(f"已加载的内置插件: {loaded_plugin_names}")
+
+# 方法2：从目录加载外部插件（避免重复加载内置插件）
 if os.path.exists("./plugins"):
+    # 只加载不在已加载列表中的外部插件
     plugins = factory.load_plugins_from_directory("./plugins")
-    logger.info(f"从外部目录加载了 {len(plugins)} 个插件")
+
+    # 计算新加载的插件数量
+    new_plugin_names = [p.name for p in plugins if p.name not in loaded_plugin_names]
+    logger.info(
+        f"从外部目录加载了 {len(new_plugin_names)} 个新插件: {new_plugin_names}"
+    )
 
 # 启用所有插件
 for plugin in factory.get_all_plugins():
     factory.enable_plugin(plugin.name)
 
 
+# 消息回调函数
 def on_message(message):
     # 获取message对象的所有属性
     attrs = [
@@ -77,15 +87,9 @@ def on_message(message):
             print(result)
             client.message.send_voice(
                 message.from_user,
-                "http://14.103.138.115:5432/download/test.silk",
-                1000,
+                "http://ip:5432/download/test.silk",
+                result["duration"],
             )
-    if message.type == MessageType.VOICE:
-        result = client.utils.convert_silk_to_audio(
-            message.save_voice_buffer_to_silk(),
-            "/root/opengewechat/downloads",
-        )
-        print(result)
 
 
 # 注册消息回调

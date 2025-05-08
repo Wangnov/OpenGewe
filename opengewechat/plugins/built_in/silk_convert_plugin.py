@@ -37,9 +37,7 @@ class SilkConvertPlugin(BasePlugin):
         """
         super().__init__(client)
         self.name = "AudioToSilkPlugin"
-        self.description = (
-            "为utils模块增加音频与silk格式之间的相互转换方法"
-        )
+        self.description = "为utils模块增加音频与silk格式之间的相互转换方法"
         self.version = "0.1.1"
 
     def on_load(self) -> None:
@@ -98,37 +96,41 @@ class SilkConvertPlugin(BasePlugin):
 
         # 先获取音频文件信息
         probe_cmd = [
-            'ffprobe',
-            '-v', 'error',
-            '-show_entries', 'format=duration:stream=sample_rate',
-            '-of', 'json',
-            input_path
+            "ffprobe",
+            "-v",
+            "error",
+            "-show_entries",
+            "format=duration:stream=sample_rate",
+            "-of",
+            "json",
+            input_path,
         ]
-        
+
         try:
             probe_result = subprocess.run(
                 probe_cmd,
                 check=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                text=True
+                text=True,
             )
-            
+
             # 解析JSON输出
             import json
+
             info = json.loads(probe_result.stdout)
-            
+
             # 获取采样率和时长
             try:
                 # 尝试从音频流获取采样率
-                original_sample_rate = int(info['streams'][0]['sample_rate'])
+                original_sample_rate = int(info["streams"][0]["sample_rate"])
             except (KeyError, IndexError, ValueError):
                 # 如果失败，使用默认采样率24000
                 original_sample_rate = 24000
-                
+
             try:
                 # 获取时长（秒）并转换为毫秒
-                duration_sec = float(info['format']['duration'])
+                duration_sec = float(info["format"]["duration"])
                 duration_ms = int(duration_sec * 1000)
             except (KeyError, ValueError):
                 # 如果无法获取时长，使用默认值
@@ -137,25 +139,27 @@ class SilkConvertPlugin(BasePlugin):
             # 如果ffprobe失败，使用默认值
             original_sample_rate = 24000
             duration_ms = 0
-            
+
         # 转换为PCM (signed 16-bit little-endian, 单声道)
         convert_cmd = [
-            'ffmpeg',
-            '-i', input_path,
-            '-f', 's16le',          # 输出格式：16位有符号小端PCM
-            '-acodec', 'pcm_s16le', # 编码器
-            '-ar', str(original_sample_rate),  # 保持原始采样率
-            '-ac', '1',             # 单声道
-            '-y',                   # 覆盖输出文件
-            tmp_pcm_path
+            "ffmpeg",
+            "-i",
+            input_path,
+            "-f",
+            "s16le",  # 输出格式：16位有符号小端PCM
+            "-acodec",
+            "pcm_s16le",  # 编码器
+            "-ar",
+            str(original_sample_rate),  # 保持原始采样率
+            "-ac",
+            "1",  # 单声道
+            "-y",  # 覆盖输出文件
+            tmp_pcm_path,
         ]
-        
+
         try:
             subprocess.run(
-                convert_cmd,
-                check=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
+                convert_cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
             )
         except subprocess.CalledProcessError as e:
             raise RuntimeError(f"FFmpeg转换失败: {e.stderr.decode('utf-8')}")
@@ -243,10 +247,10 @@ class SilkConvertPlugin(BasePlugin):
             }
 
     def convert_silk_to_audio(
-        self, 
-        input_path: str, 
-        output_dir: str, 
-        format: Literal["mp3", "m4a", "wav"] = "mp3"
+        self,
+        input_path: str,
+        output_dir: str,
+        format: Literal["mp3", "m4a", "wav"] = "mp3",
     ) -> Dict:
         """将Silk格式音频文件转换为常规音频格式
 
@@ -289,14 +293,16 @@ class SilkConvertPlugin(BasePlugin):
                 sample_rate = 24000
                 pilk.decode(input_path, pcm_path)
 
-                # 使用Pydub将PCM转换为目标格式
+                # 使用ffmpeg将PCM转换为目标格式
                 try:
                     self._pcm_to_audio(pcm_path, output_path, sample_rate, format)
                 except Exception as e:
                     # 如果首选格式失败，尝试回退到wav格式
                     if format != "wav":
                         fallback_output = os.path.splitext(output_path)[0] + ".wav"
-                        self._pcm_to_audio(pcm_path, fallback_output, sample_rate, "wav")
+                        self._pcm_to_audio(
+                            pcm_path, fallback_output, sample_rate, "wav"
+                        )
                         return {
                             "success": True,
                             "file_path": fallback_output,
@@ -322,7 +328,9 @@ class SilkConvertPlugin(BasePlugin):
                 "message": f"转换过程中出错: {str(e)}",
             }
 
-    def _pcm_to_audio(self, pcm_path: str, output_path: str, sample_rate: int, format: str) -> None:
+    def _pcm_to_audio(
+        self, pcm_path: str, output_path: str, sample_rate: int, format: str
+    ) -> None:
         """将PCM数据转换为指定的音频格式，使用FFmpeg以最高质量设置
 
         Args:
@@ -332,49 +340,53 @@ class SilkConvertPlugin(BasePlugin):
             format: 输出格式，支持"mp3"、"m4a"和"wav"
         """
         # 针对不同格式设置最高质量参数
-        if format == 'mp3':
+        if format == "mp3":
             # 对MP3使用最高质量设置
             quality_args = [
-                '-codec:a', 'libmp3lame',
-                '-qscale:a', '0',  # 最高质量 (0-9, 0最好)
-                '-b:a', '256k'     # 最高比特率
+                "-codec:a",
+                "libmp3lame",
+                "-qscale:a",
+                "0",  # 最高质量 (0-9, 0最好)
+                "-b:a",
+                "256k",  # 最高比特率
             ]
-        elif format == 'm4a':
+        elif format == "m4a":
             # 对M4A/AAC使用高质量设置
             quality_args = [
-                '-codec:a', 'aac',
-                '-b:a', '256k',    # 高比特率
-                '-vbr', '5'        # 高质量VBR模式 (1-5, 5最好)
+                "-codec:a",
+                "aac",
+                "-b:a",
+                "256k",  # 高比特率
+                "-vbr",
+                "5",  # 高质量VBR模式 (1-5, 5最好)
             ]
-        elif format == 'wav':
+        elif format == "wav":
             # 对WAV使用无损设置
-            quality_args = [
-                '-codec:a', 'pcm_s16le',
-                '-ar', str(sample_rate)
-            ]
+            quality_args = ["-codec:a", "pcm_s16le", "-ar", str(sample_rate)]
         else:
             # 默认高质量设置
-            quality_args = ['-codec:a', 'aac', '-b:a', '256k']
-        
+            quality_args = ["-codec:a", "aac", "-b:a", "256k"]
+
         # 构建FFmpeg命令
         cmd = [
-            'ffmpeg',
-            '-f', 's16le',        # 输入格式：有符号16位小端PCM
-            '-ar', str(sample_rate),  # 采样率
-            '-ac', '1',           # 通道数：单声道
-            '-i', pcm_path,       # 输入文件
-            *quality_args,        # 质量参数
-            '-y',                 # 覆盖输出文件
-            output_path           # 输出文件
+            "ffmpeg",
+            "-f",
+            "s16le",  # 输入格式：有符号16位小端PCM
+            "-ar",
+            str(sample_rate),  # 采样率
+            "-ac",
+            "1",  # 通道数：单声道
+            "-i",
+            pcm_path,  # 输入文件
+            *quality_args,  # 质量参数
+            "-y",  # 覆盖输出文件
+            output_path,  # 输出文件
         ]
-        
+
         # 执行FFmpeg命令
         try:
             subprocess.run(
-                cmd, 
-                check=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
+                cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
             )
         except subprocess.CalledProcessError as e:
             raise RuntimeError(f"FFmpeg转换失败: {e.stderr.decode('utf-8')}")

@@ -60,3 +60,6 @@ OGLogs/
 .env.development.local
 .env.test.local
 .env.production.local
+
+# uv
+uv.lock

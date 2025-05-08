@@ -1,10 +1,16 @@
-"""内置插件
+"""内置插件包
 
-此包包含opengewechat的内置插件，这些插件提供基本功能。
+此包中包含了OpenGewechat的内置插件。
 """
 
 from opengewechat.plugins.built_in.text_quote_plugin import TextQuotePlugin
 from opengewechat.plugins.built_in.message_logger_plugin import MessageLoggerPlugin
 from opengewechat.plugins.built_in.silk_convert_plugin import SilkConvertPlugin
+from opengewechat.plugins.built_in.emoji_annotation_plugin import EmojiAnnotationPlugin
 
-__all__ = ["TextQuotePlugin", "MessageLoggerPlugin", "SilkConvertPlugin"]
+__all__ = [
+    "TextQuotePlugin",
+    "MessageLoggerPlugin",
+    "SilkConvertPlugin",
+    "EmojiAnnotationPlugin",
+]
