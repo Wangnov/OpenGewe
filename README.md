@@ -2,7 +2,7 @@
 
 ![Logo](https://github.com/Devo919/Gewechat/raw/main/logo.png)
 
-> 基于Gewechat和Gewe的开源微信机器人框架，提供简单易用的微信自动化解决方案
+> 基于Gewechat和GeWeAPI的开源微信机器人框架，提供简单易用的微信自动化解决方案
 
 ## 项目状态
 
@@ -21,22 +21,23 @@ OpenGeWechat是一个基于[Gewechat](https://github.com/Devo919/Gewechat)的微
 - 🔌 **插件系统**：可扩展的插件架构，轻松开发自定义功能
 - 🔄 **API集成**：提供RESTful API，方便与其他系统集成
 - 📊 **数据分析**：消息记录分析，用户行为统计等功能
-- 📱 **朋友圈操作(Gewe)**：支持发布朋友圈内容、浏览朋友圈等
+- 📱 **朋友圈操作(GeWeAPI)**：支持发布朋友圈内容、浏览朋友圈等
 - 💾 **收藏管理**：微信收藏内容的获取与管理
-- 📺 **视频号交互(Gewe)**：支持视频号相关的操作
+- 📺 **视频号交互(GeWeAPI)**：支持视频号相关的操作
 
 ## 兼容性说明
 
-本项目完全兼容Gewechat付费版本[Gewe](https://geweapi.com)。由于原项目暂停维护，我们建议用户转向使用Gewe以获得持续的支持和更新。使用Gewe API只需修改`base_url`为：`http://api.geweapi.com/gewe/v2/api`，系统会自动识别并切换到付费版模式。
+本项目**计划**完全兼容Gewechat付费版本[GeWeAPI](https://geweapi.com)。由于原项目暂停维护，我们建议用户转向使用GeWeAPI以获得持续的支持和更新。使用GeWeAPI只需修改`base_url`为：`http://api.geweapi.com/gewe/v2/api`，系统会自动识别并切换到付费版模式。
 
-## 迁移到Gewe
+## 迁移到GeWeAPI
 
-如果您希望继续使用本项目的功能，可以按照以下步骤迁移到Gewe:
+如果您希望继续使用本项目的功能，可以按照以下步骤迁移到GeWeAPI:
 
-1. 访问[Gewe官方网站](https://geweapi.com)注册账号
-2. 获取Gewe的API密钥
-3. 在配置中将`base_url`修改为Gewe API地址：`http://api.geweapi.com/gewe/v2/api`
-4. 使用Gewe提供的token和其他凭据
+1. 访问[GeWeAPI官方网站](https://geweapi.com)注册账号
+2. 获取GeWeAPI的token
+3. 在配置中将`base_url`修改为Gewe API地址：`http://api.geweapi.com/gewe/v2/api` 或备用地址（GeWeAPI管理后台中显示的）
+4. 在GeWeAPI中扫码登录微信账号，获得app_id
+5. 对此token设置回调地址
 
 ## 安装与使用
 
