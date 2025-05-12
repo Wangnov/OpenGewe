@@ -5,6 +5,8 @@ Flask服务器示例
 from flask import Flask, request, jsonify, send_from_directory
 import logging
 import os
+import shutil
+import tomllib
 from opengewechat import MessageFactory, GewechatClient, MessageType
 
 # 配置日志
@@ -16,20 +18,28 @@ logger = logging.getLogger(__name__)
 # 创建Flask应用
 app = Flask(__name__)
 
-# 配置参数，这里需要登录后传入有效的app_id和token
-base_url = "http://ip:2531/v2/api"
-download_url = "http://ip:2532/download"
-callback_url = "http://ip:5432/callback"
-app_id = ""
-token = ""
+# 验证main_config.toml配置文件是否存在，如果不存在则复制main_config_example.toml文件到当前目录
+if not os.path.exists("main_config.toml"):
+    logger.error("main_config.toml配置文件不存在，请检查文件是否存在")
+    shutil.copy("main_config_example.toml", "main_config.toml")
+    logger.info(
+        "已复制main_config_example.toml文件到当前目录，请修改main_config.toml文件后重新启动"
+    )
+    exit(1)
 
+# 从main_config.toml配置文件中读取配置参数，参数配置的说明详见main_config.toml文件中的说明
+with open("main_config.toml", "rb") as f:
+    config = tomllib.load(f)
+
+base_url = config["gewe"]["base_url"]
+download_url = config["gewe"]["download_url"]
+callback_url = config["gewe"]["callback_url"]
+app_id = config["gewe"]["app_id"]
+token = config["gewe"]["token"]
+is_gewe = config["gewe"]["is_gewe"]
 # 创建 GewechatClient 实例
 client = GewechatClient(
-    base_url,
-    download_url,
-    callback_url,
-    app_id,
-    token,
+    base_url, download_url, callback_url, app_id, token, is_gewe=is_gewe
 )
 # 创建消息工厂，设置线程池大小
 factory = MessageFactory(client, max_workers=20)
@@ -38,16 +48,16 @@ factory = MessageFactory(client, max_workers=20)
 loaded_plugin_names = [p.name for p in factory.get_all_plugins()]
 logger.info(f"已加载的内置插件: {loaded_plugin_names}")
 
-# 方法2：从目录加载外部插件（避免重复加载内置插件）
-if os.path.exists("./plugins"):
-    # 只加载不在已加载列表中的外部插件
-    plugins = factory.load_plugins_from_directory("./plugins")
+# # 方法2：从目录加载外部插件（避免重复加载内置插件）
+# if os.path.exists("./plugins"):
+#     # 只加载不在已加载列表中的外部插件
+#     plugins = factory.load_plugins_from_directory("./plugins")
 
-    # 计算新加载的插件数量
-    new_plugin_names = [p.name for p in plugins if p.name not in loaded_plugin_names]
-    logger.info(
-        f"从外部目录加载了 {len(new_plugin_names)} 个新插件: {new_plugin_names}"
-    )
+#     # 计算新加载的插件数量
+#     new_plugin_names = [p.name for p in plugins if p.name not in loaded_plugin_names]
+#     logger.info(
+#         f"从外部目录加载了 {len(new_plugin_names)} 个新插件: {new_plugin_names}"
+#     )
 
 # 启用所有插件
 for plugin in factory.get_all_plugins():
@@ -73,11 +83,13 @@ def on_message(message):
         except Exception as e:
             attr_info.append(f"{attr}=<获取失败: {str(e)}>")
     # 打印所有属性信息
-    logger.info(f"收到{message.type.name}消息: {', '.join(attr_info)}")
+    logger.info(
+        f"收到 {'群' if message.is_group_message else '好友'} {message.type.name} 消息: {', '.join(attr_info)}"
+    )
 
     if message.type == MessageType.TEXT:
         if message.text == "测试":
-            client.message.send_text(message.from_user, "测试成功")
+            client.message.send_text(message.from_wxid, "测试成功")
 
         if message.text == "语音":
             result = client.utils.convert_audio_to_silk(
@@ -86,7 +98,7 @@ def on_message(message):
             )
             print(result)
             client.message.send_voice(
-                message.from_user,
+                message.from_wxid,
                 "http://ip:5432/download/test.silk",
                 result["duration"],
             )

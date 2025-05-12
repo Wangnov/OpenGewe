@@ -15,28 +15,24 @@ class BaseMessage:
     msg_id: str = ""  # 消息ID
     new_msg_id: str = ""  # 新消息ID
     create_time: int = 0  # 消息创建时间
-    from_user: str = ""  # 发送者ID
-    to_user: str = ""  # 接收者ID
+    from_wxid: str = ""  # 来自哪个聊天的ID
+    to_wxid: str = ""  # 接收者ID
     content: str = ""  # 消息内容
-    room_wxid: str = ""  # 群聊ID
-    actural_user_wxid: str = ""  # 实际发送者微信ID
+    sender_wxid: str = ""  # 实际发送者微信ID
     raw_data: Dict[str, Any] = field(default_factory=dict)  # 原始数据
 
     @property
     def is_group_message(self) -> bool:
         """判断是否为群聊消息"""
-        # 如果已经提取了room_wxid，则直接判断
-        if self.room_wxid:
-            return True
-        # 否则检查from_user和to_user是否包含@chatroom
-        if "@chatroom" in self.from_user or "@chatroom" in self.to_user:
+        # 否则检查from_wxid和to_wxid是否包含@chatroom
+        if "@chatroom" in self.from_wxid or "@chatroom" in self.to_wxid:
             return True
         return False
 
     @property
     def is_self_message(self) -> bool:
         """判断是否为自己发送的消息"""
-        if self.from_user == self.wxid:
+        if self.from_wxid == self.wxid:
             return True
         return False
 
@@ -51,18 +47,13 @@ class BaseMessage:
 
         在群聊中：
         1. 保存群ID到room_wxid字段
-        2. 识别真实发送者ID并更新from_user
+        2. 识别真实发送者ID并更新from_wxid
         3. 去除content中的发送者前缀
         """
-        # 如果不是群消息，直接返回
+        # 如果不是群消息，写好sender_wxid后直接返回
+        self.sender_wxid = self.from_wxid
         if not self.is_group_message:
             return
-
-        # 保存原始群ID到room_wxid
-        if "@chatroom" in self.from_user:
-            self.room_wxid = self.from_user
-        elif "@chatroom" in self.to_user:
-            self.room_wxid = self.to_user
 
         # 处理content中的发送者信息
         if ":" in self.content:
@@ -79,7 +70,5 @@ class BaseMessage:
                     or "@" in sender_id
                 ):
                     # 更新发送者和内容
-                    self.actural_user_wxid = sender_id
+                    self.sender_wxid = sender_id
                     self.content = real_content
-        else:
-            self.actural_user_wxid = self.from_user

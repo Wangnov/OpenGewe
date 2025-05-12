@@ -236,8 +236,8 @@ class SysmsgHandler(BaseHandler):
                     app_id=data.get("Appid", ""),
                     wxid=data.get("Wxid", ""),
                     typename=data.get("TypeName", ""),
-                    from_user=data["Data"].get("FromUserName", {}).get("string", ""),
-                    to_user=data["Data"].get("ToUserName", {}).get("string", ""),
+                    from_wxid=data["Data"].get("FromUserName", {}).get("string", ""),
+                    to_wxid=data["Data"].get("ToUserName", {}).get("string", ""),
                     content=content,
                     raw_data=data,
                 )
@@ -248,8 +248,8 @@ class SysmsgHandler(BaseHandler):
                 app_id=data.get("Appid", ""),
                 wxid=data.get("Wxid", ""),
                 typename=data.get("TypeName", ""),
-                from_user=data["Data"].get("FromUserName", {}).get("string", ""),
-                to_user=data["Data"].get("ToUserName", {}).get("string", ""),
+                from_wxid=data["Data"].get("FromUserName", {}).get("string", ""),
+                to_wxid=data["Data"].get("ToUserName", {}).get("string", ""),
                 content=content,
                 raw_data=data,
             )

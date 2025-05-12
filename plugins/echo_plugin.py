@@ -65,8 +65,5 @@ class EchoPlugin(BasePlugin):
         # 获取消息内容
         content = message.content
 
-        # 文本消息的接收者可能是群聊或个人
-        to_wxid = message.room_wxid if message.room_wxid else message.wxid
-
         # 发送回复
-        self.client.message.send_text(to_wxid, f"你说了: {content}")
+        self.client.message.send_text(message.to_wxid, f"你说了: {content}")

@@ -42,8 +42,8 @@ class BaseHandler:
             return ""
 
         # 检查是否为群消息
-        from_user = data.get("Data", {}).get("FromUserName", {}).get("string", "")
-        if "@chatroom" in from_user and ":" in content:
+        from_wxid = data.get("Data", {}).get("FromUserName", {}).get("string", "")
+        if "@chatroom" in from_wxid and ":" in content:
             # 尝试分离非XML前缀
             parts = content.split(":", 1)
             if len(parts) == 2 and "<" in parts[1]:

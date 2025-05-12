@@ -34,10 +34,10 @@ class LocationMessage(BaseMessage):
             msg.create_time = msg_data.get("CreateTime", 0)
 
             if "FromUserName" in msg_data and "string" in msg_data["FromUserName"]:
-                msg.from_user = msg_data["FromUserName"]["string"]
+                msg.from_wxid = msg_data["FromUserName"]["string"]
 
             if "ToUserName" in msg_data and "string" in msg_data["ToUserName"]:
-                msg.to_user = msg_data["ToUserName"]["string"]
+                msg.to_wxid = msg_data["ToUserName"]["string"]
 
             if "Content" in msg_data and "string" in msg_data["Content"]:
                 msg.content = msg_data["Content"]["string"]
