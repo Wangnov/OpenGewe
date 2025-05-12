@@ -55,8 +55,8 @@ class FriendRequestHandler(BaseHandler):
             return False
 
         # 特殊判断：如果FromUserName是"fmessage"，大概率是好友请求
-        from_user = data["Data"].get("FromUserName", {}).get("string", "")
-        if from_user == "fmessage":
+        from_wxid = data["Data"].get("FromUserName", {}).get("string", "")
+        if from_wxid == "fmessage":
             return True
 
         try:

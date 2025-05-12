@@ -63,3 +63,6 @@ OGLogs/
 
 # uv
 uv.lock
+
+# 配置文件
+main_config.toml

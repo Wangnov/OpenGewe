@@ -105,15 +105,11 @@ class MessageLoggerPlugin(BasePlugin):
             "create_time": message.create_time,
             "msg_id": message.msg_id,
             "new_msg_id": message.new_msg_id,
-            "from_user": message.from_user,
-            "to_user": message.to_user,
+            "from_wxid": message.from_wxid,
+            "to_wxid": message.to_wxid,
             "is_group_message": message.is_group_message,
             "content": message.content,
         }
-
-        # 如果是群消息，添加群ID
-        if message.is_group_message and message.room_wxid:
-            message_dict["room_wxid"] = message.room_wxid
 
         # 添加消息类型特有的字段
         specific_attrs = {}

@@ -36,12 +36,12 @@ class TransferMessage(BaseMessage):
             msg.create_time = msg_data.get("CreateTime", 0)
 
             if "FromUserName" in msg_data and "string" in msg_data["FromUserName"]:
-                msg.from_user = msg_data["FromUserName"]["string"]
-                msg.sender_wxid = msg.from_user
+                msg.from_wxid = msg_data["FromUserName"]["string"]
+                msg.sender_wxid = msg.from_wxid
 
             if "ToUserName" in msg_data and "string" in msg_data["ToUserName"]:
-                msg.to_user = msg_data["ToUserName"]["string"]
-                msg.receiver_wxid = msg.to_user
+                msg.to_wxid = msg_data["ToUserName"]["string"]
+                msg.receiver_wxid = msg.to_wxid
 
             if "Content" in msg_data and "string" in msg_data["Content"]:
                 msg.content = msg_data["Content"]["string"]
@@ -139,11 +139,11 @@ class RedPacketMessage(BaseMessage):
             msg.create_time = msg_data.get("CreateTime", 0)
 
             if "FromUserName" in msg_data and "string" in msg_data["FromUserName"]:
-                msg.from_user = msg_data["FromUserName"]["string"]
-                msg.sender_wxid = msg.from_user
+                msg.from_wxid = msg_data["FromUserName"]["string"]
+                msg.sender_wxid = msg.from_wxid
 
             if "ToUserName" in msg_data and "string" in msg_data["ToUserName"]:
-                msg.to_user = msg_data["ToUserName"]["string"]
+                msg.to_wxid = msg_data["ToUserName"]["string"]
 
             if "Content" in msg_data and "string" in msg_data["Content"]:
                 msg.content = msg_data["Content"]["string"]
@@ -184,7 +184,7 @@ class RedPacketMessage(BaseMessage):
                                     msg.sender_nickname = nickname_node.text
 
                                 # 判断红包类型
-                                if "@chatroom" in msg.to_user:
+                                if "@chatroom" in msg.to_wxid:
                                     # 群红包
                                     is_exclusive_node = wcpay_info.find("is_exclusive")
                                     if (

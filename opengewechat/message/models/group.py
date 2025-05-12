@@ -33,10 +33,10 @@ class GroupInviteMessage(BaseMessage):
             msg.create_time = msg_data.get("CreateTime", 0)
 
             if "FromUserName" in msg_data and "string" in msg_data["FromUserName"]:
-                msg.from_user = msg_data["FromUserName"]["string"]
+                msg.from_wxid = msg_data["FromUserName"]["string"]
 
             if "ToUserName" in msg_data and "string" in msg_data["ToUserName"]:
-                msg.to_user = msg_data["ToUserName"]["string"]
+                msg.to_wxid = msg_data["ToUserName"]["string"]
 
             if "Content" in msg_data and "string" in msg_data["Content"]:
                 msg.content = msg_data["Content"]["string"]
@@ -111,13 +111,13 @@ class GroupInvitedMessage(BaseMessage):
             msg.create_time = msg_data.get("CreateTime", 0)
 
             if "FromUserName" in msg_data and "string" in msg_data["FromUserName"]:
-                msg.from_user = msg_data["FromUserName"]["string"]
-                # 群ID通常就是群消息的from_user
-                if "@chatroom" in msg.from_user:
-                    msg.group_id = msg.from_user
+                msg.from_wxid = msg_data["FromUserName"]["string"]
+                # 群ID通常就是群消息的from_wxid
+                if "@chatroom" in msg.from_wxid:
+                    msg.group_id = msg.from_wxid
 
             if "ToUserName" in msg_data and "string" in msg_data["ToUserName"]:
-                msg.to_user = msg_data["ToUserName"]["string"]
+                msg.to_wxid = msg_data["ToUserName"]["string"]
 
             if "Content" in msg_data and "string" in msg_data["Content"]:
                 msg.content = msg_data["Content"]["string"]
@@ -224,13 +224,13 @@ class GroupRemovedMessage(BaseMessage):
             msg.create_time = msg_data.get("CreateTime", 0)
 
             if "FromUserName" in msg_data and "string" in msg_data["FromUserName"]:
-                msg.from_user = msg_data["FromUserName"]["string"]
-                # 群ID通常就是群消息的from_user
-                if "@chatroom" in msg.from_user:
-                    msg.group_id = msg.from_user
+                msg.from_wxid = msg_data["FromUserName"]["string"]
+                # 群ID通常就是群消息的from_wxid
+                if "@chatroom" in msg.from_wxid:
+                    msg.group_id = msg.from_wxid
 
             if "ToUserName" in msg_data and "string" in msg_data["ToUserName"]:
-                msg.to_user = msg_data["ToUserName"]["string"]
+                msg.to_wxid = msg_data["ToUserName"]["string"]
 
             if "Content" in msg_data and "string" in msg_data["Content"]:
                 msg.content = msg_data["Content"]["string"]
@@ -281,13 +281,13 @@ class GroupKickMessage(BaseMessage):
             msg.create_time = msg_data.get("CreateTime", 0)
 
             if "FromUserName" in msg_data and "string" in msg_data["FromUserName"]:
-                msg.from_user = msg_data["FromUserName"]["string"]
-                # 群ID通常就是群消息的from_user
-                if "@chatroom" in msg.from_user:
-                    msg.group_id = msg.from_user
+                msg.from_wxid = msg_data["FromUserName"]["string"]
+                # 群ID通常就是群消息的from_wxid
+                if "@chatroom" in msg.from_wxid:
+                    msg.group_id = msg.from_wxid
 
             if "ToUserName" in msg_data and "string" in msg_data["ToUserName"]:
-                msg.to_user = msg_data["ToUserName"]["string"]
+                msg.to_wxid = msg_data["ToUserName"]["string"]
 
             if "Content" in msg_data and "string" in msg_data["Content"]:
                 msg.content = msg_data["Content"]["string"]
@@ -357,13 +357,13 @@ class GroupDismissMessage(BaseMessage):
             msg.create_time = msg_data.get("CreateTime", 0)
 
             if "FromUserName" in msg_data and "string" in msg_data["FromUserName"]:
-                msg.from_user = msg_data["FromUserName"]["string"]
-                # 群ID通常就是群消息的from_user
-                if "@chatroom" in msg.from_user:
-                    msg.group_id = msg.from_user
+                msg.from_wxid = msg_data["FromUserName"]["string"]
+                # 群ID通常就是群消息的from_wxid
+                if "@chatroom" in msg.from_wxid:
+                    msg.group_id = msg.from_wxid
 
             if "ToUserName" in msg_data and "string" in msg_data["ToUserName"]:
-                msg.to_user = msg_data["ToUserName"]["string"]
+                msg.to_wxid = msg_data["ToUserName"]["string"]
 
             if "Content" in msg_data and "string" in msg_data["Content"]:
                 msg.content = msg_data["Content"]["string"]
@@ -461,13 +461,13 @@ class GroupRenameMessage(BaseMessage):
             msg.create_time = msg_data.get("CreateTime", 0)
 
             if "FromUserName" in msg_data and "string" in msg_data["FromUserName"]:
-                msg.from_user = msg_data["FromUserName"]["string"]
-                # 群ID通常就是群消息的from_user
-                if "@chatroom" in msg.from_user:
-                    msg.group_id = msg.from_user
+                msg.from_wxid = msg_data["FromUserName"]["string"]
+                # 群ID通常就是群消息的from_wxid
+                if "@chatroom" in msg.from_wxid:
+                    msg.group_id = msg.from_wxid
 
             if "ToUserName" in msg_data and "string" in msg_data["ToUserName"]:
-                msg.to_user = msg_data["ToUserName"]["string"]
+                msg.to_wxid = msg_data["ToUserName"]["string"]
 
             if "Content" in msg_data and "string" in msg_data["Content"]:
                 msg.content = msg_data["Content"]["string"]
@@ -603,13 +603,13 @@ class GroupOwnerChangeMessage(BaseMessage):
             msg.create_time = msg_data.get("CreateTime", 0)
 
             if "FromUserName" in msg_data and "string" in msg_data["FromUserName"]:
-                msg.from_user = msg_data["FromUserName"]["string"]
-                # 群ID通常就是群消息的from_user
-                if "@chatroom" in msg.from_user:
-                    msg.group_id = msg.from_user
+                msg.from_wxid = msg_data["FromUserName"]["string"]
+                # 群ID通常就是群消息的from_wxid
+                if "@chatroom" in msg.from_wxid:
+                    msg.group_id = msg.from_wxid
 
             if "ToUserName" in msg_data and "string" in msg_data["ToUserName"]:
-                msg.to_user = msg_data["ToUserName"]["string"]
+                msg.to_wxid = msg_data["ToUserName"]["string"]
 
             if "Content" in msg_data and "string" in msg_data["Content"]:
                 msg.content = msg_data["Content"]["string"]
@@ -617,8 +617,8 @@ class GroupOwnerChangeMessage(BaseMessage):
                 # 你成为了新群主
                 if msg.content == "你已成为新群主":
                     # 10000消息是你成为了新群主
-                    msg.group_id = msg.from_user
-                    msg.new_owner_wxid = msg.to_user
+                    msg.group_id = msg.from_wxid
+                    msg.new_owner_wxid = msg.to_wxid
                     return msg
                 else:
                     # 处理xml前缀
@@ -780,13 +780,13 @@ class GroupAnnouncementMessage(BaseMessage):
             msg.create_time = msg_data.get("CreateTime", 0)
 
             if "FromUserName" in msg_data and "string" in msg_data["FromUserName"]:
-                msg.from_user = msg_data["FromUserName"]["string"]
-                # 群ID通常就是群消息的from_user
-                if "@chatroom" in msg.from_user:
-                    msg.group_id = msg.from_user
+                msg.from_wxid = msg_data["FromUserName"]["string"]
+                # 群ID通常就是群消息的from_wxid
+                if "@chatroom" in msg.from_wxid:
+                    msg.group_id = msg.from_wxid
 
             if "ToUserName" in msg_data and "string" in msg_data["ToUserName"]:
-                msg.to_user = msg_data["ToUserName"]["string"]
+                msg.to_wxid = msg_data["ToUserName"]["string"]
 
             if "Content" in msg_data and "string" in msg_data["Content"]:
                 msg.content = msg_data["Content"]["string"]
@@ -862,13 +862,13 @@ class GroupTodoMessage(BaseMessage):
             msg.create_time = msg_data.get("CreateTime", 0)
 
             if "FromUserName" in msg_data and "string" in msg_data["FromUserName"]:
-                msg.from_user = msg_data["FromUserName"]["string"]
-                # 群ID通常就是群消息的from_user
-                if "@chatroom" in msg.from_user:
-                    msg.group_id = msg.from_user
+                msg.from_wxid = msg_data["FromUserName"]["string"]
+                # 群ID通常就是群消息的from_wxid
+                if "@chatroom" in msg.from_wxid:
+                    msg.group_id = msg.from_wxid
 
             if "ToUserName" in msg_data and "string" in msg_data["ToUserName"]:
-                msg.to_user = msg_data["ToUserName"]["string"]
+                msg.to_wxid = msg_data["ToUserName"]["string"]
 
             if "Content" in msg_data and "string" in msg_data["Content"]:
                 msg.content = msg_data["Content"]["string"]
