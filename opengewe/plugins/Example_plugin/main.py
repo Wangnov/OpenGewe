@@ -3,9 +3,8 @@ import tomllib  # 确保导入tomllib以读取配置文件
 import os  # 确保导入os模块
 import traceback  # 添加缺失的traceback导入
 
-from opengewe.utils.decorators import schedule
-from opengewe.utils.plugin_base import PluginBase
-from opengewe.utils.decorators import (
+from utils.plugin_base import PluginBase
+from utils.decorators import (
     on_text_message,
     on_at_message,
     on_voice_message,
@@ -15,6 +14,7 @@ from opengewe.utils.decorators import (
     on_quote_message,
     on_pat_message,
     on_emoji_message,
+    schedule,
 )
 
 
