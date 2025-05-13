@@ -12,6 +12,7 @@ from loguru import logger
 import uvicorn
 import sys
 import asyncio
+from contextlib import asynccontextmanager
 
 # 添加当前目录到模块搜索路径
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -41,9 +42,6 @@ logger.add(
 # 添加控制台输出
 logger.add(lambda msg: print(msg), level="INFO")
 
-# 创建FastAPI应用
-app = FastAPI(title="OpenGewe API", description="微信自动化API接口")
-
 # 配置读取函数
 async def read_config():
     # 验证main_config.toml配置文件
@@ -71,27 +69,31 @@ async def get_gewe_client():
     )
     return client
 
-@app.on_event("startup")
-async def startup_event():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # 启动时执行
     try:
         # 使用依赖注入获取factory实例
         client = await get_gewe_client()
         factory = MessageFactory(client)
-        
-        # 注册回调前先输出factory对象信息
-        logger.debug(f"Factory对象初始化状态: client={factory.client is not None}, handlers={len(factory.handlers)}, callback={factory.on_message_callback}")
-        
         # 注册回调函数
         factory.register_callback(on_message)
         
         # 将工厂实例保存为应用状态，确保使用同一个实例
         app.state.message_factory = factory
-        
-        # 注册后再次输出
-        logger.debug(f"注册回调后Factory对象状态: callback={factory.on_message_callback.__name__ if factory.on_message_callback else None}")
-        logger.info("已注册消息回调函数")
     except Exception as e:
         logger.exception(f"启动事件发生异常: {e}")
+    
+    yield  # 应用运行期间
+    
+    # 关闭时执行的清理代码(如有需要)
+
+# 创建FastAPI应用
+app = FastAPI(
+    title="OpenGewe API", 
+    description="微信自动化API接口",
+    lifespan=lifespan
+)
 
 # 修改依赖注入获取消息工厂的方式，优先使用已保存的实例
 async def get_message_factory(client: GeweClient = Depends(get_gewe_client)):
