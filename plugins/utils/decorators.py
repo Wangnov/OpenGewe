@@ -1,0 +1,98 @@
+"""装饰器桥接模块
+
+重新导出opengewe.utils.decorators中的所有装饰器和组件，
+为插件提供导入兼容性。
+"""
+
+from opengewe.utils.decorators import (
+    # 调度器
+    scheduler,
+    schedule,
+    add_job_safe,
+    remove_job_safe,
+    
+    # 消息处理装饰器
+    on_text_message,
+    on_at_message,
+    on_image_message,
+    on_voice_message,
+    on_emoji_message,
+    on_file_message,
+    on_quote_message,
+    on_video_message,
+    on_pat_message,
+    on_link_message,
+    on_system_message,
+    on_other_message,
+    on_miniapp_message,
+    on_revoke_message,
+    on_file_notice_message,
+    on_card_message,
+    on_friend_request_message,
+    on_contact_update_message,
+    on_transfer_message,
+    on_red_packet_message,
+    on_finder_message,
+    on_location_message,
+    on_group_invite_message,
+    on_group_invited_message,
+    on_group_removed_message,
+    on_group_kick_message,
+    on_group_dismiss_message,
+    on_group_rename_message,
+    on_group_owner_change_message,
+    on_group_info_update_message,
+    on_group_announcement_message,
+    on_group_todo_message,
+    on_sync_message,
+    on_contact_deleted_message,
+    on_group_quit_message,
+    on_offline_message,
+)
+
+# 重新导出所有组件
+__all__ = [
+    # 调度器
+    "scheduler",
+    "schedule",
+    "add_job_safe",
+    "remove_job_safe",
+    
+    # 消息处理装饰器
+    "on_text_message",
+    "on_at_message",
+    "on_image_message",
+    "on_voice_message",
+    "on_emoji_message",
+    "on_file_message",
+    "on_quote_message",
+    "on_video_message",
+    "on_pat_message",
+    "on_link_message",
+    "on_system_message",
+    "on_other_message",
+    "on_miniapp_message",
+    "on_revoke_message",
+    "on_file_notice_message",
+    "on_card_message",
+    "on_friend_request_message",
+    "on_contact_update_message",
+    "on_transfer_message",
+    "on_red_packet_message",
+    "on_finder_message",
+    "on_location_message",
+    "on_group_invite_message",
+    "on_group_invited_message",
+    "on_group_removed_message",
+    "on_group_kick_message",
+    "on_group_dismiss_message",
+    "on_group_rename_message",
+    "on_group_owner_change_message",
+    "on_group_info_update_message",
+    "on_group_announcement_message",
+    "on_group_todo_message",
+    "on_sync_message",
+    "on_contact_deleted_message",
+    "on_group_quit_message",
+    "on_offline_message",
+] 
