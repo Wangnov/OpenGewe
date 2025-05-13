@@ -1,19 +1,20 @@
-# OpenGeWechat
+# OpenGewe
 
-![Logo](https://github.com/Devo919/Gewechat/raw/main/logo.png)
+![Logo](http://218.78.116.24:10885/static/img/profile.d88801b1.jpg)
 
-> 基于Gewechat和GeWeAPI的开源微信机器人框架，提供简单易用的微信自动化解决方案
+> 基于 GeWeAPI 和 GeWe 私有部署方案 Gewechat 的异步 python 开源微信机器人框架，提供简单易用的微信自动化解决方案
 
 ## 项目状态
 
-⚠️ **注意：由于[Gewechat](https://github.com/Devo919/Gewechat)原项目暂停维护，本项目目前也处于暂停状态。**
+⚠️ **注意：由于原免费私有部署方案[Gewechat](https://github.com/Devo919/Gewechat)原项目暂停维护，本项目虽然兼容Gewechat，但不推荐使用。**
 
 ## 简介
 
-OpenGeWechat是一个基于[Gewechat](https://github.com/Devo919/Gewechat)的微信机器人框架，专注于提供个人微信二次开发能力。本框架采用微信iPad协议登录（非HOOK破解桌面端），提供稳定、安全的微信API访问能力。
+OpenGewe是一个基于[GeWeAPI](https://geweapi.com)的微信机器人框架，专注于提供个人微信二次开发能力。本框架采用微信iPad协议登录（非HOOK破解桌面端），提供稳定、安全的微信API访问能力。
 
 ## 主要特性
 
+- 💻 **完全异步**：使用原生异步实现，支持高并发和大数据量吞吐
 - ‼️ **消息回调**：完全实现Gewechat31种回调消息类型的检测
 - 💬 **消息收发**：支持文本、图片、语音、视频等多种消息类型
 - 👥 **群管理**：自动入群、退群、邀请好友、群成员管理等
@@ -21,9 +22,9 @@ OpenGeWechat是一个基于[Gewechat](https://github.com/Devo919/Gewechat)的微
 - 🔌 **插件系统**：可扩展的插件架构，轻松开发自定义功能
 - 🔄 **API集成**：提供RESTful API，方便与其他系统集成
 - 📊 **数据分析**：消息记录分析，用户行为统计等功能
-- 📱 **朋友圈操作(GeWeAPI)**：支持发布朋友圈内容、浏览朋友圈等
+- 📱 **朋友圈操作**：支持发布朋友圈内容、浏览朋友圈等
 - 💾 **收藏管理**：微信收藏内容的获取与管理
-- 📺 **视频号交互(GeWeAPI)**：支持视频号相关的操作
+- 📺 **视频号交互**：支持视频号相关的操作
 
 ## 兼容性说明
 
