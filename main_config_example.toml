@@ -11,3 +11,8 @@ app_id = "wx_12345ABCdeFGhi6789"
 # geweapi平台分配的token，私有化部署则为自己调用获取token接口获取的token。
 token = "1234abcd-1234-1234-1234-1234abcd1234"
 is_gewe = true                                 # 是否强制切换geweapi，设置为false则切换至私有化部署。
+
+[opengewe]
+plugins_dir = "plugins"             # 插件目录
+enabled_plugins = ["ExamplePlugin"] # 启用的插件列表
+disabled_plugins = []               # 禁用的插件列表
