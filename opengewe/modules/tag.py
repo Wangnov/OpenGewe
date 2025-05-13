@@ -34,8 +34,8 @@ class TagModule:
         data = {"appId": self.client.app_id, "labelIds": label_ids}
         return await self.client.request("/label/delete", data)
 
-    async def get_tags(self) -> Dict[str, Any]:
-        """获取标签列表
+    async def list(self) -> Dict[str, Any]:
+        """标签列表
 
         Returns:
             Dict[str, Any]: 接口返回结果
@@ -43,7 +43,7 @@ class TagModule:
         data = {"appId": self.client.app_id}
         return await self.client.request("/label/list", data)
 
-    async def modify_friend_tags(
+    async def modify_member_list(
         self, wx_ids: List[str], label_ids: str
     ) -> Dict[str, Any]:
         """修改好友标签

@@ -32,6 +32,30 @@ class ContactModule:
         data = {"appId": self.client.app_id}
         return await self.client.request("/contacts/fetchContactsListCache", data)
 
+    async def get_brief_info(self, wxids: Union[List[str], str]) -> Dict[str, Any]:
+        """获取群/好友简要信息
+
+        Args:
+            wxids (Union[List[str], str]): 好友的wxid列表或逗号分隔的字符串
+
+        Returns:
+            Dict[str, Any]: 接口返回结果
+        """
+        data = {"appId": self.client.app_id, "wxids": wxids}
+        return await self.client.request("/contacts/getBriefInfo", data)
+
+    async def get_detail_info(self, wxids: Union[List[str], str]) -> Dict[str, Any]:
+        """获取群/好友详细信息
+
+        Args:
+            wxids (Union[List[str], str]): 好友的wxid列表或逗号分隔的字符串
+
+        Returns:
+            Dict[str, Any]: 接口返回结果
+        """
+        data = {"appId": self.client.app_id, "wxids": wxids}
+        return await self.client.request("/contacts/getDetailInfo", data)
+
     async def search(self, contacts_info: str) -> Dict[str, Any]:
         """搜索好友
 
@@ -95,41 +119,18 @@ class ContactModule:
         data = {"appId": self.client.app_id, "wxid": wxid}
         return await self.client.request("/contacts/deleteFriend", data)
 
-    async def upload_phone_address_list(self, contacts: List[Dict]) -> Dict[str, Any]:
-        """上传手机通讯录
+    async def set_friend_permissions(self, wxid: str, chat_only: bool) -> Dict[str, Any]:
+        """设置好友仅聊天
 
         Args:
-            contacts (List[Dict]): 通讯录联系人列表，每个联系人包含姓名和手机号
+            wxid (str): 好友的wxid
+            chat_only (bool): 是否仅聊天
 
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        data = {"appId": self.client.app_id, "contacts": contacts}
-        return await self.client.request("/contacts/uploadPhoneAddressList", data)
-
-    async def get_brief_info(self, wxids: Union[List[str], str]) -> Dict[str, Any]:
-        """获取群/好友简要信息
-
-        Args:
-            wxids (Union[List[str], str]): 好友的wxid列表
-
-        Returns:
-            Dict[str, Any]: 接口返回结果
-        """
-        data = {"appId": self.client.app_id, "wxids": wxids}
-        return await self.client.request("/contacts/getBriefInfo", data)
-
-    async def get_detail_info(self, wxids: Union[List[str], str]) -> Dict[str, Any]:
-        """获取群/好友详细信息
-
-        Args:
-            wxids (Union[List[str], str]): 好友的wxid列表
-
-        Returns:
-            Dict[str, Any]: 接口返回结果
-        """
-        data = {"appId": self.client.app_id, "wxids": wxids}
-        return await self.client.request("/contacts/getDetailInfo", data)
+        data = {"appId": self.client.app_id, "wxid": wxid, "chatOnly": chat_only}
+        return await self.client.request("/contacts/setFriendPermissions", data)
 
     async def set_friend_remark(self, wxid: str, remark: str) -> Dict[str, Any]:
         """设置好友备注
@@ -144,8 +145,32 @@ class ContactModule:
         data = {"appId": self.client.app_id, "wxid": wxid, "remark": remark}
         return await self.client.request("/contacts/setFriendRemark", data)
 
+    async def get_phone_address_list(self) -> Dict[str, Any]:
+        """获取手机通讯录
+
+        Summary:
+            获取手机通讯录联系人列表
+
+        Returns:
+            Dict[str, Any]: 接口返回结果
+        """
+        data = {"appId": self.client.app_id}
+        return await self.client.request("/contacts/getPhoneAddressList", data)
+
+    async def upload_phone_address_list(self, contacts: List[Dict]) -> Dict[str, Any]:
+        """上传手机通讯录
+
+        Args:
+            contacts (List[Dict]): 通讯录联系人列表，每个联系人包含姓名和手机号
+
+        Returns:
+            Dict[str, Any]: 接口返回结果
+        """
+        data = {"appId": self.client.app_id, "contacts": contacts}
+        return await self.client.request("/contacts/uploadPhoneAddressList", data)
+
     async def check_relation(self, wxids: list) -> Dict[str, Any]:
-        """检查好友关系
+        """检测好友关系
 
         Args:
             wxids (list): 要检查的wxid列表

@@ -7,7 +7,7 @@ class FavoriteModule:
     def __init__(self, client):
         self.client = client
 
-    async def sync_favorites(self, sync_key: str = "") -> Dict[str, Any]:
+    async def sync(self, sync_key: str = "") -> Dict[str, Any]:
         """同步收藏夹
 
         Summary:
@@ -22,7 +22,7 @@ class FavoriteModule:
         data = {"appId": self.client.app_id, "syncKey": sync_key}
         return await self.client.request("/favor/sync", data)
 
-    async def get_favorite_content(self, fav_id: int) -> Dict[str, Any]:
+    async def get_content(self, fav_id: int) -> Dict[str, Any]:
         """获取收藏夹内容
 
         Args:
@@ -34,7 +34,7 @@ class FavoriteModule:
         data = {"appId": self.client.app_id, "favId": fav_id}
         return await self.client.request("/favor/getContent", data)
 
-    async def delete_favorite(self, fav_id: int) -> Dict[str, Any]:
+    async def delete(self, fav_id: int) -> Dict[str, Any]:
         """删除收藏夹
 
         Args:

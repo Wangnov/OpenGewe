@@ -1,10 +1,11 @@
 from dataclasses import dataclass
 from typing import Dict, Any, Optional
 import xml.etree.ElementTree as ET
+import re
 
 from opengewe.message.types import MessageType
 from opengewe.message.models.base import BaseMessage
-from opengewe.client import GewechatClient
+from opengewe.client import GeweClient
 
 
 @dataclass
@@ -15,14 +16,14 @@ class ImageMessage(BaseMessage):
     img_buffer: bytes = b""  # 图片buffer
 
     @classmethod
-    def from_dict(
-        cls, data: Dict[str, Any], client: Optional[GewechatClient] = None
+    async def from_dict(
+        cls, data: Dict[str, Any], client: Optional[GeweClient] = None
     ) -> "ImageMessage":
         """从字典创建图片消息对象
 
         Args:
             data: 原始数据
-            client: GewechatClient实例，用于下载图片
+            client: GeweClient实例，用于下载图片
         """
         msg = cls(
             type=MessageType.IMAGE,
@@ -50,13 +51,12 @@ class ImageMessage(BaseMessage):
                 # 处理群消息发送者
                 msg._process_group_message()
 
-                # 如果提供了GewechatClient实例，使用API获取下载链接
+                # 如果提供了GeweClient实例，使用API获取下载链接
                 try:
                     if client and msg.content:
-                        # 这里暂时不进行异步调用，后续在factory中统一处理
-                        # 调用下载图片接口获取文件URL
+                        # 异步调用下载图片接口获取文件URL
                         try:
-                            download_result = client.message.download_image(
+                            download_result = await client.message.download_image(
                                 msg.content, 1
                             )
                             # 下载高清图片成功
@@ -72,7 +72,7 @@ class ImageMessage(BaseMessage):
                                     )
                             else:
                                 # 下载常规图片
-                                download_result = client.message.download_image(
+                                download_result = await client.message.download_image(
                                     msg.content, 2
                                 )
                                 if (
@@ -89,7 +89,7 @@ class ImageMessage(BaseMessage):
                                         )
                                 else:
                                     # 下载缩略图
-                                    download_result = client.message.download_image(
+                                    download_result = await client.message.download_image(
                                         msg.content, 3
                                     )
                                     if (
@@ -175,14 +175,14 @@ class VoiceMessage(BaseMessage):
             return ""
 
     @classmethod
-    def from_dict(
-        cls, data: Dict[str, Any], client: Optional[GewechatClient] = None
+    async def from_dict(
+        cls, data: Dict[str, Any], client: Optional[GeweClient] = None
     ) -> "VoiceMessage":
         """从字典创建语音消息对象
 
         Args:
             data: 原始数据
-            client: GewechatClient实例，用于下载语音
+            client: GeweClient实例，用于下载语音
         """
         msg = cls(
             type=MessageType.VOICE,
@@ -219,12 +219,12 @@ class VoiceMessage(BaseMessage):
                         msg.voice_length = int(voice_node.get("voicelength", "0"))
                         msg.aes_key = voice_node.get("aeskey", "")
 
-                        # 如果提供了GewechatClient实例，使用API获取下载链接
+                        # 如果提供了GeweClient实例，使用API获取下载链接
                         if client and msg.content:
                             # 调用下载语音接口获取文件URL
                             try:
-                                download_result = client.message.download_voice(
-                                    msg.content
+                                download_result = await client.message.download_voice(
+                                    msg.content, msg.msg_id
                                 )
                                 if (
                                     download_result
@@ -267,14 +267,14 @@ class VideoMessage(BaseMessage):
     aes_key: str = ""  # AES密钥
 
     @classmethod
-    def from_dict(
-        cls, data: Dict[str, Any], client: Optional[GewechatClient] = None
+    async def from_dict(
+        cls, data: Dict[str, Any], client: Optional[GeweClient] = None
     ) -> "VideoMessage":
         """从字典创建视频消息对象
 
         Args:
             data: 原始数据
-            client: GewechatClient实例，用于下载视频
+            client: GeweClient实例，用于下载视频
         """
         msg = cls(
             type=MessageType.VIDEO,
@@ -313,11 +313,11 @@ class VideoMessage(BaseMessage):
                         msg.aes_key = video_node.get("aeskey", "")
                         msg.video_md5 = video_node.get("md5", "")
 
-                        # 如果提供了GewechatClient实例，使用API获取下载链接
+                        # 如果提供了GeweClient实例，使用API获取下载链接
                         if client and msg.content:
                             # 调用下载视频接口获取文件URL
                             try:
-                                download_result = client.message.download_video(
+                                download_result = await client.message.download_video(
                                     msg.content
                                 )
                                 if (
@@ -349,7 +349,7 @@ class EmojiMessage(BaseMessage):
     emoji_url: str = ""  # 表情URL
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "EmojiMessage":
+    async def from_dict(cls, data: Dict[str, Any]) -> "EmojiMessage":
         """从字典创建表情消息对象"""
         msg = cls(
             type=MessageType.EMOJI,
@@ -384,76 +384,6 @@ class EmojiMessage(BaseMessage):
                     if emoji_node is not None:
                         msg.emoji_md5 = emoji_node.get("md5", "")
                         msg.emoji_url = emoji_node.get("cdnurl", "")
-                except Exception:
-                    pass
-
-        return msg
-
-
-@dataclass
-class FinderMessage(BaseMessage):
-    """视频号消息"""
-
-    finder_id: str = ""  # 视频号ID
-    finder_username: str = ""  # 视频号用户名
-    finder_nickname: str = ""  # 视频号昵称
-    object_id: str = ""  # 内容ID
-    object_type: str = ""  # 内容类型，例如视频、直播等
-    object_title: str = ""  # 内容标题
-    object_desc: str = ""  # 内容描述
-    cover_url: str = ""  # 封面URL
-    url: str = ""  # 分享链接URL
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "FinderMessage":
-        """从字典创建视频号消息对象"""
-        msg = cls(
-            type=MessageType.FINDER,
-            app_id=data.get("Appid", ""),
-            wxid=data.get("Wxid", ""),
-            typename=data.get("TypeName", ""),
-            raw_data=data,
-        )
-
-        if "Data" in data:
-            msg_data = data["Data"]
-            msg.msg_id = str(msg_data.get("MsgId", ""))
-            msg.new_msg_id = str(msg_data.get("NewMsgId", ""))
-            msg.create_time = msg_data.get("CreateTime", 0)
-
-            if "FromUserName" in msg_data and "string" in msg_data["FromUserName"]:
-                msg.from_wxid = msg_data["FromUserName"]["string"]
-
-            if "ToUserName" in msg_data and "string" in msg_data["ToUserName"]:
-                msg.to_wxid = msg_data["ToUserName"]["string"]
-
-            if "Content" in msg_data and "string" in msg_data["Content"]:
-                msg.content = msg_data["Content"]["string"]
-
-                # 处理群消息发送者
-                msg._process_group_message()
-
-                # 解析XML获取视频号信息
-                try:
-                    root = ET.fromstring(msg.content)
-                    appmsg = root.find("appmsg")
-                    if appmsg is not None:
-                        # 获取视频号ID
-                        finder_info = appmsg.find("finderFeed")
-                        if finder_info is not None:
-                            msg.finder_id = finder_info.get("id", "")
-                            msg.finder_username = finder_info.get("username", "")
-                            msg.finder_nickname = finder_info.get("nickname", "")
-                            msg.object_id = finder_info.get("objectId", "")
-                            msg.object_type = finder_info.get("objectType", "")
-                            msg.object_title = finder_info.get("title", "")
-                            msg.object_desc = finder_info.get("desc", "")
-                            msg.cover_url = finder_info.get("coverUrl", "")
-
-                        # 获取URL
-                        url_node = appmsg.find("url")
-                        if url_node is not None and url_node.text:
-                            msg.url = url_node.text
                 except Exception:
                     pass
 

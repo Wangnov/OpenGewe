@@ -1,18 +1,18 @@
 """消息处理器基类"""
 
 from typing import Dict, Any, Optional
-from opengewe.client import GewechatClient
+from opengewe.client import GeweClient
 from opengewe.message.models import BaseMessage
 
 
 class BaseHandler:
     """消息处理器基类"""
 
-    def __init__(self, client: Optional[GewechatClient] = None):
+    def __init__(self, client: Optional[GeweClient] = None):
         """初始化处理器
 
         Args:
-            client: GewechatClient实例，用于获取下载链接和执行下载操作
+            client: GeweClient实例，用于获取下载链接和执行下载操作
         """
         self.client = client
 

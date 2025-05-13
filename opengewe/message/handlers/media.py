@@ -27,7 +27,7 @@ class ImageMessageHandler(BaseHandler):
 
     async def handle(self, data: Dict[str, Any]) -> Optional[ImageMessage]:
         """处理图片消息"""
-        return ImageMessage.from_dict(data, self.client)
+        return await ImageMessage.from_dict(data, self.client)
 
 
 class VoiceMessageHandler(BaseHandler):
@@ -46,7 +46,7 @@ class VoiceMessageHandler(BaseHandler):
 
     async def handle(self, data: Dict[str, Any]) -> Optional[VoiceMessage]:
         """处理语音消息"""
-        return VoiceMessage.from_dict(data, self.client)
+        return await VoiceMessage.from_dict(data, self.client)
 
 
 class VideoMessageHandler(BaseHandler):
@@ -65,7 +65,7 @@ class VideoMessageHandler(BaseHandler):
 
     async def handle(self, data: Dict[str, Any]) -> Optional[VideoMessage]:
         """处理视频消息"""
-        return VideoMessage.from_dict(data, self.client)
+        return await VideoMessage.from_dict(data, self.client)
 
 
 class EmojiMessageHandler(BaseHandler):
@@ -84,4 +84,4 @@ class EmojiMessageHandler(BaseHandler):
 
     async def handle(self, data: Dict[str, Any]) -> Optional[EmojiMessage]:
         """处理表情消息"""
-        return EmojiMessage.from_dict(data)
+        return await EmojiMessage.from_dict(data)

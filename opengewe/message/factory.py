@@ -45,6 +45,8 @@ class MessageFactory:
         # 注册默认的消息处理器
         for handler_cls in DEFAULT_HANDLERS:
             self.register_handler(handler_cls)
+        
+        logging.info(f"消息工厂初始化完成，已注册 {len(self.handlers)} 个消息处理器")
 
     def register_handler(self, handler_cls: Type[BaseHandler]) -> None:
         """注册消息处理器
@@ -65,6 +67,7 @@ class MessageFactory:
             callback: 异步回调函数，接收BaseMessage对象作为参数
         """
         self.on_message_callback = callback
+        logging.info(f"注册消息回调函数成功: {callback.__name__ if hasattr(callback, '__name__') else str(callback)}")
 
     async def process(self, data: Dict[str, Any]) -> Optional[BaseMessage]:
         """处理消息
@@ -81,10 +84,27 @@ class MessageFactory:
         """
         # 遍历所有处理器，找到第一个可以处理该消息的处理器
         message = None
+        type_name = data.get("TypeName", "未知")
+        
+        logging.debug(f"开始处理消息 TypeName={type_name}, Appid={data.get('Appid', '')}")
+        
+        matched_handler = None
         for handler in self.handlers:
-            if await handler.can_handle(data):
-                message = await handler.handle(data)
-                break
+            try:
+                if await handler.can_handle(data):
+                    matched_handler = handler.__class__.__name__
+                    logging.debug(f"找到匹配的处理器: {matched_handler}")
+                    message = await handler.handle(data)
+                    if message:
+                        logging.debug(f"处理器 {matched_handler} 成功创建消息对象: {message.type.name}")
+                    else:
+                        logging.warning(f"处理器 {matched_handler} 返回了空消息对象")
+                    break
+            except Exception as e:
+                logging.error(f"处理器 {handler.__class__.__name__} 处理消息时出错: {e}", exc_info=True)
+        
+        if not matched_handler:
+            logging.debug(f"没有找到匹配的处理器处理消息 TypeName={type_name}")
 
         # 如果没有找到合适的处理器，返回一个通用消息
         if message is None and data.get("TypeName") in [
@@ -100,14 +120,18 @@ class MessageFactory:
                 typename=data.get("TypeName", ""),
                 raw_data=data,
             )
+            logging.debug(f"创建了未知类型的通用消息对象: {type_name}")
 
         # 如果获取到了消息对象
         if message:
             # 如果注册了回调函数，创建任务异步调用回调函数
             if self.on_message_callback:
+                logging.debug(f"准备调用消息回调函数处理 {message.type.name} 消息")
                 task = asyncio.create_task(self._execute_callback(message))
                 self._tasks.add(task)
                 task.add_done_callback(self._tasks.discard)
+            else:
+                logging.warning("未注册消息回调函数，消息将不会被进一步处理")
 
             # 将消息传递给所有已启用的插件进行处理
             if self.plugin_manager:
@@ -124,9 +148,11 @@ class MessageFactory:
             message: 处理后的消息对象
         """
         try:
+            logging.debug(f"开始执行消息回调函数: {message.type.name}")
             await self.on_message_callback(message)
+            logging.debug(f"消息回调函数执行完成: {message.type.name}")
         except Exception as e:
-            logging.error(f"处理消息回调时出错: {e}")
+            logging.error(f"处理消息回调时出错: {e}", exc_info=True)
 
     async def process_json(self, json_data: str) -> Optional[BaseMessage]:
         """处理JSON格式的消息
@@ -144,7 +170,7 @@ class MessageFactory:
             logging.error(f"JSON解析失败: {json_data}")
             return None
         except Exception as e:
-            logging.error(f"处理消息时出错: {e}")
+            logging.error(f"处理消息时出错: {e}", exc_info=True)
             return None
 
     def process_async(self, data: Dict[str, Any]) -> asyncio.Task:
@@ -158,6 +184,7 @@ class MessageFactory:
         Returns:
             asyncio.Task: 消息处理任务
         """
+        logging.debug(f"创建异步任务处理消息 TypeName={data.get('TypeName', '未知')}")
         task = asyncio.create_task(self.process(data))
         self._tasks.add(task)
         task.add_done_callback(self._tasks.discard)

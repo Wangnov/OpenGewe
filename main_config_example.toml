@@ -1,13 +1,13 @@
 [gewe]
 # 使用geweapi需传值http://api.geweapi.com/gewe/v2/api，或gewe临时提供的ip+端口地址。私有化部署则根据部署的镜像地址和端口来填写。
 # 当前geweapi管理后台中提供的base_url是http://218.78.116.24:10884/gewe/v2/api，日后可能恢复为域名或发生改变，请及时更新。
-base_url = "http://218.78.116.24:10884/gewe/v2/api" 
+base_url = "http://218.78.116.24:10884/gewe/v2/api"
 # 使用geweapi无需传值，私有化部署则根据部署的镜像地址和端口来填写。
-download_url = "" 
+download_url = ""
 # 设置回调地址。如果在geweapi的管理后台内已经为token绑定了回调地址，则无需在此设置。私有化部署，则用于调用代码的设置回调接口。
-callback_url = "http://your_domain_or_ip:5432/callback" 
+callback_url = "http://your_domain_or_ip:5432/callback"
 # 设备id，在geweapi的管理后台内扫码登录创建设备时生成。私有化部署，则调用代码的登录流程，登录成功后代码会自动生成设备id填写至此。
 app_id = "wx_12345ABCdeFGhi6789"
 # geweapi平台分配的token，私有化部署则为自己调用获取token接口获取的token。
 token = "1234abcd-1234-1234-1234-1234abcd1234"
-is_gewe = true # 是否强制切换geweapi，设置为false则切换至私有化部署。
+is_gewe = true                                 # 是否强制切换geweapi，设置为false则切换至私有化部署。
