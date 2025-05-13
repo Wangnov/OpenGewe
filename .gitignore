@@ -43,6 +43,7 @@ test*.*
 # 日志
 *.log
 OGLogs/
+logs/
 
 # IDE
 .idea/

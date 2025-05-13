@@ -1,4 +1,4 @@
-# Example_plugin 示例插件
+# ExamplePlugin 示例插件
 
 这是一个用于演示OpenGewe插件系统的示例插件。
 
