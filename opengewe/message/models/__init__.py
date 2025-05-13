@@ -15,13 +15,13 @@ from opengewe.message.models.media import (
     VoiceMessage,
     VideoMessage,
     EmojiMessage,
-    FinderMessage,
 )
 
 # 导入链接相关消息类
 from opengewe.message.models.link import (
     LinkMessage,
     MiniappMessage,
+    FinderMessage,
 )
 
 # 导入文件相关消息类

@@ -2,6 +2,7 @@
 
 from typing import Dict, Any, Optional
 import xml.etree.ElementTree as ET
+import logging
 
 from opengewe.message.models import BaseMessage, TextMessage, QuoteMessage
 from opengewe.message.handlers.base import BaseHandler
@@ -23,7 +24,14 @@ class TextMessageHandler(BaseHandler):
 
     async def handle(self, data: Dict[str, Any]) -> Optional[TextMessage]:
         """处理文本消息"""
-        return TextMessage.from_dict(data)
+        try:
+            logging.debug(f"TextMessageHandler开始处理消息: {data.get('TypeName')}")
+            message = TextMessage.from_dict(data)
+            logging.debug(f"TextMessageHandler成功创建消息对象: {message.text[:20] if message.text else 'Empty text'}")
+            return message
+        except Exception as e:
+            logging.error(f"TextMessageHandler处理消息时出错: {e}", exc_info=True)
+            return None
 
 
 class QuoteHandler(BaseHandler):
@@ -61,10 +69,18 @@ class QuoteHandler(BaseHandler):
 
             type_elem = appmsg.find("type")
             return type_elem is not None and type_elem.text == "57"
-        except Exception:
+        except Exception as e:
+            logging.error(f"QuoteHandler判断消息类型时出错: {e}", exc_info=True)
             return False
 
     async def handle(self, data: Dict[str, Any]) -> Optional[BaseMessage]:
         """处理引用消息"""
-        # 直接使用QuoteMessage类处理消息
-        return QuoteMessage.from_dict(data)
+        try:
+            logging.debug(f"QuoteHandler开始处理消息")
+            # 直接使用QuoteMessage类处理消息
+            message = QuoteMessage.from_dict(data)
+            logging.debug(f"QuoteHandler成功创建消息对象")
+            return message
+        except Exception as e:
+            logging.error(f"QuoteHandler处理消息时出错: {e}", exc_info=True)
+            return None

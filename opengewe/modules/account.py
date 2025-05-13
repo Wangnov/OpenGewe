@@ -21,15 +21,6 @@ class AccountModule:
         data = {"appId": self.client.app_id}
         return await self.client.request("/login/reconnection", data)
 
-    async def logout(self) -> Dict[str, Any]:
-        """退出登录
-
-        Returns:
-            Dict[str, Any]: 接口返回结果
-        """
-        data = {"appId": self.client.app_id}
-        return await self.client.request("/login/logout", data)
-
     async def check_online(self) -> Dict[str, Any]:
         """检查是否在线
 
@@ -41,3 +32,24 @@ class AccountModule:
         """
         data = {"appId": self.client.app_id}
         return await self.client.request("/login/checkOnline", data)
+        
+    async def dialog_login(self, content: str = "") -> Dict[str, Any]:
+        """弹框登录
+
+        Args:
+            content (str, optional): 内容. Defaults to "".
+
+        Returns:
+            Dict[str, Any]: 接口返回结果
+        """
+        data = {"appId": self.client.app_id, "content": content}
+        return await self.client.request("/login/dialogLogin", data)
+
+    async def logout(self) -> Dict[str, Any]:
+        """退出登录
+
+        Returns:
+            Dict[str, Any]: 接口返回结果
+        """
+        data = {"appId": self.client.app_id}
+        return await self.client.request("/login/logout", data)
