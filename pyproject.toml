@@ -1,7 +1,7 @@
 [project]
-name = "opengewechat"
+name = "opengewe"
 version = "0.0.1"
-description = "基于Gewechat和Gewe的开源微信机器人框架，提供简单易用的微信自动化解决方案"
+description = "基于Gewe和Gewechat的开源微信机器人异步框架，提供高性能的微信自动化解决方案"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
@@ -9,7 +9,6 @@ dependencies = [
     "certifi>=2025.1.31",
     "charset-normalizer>=3.4.1",
     "click>=8.1.8",
-    "flask>=3.1.0",
     "idna>=3.10",
     "itsdangerous>=2.2.0",
     "jinja2>=3.1.6",
@@ -17,9 +16,14 @@ dependencies = [
     "numpy>=2.2.5",
     "pilk>=0.2.4",
     "qrcode>=8.1",
-    "requests>=2.32.3",
     "typing>=3.10.0.0",
     "typing-extensions>=4.13.2",
     "urllib3>=2.4.0",
-    "werkzeug>=3.1.3",
+    "aiohttp>=3.9.2",
+    "aiofiles>=23.2.1",
+    "aiodns>=3.1.1",
+    "cchardet>=2.1.7",
 ]
+
+[project.optional-dependencies]
+test = ["pytest>=7.4.0", "pytest-asyncio>=0.23.4"]

@@ -1,0 +1,17 @@
+# Example_plugin 配置文件
+
+[basic]
+# 插件是否启用
+enable = true
+
+[features]
+# 消息响应功能
+message_response = true
+
+# 定时任务
+scheduled_tasks = true
+
+[advanced]
+# 高级选项
+debug_mode = false
+log_level = "info"

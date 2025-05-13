@@ -50,6 +50,7 @@ OGLogs/
 *.swp
 *.swo
 .cursor/
+.cursorignore
 
 # macOS
 .DS_Store
