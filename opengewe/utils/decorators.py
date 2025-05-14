@@ -10,7 +10,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 
-from opengewe.message.types import MessageType
+from opengewe.callback.types import MessageType
 
 # 创建调度器实例
 scheduler = AsyncIOScheduler()

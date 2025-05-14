@@ -21,8 +21,8 @@ from contextlib import asynccontextmanager
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from opengewe.client import GeweClient
-from opengewe.message.factory import MessageFactory
-from opengewe.message.types import MessageType
+from opengewe.callback.factory import MessageFactory
+from opengewe.callback.types import MessageType
 
 # 配置loguru
 logger.remove()

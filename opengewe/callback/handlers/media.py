@@ -2,13 +2,13 @@
 
 from typing import Dict, Any, Optional
 
-from opengewe.message.models import (
+from opengewe.callback.models import (
     ImageMessage,
     VoiceMessage,
     VideoMessage,
     EmojiMessage,
 )
-from opengewe.message.handlers.base import BaseHandler
+from opengewe.callback.handlers.base import BaseHandler
 
 
 class ImageMessageHandler(BaseHandler):

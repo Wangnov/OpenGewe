@@ -2,8 +2,8 @@ from dataclasses import dataclass
 from typing import Dict, Any
 import xml.etree.ElementTree as ET
 
-from opengewe.message.types import MessageType
-from opengewe.message.models.base import BaseMessage
+from opengewe.callback.types import MessageType
+from opengewe.callback.models.base import BaseMessage
 
 
 @dataclass

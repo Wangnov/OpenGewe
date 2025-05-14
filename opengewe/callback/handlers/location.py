@@ -2,8 +2,8 @@
 
 from typing import Dict, Any, Optional
 
-from opengewe.message.models import BaseMessage, LocationMessage
-from opengewe.message.handlers.base import BaseHandler
+from opengewe.callback.models import BaseMessage, LocationMessage
+from opengewe.callback.handlers.base import BaseHandler
 
 
 class LocationMessageHandler(BaseHandler):

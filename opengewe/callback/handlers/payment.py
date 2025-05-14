@@ -3,8 +3,8 @@
 import xml.etree.ElementTree as ET
 from typing import Dict, Any, Optional
 
-from opengewe.message.models import BaseMessage, TransferMessage, RedPacketMessage
-from opengewe.message.handlers.base import BaseHandler
+from opengewe.callback.models import BaseMessage, TransferMessage, RedPacketMessage
+from opengewe.callback.handlers.base import BaseHandler
 
 
 class TransferHandler(BaseHandler):
