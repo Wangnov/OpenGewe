@@ -6,7 +6,7 @@
 import copy
 from typing import Callable, Dict, List, Tuple
 
-from opengewe.message.types import MessageType
+from opengewe.callback.types import MessageType
 
 
 class EventManager:

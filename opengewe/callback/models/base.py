@@ -1,7 +1,7 @@
 import time
 from dataclasses import dataclass, field
 from typing import Dict, Any
-from opengewe.message.types import MessageType
+from opengewe.callback.types import MessageType
 
 
 @dataclass

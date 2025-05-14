@@ -4,16 +4,16 @@
 """
 
 # 导入基础处理器
-from opengewe.message.handlers.base import BaseHandler
+from opengewe.callback.handlers.base import BaseHandler
 
 # 导入文本消息处理器
-from opengewe.message.handlers.text import (
+from opengewe.callback.handlers.text import (
     TextMessageHandler,
     QuoteHandler,
 )
 
 # 导入媒体消息处理器
-from opengewe.message.handlers.media import (
+from opengewe.callback.handlers.media import (
     ImageMessageHandler,
     VoiceMessageHandler,
     VideoMessageHandler,
@@ -21,7 +21,7 @@ from opengewe.message.handlers.media import (
 )
 
 # 导入联系人相关处理器
-from opengewe.message.handlers.contact import (
+from opengewe.callback.handlers.contact import (
     CardHandler,
     FriendRequestHandler,
     ContactUpdateHandler,
@@ -29,23 +29,23 @@ from opengewe.message.handlers.contact import (
 )
 
 # 导入文件相关处理器
-from opengewe.message.handlers.file import (
+from opengewe.callback.handlers.file import (
     FileNoticeMessageHandler,
     FileMessageHandler,
 )
 
 # 导入链接相关处理器
-from opengewe.message.handlers.link import (
+from opengewe.callback.handlers.link import (
     LinkMessageHandler,
     FinderHandler,
     MiniappHandler,
 )
 
 # 导入位置消息处理器
-from opengewe.message.handlers.location import LocationMessageHandler
+from opengewe.callback.handlers.location import LocationMessageHandler
 
 # 导入群聊消息处理器
-from opengewe.message.handlers.group import (
+from opengewe.callback.handlers.group import (
     GroupInviteMessageHandler,
     GroupInvitedMessageHandler,
     GroupInfoUpdateHandler,
@@ -53,13 +53,13 @@ from opengewe.message.handlers.group import (
 )
 
 # 导入系统消息处理器
-from opengewe.message.handlers.system import (
+from opengewe.callback.handlers.system import (
     SysmsgHandler,
     OfflineHandler,
 )
 
 # 导入支付相关处理器
-from opengewe.message.handlers.payment import (
+from opengewe.callback.handlers.payment import (
     TransferHandler,
     RedPacketHandler,
 )

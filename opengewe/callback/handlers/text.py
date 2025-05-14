@@ -4,8 +4,8 @@ from typing import Dict, Any, Optional
 import xml.etree.ElementTree as ET
 import logging
 
-from opengewe.message.models import BaseMessage, TextMessage, QuoteMessage
-from opengewe.message.handlers.base import BaseHandler
+from opengewe.callback.models import BaseMessage, TextMessage, QuoteMessage
+from opengewe.callback.handlers.base import BaseHandler
 
 
 class TextMessageHandler(BaseHandler):

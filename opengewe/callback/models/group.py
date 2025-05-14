@@ -3,8 +3,8 @@ from typing import Dict, Any, List
 import xml.etree.ElementTree as ET
 import re
 
-from opengewe.message.types import MessageType
-from opengewe.message.models.base import BaseMessage
+from opengewe.callback.types import MessageType
+from opengewe.callback.models.base import BaseMessage
 
 
 @dataclass

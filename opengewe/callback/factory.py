@@ -4,9 +4,9 @@ import logging
 import asyncio
 from functools import partial
 
-from opengewe.message.types import MessageType
-from opengewe.message.models import BaseMessage
-from opengewe.message.handlers import DEFAULT_HANDLERS, BaseHandler
+from opengewe.callback.types import MessageType
+from opengewe.callback.models import BaseMessage
+from opengewe.callback.handlers import DEFAULT_HANDLERS, BaseHandler
 
 # 异步处理器类型定义
 AsyncHandlerResult = Union[BaseMessage, None]

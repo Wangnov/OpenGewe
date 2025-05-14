@@ -2,7 +2,7 @@
 
 from typing import Dict, Any, Optional
 from opengewe.client import GeweClient
-from opengewe.message.models import BaseMessage
+from opengewe.callback.models import BaseMessage
 
 
 class BaseHandler:

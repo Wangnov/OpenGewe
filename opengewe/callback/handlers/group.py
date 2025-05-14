@@ -3,14 +3,14 @@
 import xml.etree.ElementTree as ET
 from typing import Dict, Any, Optional
 
-from opengewe.message.models import (
+from opengewe.callback.models import (
     BaseMessage,
     GroupInvitedMessage,
     GroupInfoUpdateMessage,
     GroupTodoMessage,
     GroupInviteMessage,
 )
-from opengewe.message.handlers.base import BaseHandler
+from opengewe.callback.handlers.base import BaseHandler
 
 
 class GroupInviteMessageHandler(BaseHandler):

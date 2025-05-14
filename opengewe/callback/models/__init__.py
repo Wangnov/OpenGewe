@@ -4,13 +4,13 @@
 """
 
 # 导入基础消息类
-from opengewe.message.models.base import BaseMessage
+from opengewe.callback.models.base import BaseMessage
 
 # 导入文本相关消息类
-from opengewe.message.models.text import TextMessage, QuoteMessage
+from opengewe.callback.models.text import TextMessage, QuoteMessage
 
 # 导入媒体相关消息类
-from opengewe.message.models.media import (
+from opengewe.callback.models.media import (
     ImageMessage,
     VoiceMessage,
     VideoMessage,
@@ -18,23 +18,23 @@ from opengewe.message.models.media import (
 )
 
 # 导入链接相关消息类
-from opengewe.message.models.link import (
+from opengewe.callback.models.link import (
     LinkMessage,
     MiniappMessage,
     FinderMessage,
 )
 
 # 导入文件相关消息类
-from opengewe.message.models.file import (
+from opengewe.callback.models.file import (
     FileNoticeMessage,
     FileMessage,
 )
 
 # 导入位置相关消息类
-from opengewe.message.models.location import LocationMessage
+from opengewe.callback.models.location import LocationMessage
 
 # 导入联系人相关消息类
-from opengewe.message.models.contact import (
+from opengewe.callback.models.contact import (
     CardMessage,
     FriendRequestMessage,
     ContactUpdateMessage,
@@ -42,7 +42,7 @@ from opengewe.message.models.contact import (
 )
 
 # 导入群聊相关消息类
-from opengewe.message.models.group import (
+from opengewe.callback.models.group import (
     GroupInviteMessage,
     GroupInvitedMessage,
     GroupRemovedMessage,
@@ -57,7 +57,7 @@ from opengewe.message.models.group import (
 )
 
 # 导入系统相关消息类
-from opengewe.message.models.system import (
+from opengewe.callback.models.system import (
     RevokeMessage,
     PatMessage,
     OfflineMessage,
@@ -65,7 +65,7 @@ from opengewe.message.models.system import (
 )
 
 # 导入支付相关消息类
-from opengewe.message.models.payment import (
+from opengewe.callback.models.payment import (
     TransferMessage,
     RedPacketMessage,
 )
