@@ -15,7 +15,7 @@ OpenGewe是一个基于[GeWeAPI](https://geweapi.com)的微信机器人框架，
 ## 主要特性
 
 - 💻 **完全异步**：使用原生异步实现，支持高并发和大数据量吞吐
-- ‼️ **消息回调**：完全实现Gewechat31种回调消息类型的检测
+- ‼️ **消息回调**：完全实现GeWeAPI返回的31种回调消息类型的检测
 - 💬 **消息收发**：支持文本、图片、语音、视频等多种消息类型
 - 👥 **群管理**：自动入群、退群、邀请好友、群成员管理等
 - 🤖 **自动回复**：设置关键词自动回复，支持正则表达式
@@ -28,7 +28,7 @@ OpenGewe是一个基于[GeWeAPI](https://geweapi.com)的微信机器人框架，
 
 ## 兼容性说明
 
-本项目**计划**完全兼容Gewechat付费版本[GeWeAPI](https://geweapi.com)。由于原项目暂停维护，我们建议用户转向使用GeWeAPI以获得持续的支持和更新。使用GeWeAPI只需修改`base_url`为：`http://api.geweapi.com/gewe/v2/api`，系统会自动识别并切换到付费版模式。
+本项目**计划**完全兼容Gee付费版本[GeWeAPI](https://geweapi.com)。由于原项目暂停维护，我们建议用户转向使用GeWeAPI以获得持续的支持和更新。使用GeWeAPI只需修改`base_url`为：`http://api.geweapi.com/gewe/v2/api`，系统会自动识别并切换到付费版模式。
 
 ## 迁移到GeWeAPI
 
@@ -50,27 +50,27 @@ OpenGewe是一个基于[GeWeAPI](https://geweapi.com)的微信机器人框架，
 
 ```bash
 # 克隆项目
-git clone https://github.com/yourusername/opengewechat.git
+git clone https://github.com/yourusername/openGewe.git
 
 # 进入项目目录
-cd opengewechat
+cd opengewe
 
 # 安装依赖
 pip install -r requirements.txt
 
 # 或者使用pip直接安装(无效，暂未上传到PYPI)
-pip install opengewechat
+pip install opengewe
 ```
 
 ### 基本使用
 
 ```python
-from opengewechat import GewechatClient
+from opengewe import GeweClient
 
 # 创建客户端实例
-client = GewechatClient(
-    base_url="http://your_gewechat_server:2531/v2/api",  # Gewechat服务的基础URL
-    download_url="http://your_gewechat_server:2532/download",  # 下载链接的基础URL
+client = GeweClient(
+    base_url="http://your_gewe_server:2531/v2/api",  # GeWeAPI服务的基础URL
+    download_url="http://your_gewe_server:2532/download",  # 下载链接的基础URL
     callback_url="http://your_callback_server/callback",  # 回调服务器URL
     app_id="",  # 首次登录传空，后续登录使用登录成功后返回的app_id
     token="",  # 首次登录传空，后续登录使用登录成功后返回的token
@@ -97,10 +97,10 @@ contacts = client.contact.get_contact_list()
 ### 使用付费版Gewe
 
 ```python
-from opengewechat import GewechatClient
+from opengewe import GeweClient
 
 # 创建Gewe客户端实例
-client = GewechatClient(
+client = GeweClient(
     base_url="http://api.geweapi.com/gewe/v2/api",  # Gewe API地址
     download_url="",  # Gewe无需传入下载链接头
     callback_url="http://your_callback_server/callback",  # 您的回调服务器
@@ -114,10 +114,10 @@ client = GewechatClient(
 
 ## 插件开发
 
-OpenGeWechat提供了强大的插件系统，您可以通过继承`BasePlugin`类来创建自定义插件：
+OpenGewe提供了强大的插件系统，您可以通过继承`BasePlugin`类来创建自定义插件：
 
 ```python
-from opengewechat.plugins import BasePlugin
+from opengewe.plugins import BasePlugin
 
 class MyPlugin(BasePlugin):
     def __init__(self):
@@ -133,13 +133,13 @@ class MyPlugin(BasePlugin):
             message.reply("Hello from my plugin!")
 
 # 注册插件
-from opengewechat.plugins import PluginManager
+from opengewe.plugins import PluginManager
 PluginManager.register_plugin(MyPlugin())
 ```
 
 ## 模块说明
 
-OpenGeWechat包含以下核心模块：
+OpenGewe包含以下核心模块：
 
 - **login**: 登录相关功能
 - **contact**: 通讯录管理
@@ -158,7 +158,7 @@ OpenGeWechat包含以下核心模块：
 
 ## 致谢
 
-- 特别感谢[Gewechat](https://github.com/Devo919/Gewechat)项目及其开发者提供的基础框架
+- 特别感谢[Gewechat](https://github.com/Devo919/Gewechat)项目的开源精神！
 - 感谢所有对本项目提供支持和反馈的用户
 
 ## 许可证
