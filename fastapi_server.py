@@ -12,6 +12,9 @@ from loguru import logger
 import uvicorn
 import sys
 import asyncio
+import subprocess
+import signal
+import time
 from contextlib import asynccontextmanager
 
 # 添加当前目录到模块搜索路径
@@ -42,6 +45,108 @@ logger.add(
 # 添加控制台输出
 logger.add(lambda msg: print(msg), level="INFO")
 
+# 全局变量保存worker进程
+worker_process = None
+
+def start_celery_worker(config: Dict[str, Any]) -> bool:
+    """启动Celery worker子进程
+    
+    Args:
+        config: 包含队列配置的字典
+        
+    Returns:
+        bool: 是否成功启动worker
+    """
+    global worker_process
+    
+    # 检查队列类型
+    queue_config = config.get("queue", {})
+    queue_type = queue_config.get("queue_type", "simple")
+    
+    # 如果不是高级队列模式，不启动worker
+    if queue_type != "advanced":
+        logger.info(f"当前队列类型为 {queue_type}，不需要启动Celery worker")
+        return False
+    
+    logger.info("正在启动Celery worker...")
+    
+    # 从配置中获取队列参数
+    broker = queue_config.get("broker", "redis://localhost:6379/0")
+    backend = queue_config.get("backend", "redis://localhost:6379/0")
+    queue_name = queue_config.get("name", "opengewe_messages")
+    concurrency = str(queue_config.get("concurrency", 4))
+    
+    # 设置环境变量
+    env = os.environ.copy()
+    env.update({
+        "OPENGEWE_BROKER_URL": broker,
+        "OPENGEWE_RESULT_BACKEND": backend,
+        "OPENGEWE_QUEUE_NAME": queue_name,
+        "OPENGEWE_CONCURRENCY": concurrency
+    })
+    
+    # 启动worker进程
+    worker_process = subprocess.Popen(
+        [sys.executable, "-m", "opengewe.queue.celery_worker"],
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True
+    )
+    
+    # 等待worker启动
+    logger.info("等待Celery worker启动...")
+    for _ in range(10):  # 最多等待10秒
+        if worker_process.poll() is not None:
+            # worker已退出
+            stdout, _ = worker_process.communicate()
+            logger.error(f"Celery worker启动失败:\n{stdout}")
+            return False
+        
+        # 检查输出是否包含表示成功启动的消息
+        output = worker_process.stdout.readline()
+        logger.debug(f"Worker输出: {output.strip()}")
+        if "ready" in output.lower() or "working" in output.lower():
+            logger.info("Celery worker已成功启动!")
+            break
+            
+        time.sleep(1)
+    
+    # 创建一个后台任务来收集输出
+    asyncio.create_task(collect_worker_output())
+    return True
+
+
+async def collect_worker_output():
+    """收集并打印worker的输出"""
+    global worker_process
+    while worker_process and worker_process.poll() is None:
+        line = worker_process.stdout.readline()
+        if line:
+            logger.debug(f"Worker > {line.strip()}")
+        else:
+            await asyncio.sleep(0.1)
+
+
+def stop_celery_worker():
+    """停止Celery worker子进程"""
+    global worker_process
+    if worker_process and worker_process.poll() is None:
+        logger.info("正在关闭Celery worker...")
+        # 首先尝试使用SIGTERM信号优雅关闭
+        worker_process.terminate()
+        
+        # 等待进程结束
+        try:
+            worker_process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            # 如果超时，强制关闭
+            logger.warning("Celery worker未响应，强制关闭...")
+            worker_process.kill()
+            worker_process.wait()
+        
+        logger.info("Celery worker已关闭")
+
 # 配置读取函数
 async def read_config():
     # 验证main_config.toml配置文件
@@ -58,6 +163,14 @@ async def read_config():
 # 创建GeweClient和MessageFactory的依赖注入
 async def get_gewe_client():
     config = await read_config()
+    
+    # 从配置中获取高级队列的配置
+    queue_config = config.get("queue", {})
+    queue_type = queue_config.get("queue_type", "simple")
+    broker = queue_config.get("broker", "redis://localhost:6379/0")
+    backend = queue_config.get("backend", "redis://localhost:6379/0")
+    queue_name = queue_config.get("name", "opengewe_messages")
+    
     client = GeweClient(
         base_url=config["gewe"]["base_url"],
         download_url=config["gewe"]["download_url"],
@@ -65,14 +178,28 @@ async def get_gewe_client():
         app_id=config["gewe"]["app_id"],
         token=config["gewe"]["token"],
         is_gewe=config["gewe"]["is_gewe"],
-        debug=True
+        debug=True,
+        # 使用配置的队列类型
+        queue_type=queue_type,
+        broker=broker,
+        backend=backend,
+        queue_name=queue_name
     )
+    
     return client
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # 启动时执行
     try:
+        # 读取配置
+        config = await read_config()
+        
+        # 启动Celery worker（如果是高级队列模式）
+        worker_started = start_celery_worker(config)
+        app.state.worker_running = worker_started
+        app.state.queue_mode = config.get("queue", {}).get("queue_type", "simple")
+        
         # 使用依赖注入获取factory实例
         client = await get_gewe_client()
         factory = MessageFactory(client)
@@ -81,12 +208,18 @@ async def lifespan(app: FastAPI):
         
         # 将工厂实例保存为应用状态，确保使用同一个实例
         app.state.message_factory = factory
+        
+        logger.info(f"应用初始化完成，队列模式: {app.state.queue_mode}")
     except Exception as e:
         logger.exception(f"启动事件发生异常: {e}")
+        # 如果初始化失败，确保关闭worker
+        stop_celery_worker()
     
     yield  # 应用运行期间
     
-    # 关闭时执行的清理代码(如有需要)
+    # 关闭时执行的清理代码
+    logger.info("应用正在关闭...")
+    stop_celery_worker()
 
 # 创建FastAPI应用
 app = FastAPI(
@@ -94,6 +227,15 @@ app = FastAPI(
     description="微信自动化API接口",
     lifespan=lifespan
 )
+
+# 注册信号处理函数，确保程序被中断时能优雅退出
+def signal_handler(sig, frame):
+    logger.info("收到中断信号，开始优雅关闭...")
+    # 此处不需要特别处理，因为uvicorn会在收到信号时自动关闭FastAPI应用
+    # 而在lifespan的退出逻辑中我们已经处理了worker的关闭
+
+signal.signal(signal.SIGINT, signal_handler)
+signal.signal(signal.SIGTERM, signal_handler)
 
 # 修改依赖注入获取消息工厂的方式，优先使用已保存的实例
 async def get_message_factory(client: GeweClient = Depends(get_gewe_client)):
@@ -138,7 +280,7 @@ async def on_message(message):
             client = await get_gewe_client()
             if message.text == "测试":
                 logger.info(f"接收到测试消息，准备回复")
-                await client.message.post_text(message.from_wxid, "测试成功")
+                await client.send_text_message(message.from_wxid, "测试成功")
                 logger.info(f"已回复测试消息")
 
             if message.text == "语音":
@@ -238,7 +380,11 @@ async def download(file: str = Query(..., description="要下载的文件名")):
 @app.get("/status")
 async def status():
     """健康检查接口"""
-    return {"status": "running"}
+    return {
+        "status": "running", 
+        "queue_mode": getattr(app.state, "queue_mode", "unknown"), 
+        "worker_running": getattr(app.state, "worker_running", False)
+    }
 
 if __name__ == "__main__":
     logger.info("启动Gewe回调服务器...")

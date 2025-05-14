@@ -1,5 +1,5 @@
 import aiohttp
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, Literal
 import asyncio
 import qrcode
 from functools import partial
@@ -15,6 +15,7 @@ from opengewe.modules.favorite import FavoriteModule
 from opengewe.modules.account import AccountModule
 from opengewe.modules.sns import SnsModule
 from opengewe.modules.finder import FinderModule
+from opengewe.mixin import MessageMixin
 
 
 class GeweClient:
@@ -28,6 +29,8 @@ class GeweClient:
         token: 登录token
         debug: 是否开启调试模式，默认关闭
         is_gewe: 是否使用付费版gewe，默认为False
+        queue_type: 消息队列类型，"simple"或"advanced"，默认为"simple"
+        queue_options: 消息队列选项，根据队列类型不同而不同，如高级队列需要broker、backend等参数
     """
 
     def __init__(
@@ -39,6 +42,8 @@ class GeweClient:
         token: str = "",
         debug: bool = False,
         is_gewe: bool = False,
+        queue_type: Literal["simple", "advanced"] = "simple",
+        **queue_options
     ):
         self.base_url = base_url
         self.download_url = download_url
@@ -69,6 +74,12 @@ class GeweClient:
         self.account = AccountModule(self)
         self.sns = SnsModule(self)
         self.finder = FinderModule(self)
+
+        # 创建并集成MessageMixin
+        self._message_mixin = MessageMixin(self.message, queue_type, **queue_options)
+        
+        # 将MessageMixin的方法注册到Client实例
+        self._register_message_methods()
 
     def __str__(self):
         return (
@@ -290,3 +301,13 @@ class GeweClient:
         qr.add_data(url)
         qr.make(fit=True)
         qr.print_ascii(invert=True)
+
+    def _register_message_methods(self):
+        """将MessageMixin的方法注册到Client实例"""
+        # 获取MessageMixin的所有公开方法（不以下划线开头的方法）
+        for method_name in dir(self._message_mixin):
+            if not method_name.startswith('_'):
+                method = getattr(self._message_mixin, method_name)
+                if callable(method):
+                    # 将方法注册到Client实例
+                    setattr(self, method_name, method)
