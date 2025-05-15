@@ -19,9 +19,9 @@ class FinderModule:
         Returns:
             bool: 是否为付费版gewe
         """
-        if not self.client.is_gewe:
-            print("视频号模块为付费功能，需要付费版gewe才能使用")
-            return False
+        # if not self.client.is_gewe:
+        #     print("视频号模块为付费功能，需要付费版gewe才能使用")
+        #     return False
         return True
 
     async def follow(self, finder_username: str) -> Dict[str, Any]:

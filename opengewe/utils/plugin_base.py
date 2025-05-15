@@ -71,7 +71,7 @@ class PluginBase(ABC):
                 self._scheduled_jobs.add(job_id)
 
         if self._scheduled_jobs:
-            logger.info(
+            logger.debug(
                 "插件 {} 已加载定时任务: {}",
                 self.__class__.__name__,
                 self._scheduled_jobs,
@@ -88,7 +88,7 @@ class PluginBase(ABC):
         for job_id in self._scheduled_jobs:
             remove_job_safe(scheduler, job_id)
         if self._scheduled_jobs:
-            logger.info("已卸载定时任务: {}", self._scheduled_jobs)
+            logger.debug("已卸载定时任务: {}", self._scheduled_jobs)
         self._scheduled_jobs.clear()
 
     async def async_init(self) -> None:

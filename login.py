@@ -18,7 +18,6 @@ def main():
     )
     # client.debug = True
     client.start_login()
-    # print(client.login.get_device_list())
 
 
 if __name__ == "__main__":

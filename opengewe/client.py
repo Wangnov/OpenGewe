@@ -136,14 +136,14 @@ class GeweClient:
 
                 # DEBUG用: 打印请求的url和请求体
                 if self.debug:
-                    print(f"请求的url: {url}")
-                    print(f"请求的请求体: {data}")
-                    print(f"请求的headers: {headers}")
-                    print(f"请求的响应: {result}")
+                    logger.debug(f"请求的url: {url}")
+                    logger.debug(f"请求的请求体: {data}")
+                    logger.debug(f"请求的headers: {headers}")
+                    logger.debug(f"请求的响应: {result}")
 
                 return result
         except Exception as e:
-            print(f"❌ 请求失败: {e}")
+            logger.error(f"❌ 请求失败: {e}")
             return {"ret": 500, "msg": f"请求异常: {str(e)}"}
 
     async def close(self) -> None:
@@ -151,7 +151,7 @@ class GeweClient:
         # 关闭调度器
         if scheduler.running:
             scheduler.shutdown()
-            logger.info("定时任务调度器已关闭")
+            logger.debug("定时任务调度器已关闭")
         
         # 卸载插件
         if hasattr(self, 'plugin_manager'):
