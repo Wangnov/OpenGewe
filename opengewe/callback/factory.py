@@ -55,7 +55,7 @@ class MessageFactory:
         for handler_cls in DEFAULT_HANDLERS:
             self.register_handler(handler_cls)
         
-        logger.info(f"消息工厂初始化完成，已注册 {len(self.handlers)} 个消息处理器")
+        logger.debug(f"消息工厂初始化完成，已注册 {len(self.handlers)} 个消息处理器")
 
     def register_handler(self, handler_cls: Type[BaseHandler]) -> None:
         """注册消息处理器
@@ -76,7 +76,7 @@ class MessageFactory:
             callback: 异步回调函数，接收BaseMessage对象作为参数
         """
         self.on_message_callback = callback
-        logger.info(f"注册消息回调函数成功: {callback.__name__ if hasattr(callback, '__name__') else str(callback)}")
+        logger.debug(f"注册消息回调函数成功: {callback.__name__ if hasattr(callback, '__name__') else str(callback)}")
         
     def set_plugin_manager(self, plugin_manager: "PluginManager") -> None:
         """设置插件管理器
@@ -85,7 +85,7 @@ class MessageFactory:
             plugin_manager: 插件管理器实例
         """
         self.plugin_manager = plugin_manager
-        logger.info("插件管理器设置成功")
+        logger.debug("插件管理器设置成功")
 
     async def process(self, data: Dict[str, Any]) -> Optional[BaseMessage]:
         """处理消息

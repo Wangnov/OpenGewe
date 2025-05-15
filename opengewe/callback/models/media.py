@@ -5,12 +5,13 @@ import re
 
 from opengewe.callback.types import MessageType
 from opengewe.callback.models.base import BaseMessage
+from opengewe.log import get_logger
 
 # 使用TYPE_CHECKING条件导入，只用于类型注解
 if TYPE_CHECKING:
     from opengewe.client import GeweClient
 
-
+logger = get_logger("Callback")
 @dataclass
 class ImageMessage(BaseMessage):
     """图片消息"""
@@ -174,7 +175,7 @@ class VoiceMessage(BaseMessage):
                 f.write(self.voice_buffer)
             return filepath
         except Exception as e:
-            print(f"保存语音文件失败: {e}")
+            logger.error(f"保存语音文件失败: {e}")
             return ""
 
     @classmethod

@@ -21,9 +21,9 @@ class SnsModule:
         Returns:
             bool: 是否为付费版gewe
         """
-        if not self.client.is_gewe:
-            print("朋友圈模块为付费功能，需要付费版gewe才能使用")
-            return False
+        # if not self.client.is_gewe:
+        #     print("朋友圈模块为付费功能，需要付费版gewe才能使用")
+        #     return False
         return True
 
     async def like_sns(self, sns_id: int, oper_type: int, wxid: str) -> Dict[str, Any]:

@@ -45,13 +45,13 @@ class SimpleMessageQueue(BaseMessageQueue):
             return
 
         self._is_processing = True
-        logger.info("开始处理消息队列")
+        logger.debug("开始处理消息队列")
         
         try:
             while True:
                 if self._queue.empty():
                     self._is_processing = False
-                    logger.info("消息队列处理完毕")
+                    logger.debug("消息队列处理完毕")
                     break
 
                 func, args, kwargs, future = await self._queue.get()
@@ -71,4 +71,4 @@ class SimpleMessageQueue(BaseMessageQueue):
     async def stop_processing(self) -> None:
         """停止处理队列中的消息"""
         self._is_processing = False
-        logger.info("停止处理消息队列") 
+        logger.debug("停止处理消息队列") 

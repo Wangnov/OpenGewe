@@ -66,9 +66,9 @@ def schedule(
         @wraps(func)
         async def wrapper(self, *args, **kwargs):
             try:
-                # logger.info(f"开始执行定时任务: {job_id}，当前时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                logger.debug(f"开始执行定时任务: {job_id}，当前时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
                 result = await func(self, *args, **kwargs)
-                # logger.info(f"定时任务 {job_id} 执行完成")
+                logger.debug(f"定时任务 {job_id} 执行完成")
                 return result
             except Exception as e:
                 logger.error(f"定时任务 {job_id} 执行出错: {e}", exc_info=True)
@@ -123,11 +123,11 @@ def add_job_safe(
         cron_desc = ', '.join([f"{k}={v}" for k, v in trigger_args.items() if k not in ['timezone']])
         run_time_info = f"定时: {cron_desc}"
         
-    # logger.info(f"添加定时任务: {job_id}, 触发器类型: {trigger}, {run_time_info}")
+    logger.debug(f"添加定时任务: {job_id}, 触发器类型: {trigger}, {run_time_info}")
     
     # 添加任务
     job = scheduler.add_job(func, trigger, args=[client], id=job_id, **trigger_args)
-    # logger.info(f"任务 {job_id} 已添加，下次执行时间: {job.next_run_time}")
+    logger.debug(f"任务 {job_id} 已添加，下次执行时间: {job.next_run_time}")
 
 
 def remove_job_safe(scheduler: AsyncIOScheduler, job_id: str) -> None:
