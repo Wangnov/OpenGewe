@@ -74,7 +74,7 @@ def format_console_message(record: Dict[str, Any]) -> str:
             # 尝试格式化XML
             dom = minidom.parseString(message)
             pretty_xml = dom.toprettyxml(indent="  ")
-            return f"\n[XML内容]\n{pretty_xml}"
+            return f"[XML内容] {pretty_xml}"
         except ExpatError:
             pass
             
@@ -85,14 +85,14 @@ def format_console_message(record: Dict[str, Any]) -> str:
             # 尝试格式化JSON
             parsed = json.loads(message)
             pretty_json = json.dumps(parsed, ensure_ascii=False, indent=2)
-            return f"\n[JSON内容]\n{pretty_json}"
+            return f"[JSON内容] {pretty_json}"
         except json.JSONDecodeError:
             pass
             
     # 处理超长消息
     if len(message) > 500:
         preview = message[:200] + "..." + message[-200:]
-        return f"[长消息] ({len(message)} 字符): {preview}\n [使用DEBUG级别查看完整内容]"
+        return f"[长消息] ({len(message)} 字符): {preview} [使用DEBUG级别查看完整内容]"
             
     return message
 
