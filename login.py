@@ -1,4 +1,4 @@
-from opengewechat.client import GewechatClient
+from opengewe.client import GeweClient
 
 
 def main():
@@ -9,7 +9,7 @@ def main():
     app_id = ""
     token = ""
     # 创建 GewechatClient 实例
-    client = GewechatClient(
+    client = GeweClient(
         base_url,
         download_url,
         callback_url,
