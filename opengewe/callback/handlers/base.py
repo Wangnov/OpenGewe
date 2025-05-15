@@ -1,14 +1,17 @@
 """消息处理器基类"""
 
-from typing import Dict, Any, Optional
-from opengewe.client import GeweClient
+from typing import Dict, Any, Optional, TYPE_CHECKING
 from opengewe.callback.models import BaseMessage
+
+# 使用TYPE_CHECKING条件导入
+if TYPE_CHECKING:
+    from opengewe.client import GeweClient
 
 
 class BaseHandler:
     """消息处理器基类"""
 
-    def __init__(self, client: Optional[GeweClient] = None):
+    def __init__(self, client: Optional["GeweClient"] = None):
         """初始化处理器
 
         Args:

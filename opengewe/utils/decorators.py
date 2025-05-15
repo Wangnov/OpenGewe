@@ -5,16 +5,40 @@
 
 from functools import wraps
 from typing import Callable, Union
+import pytz
+from datetime import datetime
+from opengewe.log import get_logger
+
+# 获取装饰器模块日志记录器
+logger = get_logger("Decorators")
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
+from apscheduler.events import EVENT_JOB_ERROR, EVENT_JOB_EXECUTED, EVENT_JOB_MISSED
 
 from opengewe.callback.types import MessageType
 
-# 创建调度器实例
-scheduler = AsyncIOScheduler()
+# 创建调度器实例，设置Asia/Shanghai时区
+scheduler = AsyncIOScheduler(
+    timezone=pytz.timezone('Asia/Shanghai'),
+    job_defaults={'misfire_grace_time': 60}  # 允许任务延迟执行60秒
+)
 
+# 添加调度器事件监听
+def scheduler_listener(event):
+    if hasattr(event, 'job_id'):
+        if event.exception:
+            logger.error(f"任务 {event.job_id} 执行出错: {event.exception}")
+            logger.error(f"错误详情: {event.traceback}")
+        else:
+            # 获取 job 对象，而不是直接使用 event.job
+            job = scheduler.get_job(event.job_id)
+            next_run_time = job.next_run_time if job else "未知"
+            logger.debug(f"任务 {event.job_id} 执行成功，下次执行时间: {next_run_time}")
+            
+# 注册事件处理
+scheduler.add_listener(scheduler_listener, EVENT_JOB_ERROR | EVENT_JOB_EXECUTED | EVENT_JOB_MISSED)
 
 def schedule(
     trigger: Union[str, CronTrigger, IntervalTrigger], **trigger_args
@@ -41,7 +65,14 @@ def schedule(
 
         @wraps(func)
         async def wrapper(self, *args, **kwargs):
-            return await func(self, *args, **kwargs)
+            try:
+                # logger.info(f"开始执行定时任务: {job_id}，当前时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                result = await func(self, *args, **kwargs)
+                # logger.info(f"定时任务 {job_id} 执行完成")
+                return result
+            except Exception as e:
+                logger.error(f"定时任务 {job_id} 执行出错: {e}", exc_info=True)
+                raise  # 重新抛出异常，让调度器的错误处理器处理
 
         setattr(wrapper, "_is_scheduled", True)
         setattr(wrapper, "_schedule_trigger", trigger)
@@ -72,10 +103,31 @@ def add_job_safe(
         trigger_args: 触发器参数
     """
     try:
+        # 删除可能已存在的任务
         scheduler.remove_job(job_id)
-    except Exception:
-        pass
-    scheduler.add_job(func, trigger, args=[client], id=job_id, **trigger_args)
+    except Exception as e:
+        logger.debug(f"删除已存在的任务 {job_id} 时出错 (可能是任务不存在): {e}")
+    
+    # 使用timezone参数确保任务使用正确的时区
+    if 'timezone' not in trigger_args and trigger == 'date':
+        trigger_args['timezone'] = scheduler.timezone
+    
+    # 添加日志记录任务添加信息
+    run_time_info = ""
+    if trigger == 'date' and 'run_date' in trigger_args:
+        run_time_info = f"计划执行时间: {trigger_args['run_date']}"
+    elif trigger == 'interval':
+        interval_desc = ', '.join([f"{k}={v}" for k, v in trigger_args.items()])
+        run_time_info = f"间隔: {interval_desc}"
+    elif trigger == 'cron':
+        cron_desc = ', '.join([f"{k}={v}" for k, v in trigger_args.items() if k not in ['timezone']])
+        run_time_info = f"定时: {cron_desc}"
+        
+    # logger.info(f"添加定时任务: {job_id}, 触发器类型: {trigger}, {run_time_info}")
+    
+    # 添加任务
+    job = scheduler.add_job(func, trigger, args=[client], id=job_id, **trigger_args)
+    # logger.info(f"任务 {job_id} 已添加，下次执行时间: {job.next_run_time}")
 
 
 def remove_job_safe(scheduler: AsyncIOScheduler, job_id: str) -> None:
@@ -139,7 +191,7 @@ def on_text_message(priority: Union[int, Callable] = 50) -> Callable:
 def on_at_message(priority: Union[int, Callable] = 50) -> Callable:
     """被@消息装饰器
 
-    用于处理被@消息的装饰器。暂未实现。计划通过wrap的方式直接检查message的is_at属性。
+    用于处理被@消息的装饰器。通过检查message的is_at属性判断。
 
     Args:
         priority: 处理优先级(0-99)或函数，默认为50
@@ -147,8 +199,20 @@ def on_at_message(priority: Union[int, Callable] = 50) -> Callable:
     Returns:
         装饰器函数
     """
-
-    return
+    if callable(priority):
+        f = priority
+        setattr(f, "_message_type", MessageType.TEXT)
+        setattr(f, "_priority", 50)
+        setattr(f, "_is_at_message", True)
+        return f
+        
+    def decorator(func: Callable) -> Callable:
+        setattr(func, "_message_type", MessageType.TEXT)
+        setattr(func, "_priority", min(max(priority, 0), 99))
+        setattr(func, "_is_at_message", True)
+        return func
+        
+    return decorator
 
 
 def on_image_message(priority: Union[int, Callable] = 50) -> Callable:

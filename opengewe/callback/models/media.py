@@ -1,11 +1,14 @@
 from dataclasses import dataclass
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, TYPE_CHECKING
 import xml.etree.ElementTree as ET
 import re
 
 from opengewe.callback.types import MessageType
 from opengewe.callback.models.base import BaseMessage
-from opengewe.client import GeweClient
+
+# 使用TYPE_CHECKING条件导入，只用于类型注解
+if TYPE_CHECKING:
+    from opengewe.client import GeweClient
 
 
 @dataclass
@@ -17,7 +20,7 @@ class ImageMessage(BaseMessage):
 
     @classmethod
     async def from_dict(
-        cls, data: Dict[str, Any], client: Optional[GeweClient] = None
+        cls, data: Dict[str, Any], client: Optional["GeweClient"] = None
     ) -> "ImageMessage":
         """从字典创建图片消息对象
 
@@ -176,7 +179,7 @@ class VoiceMessage(BaseMessage):
 
     @classmethod
     async def from_dict(
-        cls, data: Dict[str, Any], client: Optional[GeweClient] = None
+        cls, data: Dict[str, Any], client: Optional["GeweClient"] = None
     ) -> "VoiceMessage":
         """从字典创建语音消息对象
 
@@ -268,7 +271,7 @@ class VideoMessage(BaseMessage):
 
     @classmethod
     async def from_dict(
-        cls, data: Dict[str, Any], client: Optional[GeweClient] = None
+        cls, data: Dict[str, Any], client: Optional["GeweClient"] = None
     ) -> "VideoMessage":
         """从字典创建视频消息对象
 
