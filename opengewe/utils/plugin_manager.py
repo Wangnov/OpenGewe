@@ -110,10 +110,15 @@ class PluginManager(metaclass=Singleton):
 
         Args:
             plugin_class: 插件类
-            is_disabled: 该插件是否被禁用
+            is_disabled: 该插件是否被外部配置文件禁用
 
         Returns:
             bool: 是否成功加载插件
+
+        Note:
+            插件会在以下两种情况下被跳过加载：
+            1. 当插件在外部配置中被禁用（is_disabled=True）
+            2. 当插件自身的配置中设置了enable=False
         """
         try:
             plugin_name = plugin_class.__name__
@@ -145,13 +150,24 @@ class PluginManager(metaclass=Singleton):
                 "class": plugin_class,
             }
 
-            # 如果插件被禁用则不加载
-            if is_disabled:
-                logger.info(f"插件 {plugin_name} 已被禁用，跳过加载")
+            # 创建插件实例，以检查其自身配置
+            try:
+                plugin = plugin_class()
+
+                # 检查插件自身是否在配置中设置为禁用
+                plugin_self_disabled = hasattr(plugin, "enable") and not plugin.enable
+            except Exception as e:
+                logger.error(f"初始化插件 {plugin_name} 实例时出错: {e}")
+                logger.error(traceback.format_exc())
                 return False
 
-            # 创建插件实例
-            plugin = plugin_class()
+            # 如果插件被外部禁用或自身配置为禁用，则跳过加载
+            if is_disabled or plugin_self_disabled:
+                logger.info(
+                    f"插件 {plugin_name} {'被配置文件禁用' if is_disabled else '在插件配置中被禁用'}, 跳过加载"
+                )
+                return False
+
             # 绑定事件处理方法
             EventManager.bind_instance(plugin)
             # 启用插件

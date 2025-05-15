@@ -2,7 +2,7 @@
 
 [basic]
 # 插件是否启用
-enable = true
+enable = false
 
 [features]
 # 消息响应功能
