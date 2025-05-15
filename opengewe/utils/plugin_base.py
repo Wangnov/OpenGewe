@@ -5,8 +5,11 @@
 
 from abc import ABC
 from typing import Set
-import logging
 from opengewe.utils.decorators import scheduler, add_job_safe, remove_job_safe
+from opengewe.log import get_logger
+
+# 获取插件基类日志记录器
+logger = get_logger("PluginBase")
 
 
 class PluginBase(ABC):
@@ -43,6 +46,8 @@ class PluginBase(ABC):
         """初始化插件实例"""
         self.enabled: bool = False
         self._scheduled_jobs: Set[str] = set()
+        # 创建插件特有的日志记录器
+        self.logger = get_logger(self.__class__.__name__)
 
     async def on_enable(self, client=None) -> None:
         """插件启用时调用
@@ -66,7 +71,7 @@ class PluginBase(ABC):
                 self._scheduled_jobs.add(job_id)
 
         if self._scheduled_jobs:
-            logging.info(
+            logger.info(
                 "插件 {} 已加载定时任务: {}",
                 self.__class__.__name__,
                 self._scheduled_jobs,
@@ -83,7 +88,7 @@ class PluginBase(ABC):
         for job_id in self._scheduled_jobs:
             remove_job_safe(scheduler, job_id)
         if self._scheduled_jobs:
-            logging.info("已卸载定时任务: {}", self._scheduled_jobs)
+            logger.info("已卸载定时任务: {}", self._scheduled_jobs)
         self._scheduled_jobs.clear()
 
     async def async_init(self) -> None:

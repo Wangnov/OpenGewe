@@ -1,10 +1,13 @@
 from dataclasses import dataclass
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, TYPE_CHECKING
 import xml.etree.ElementTree as ET
 
 from opengewe.callback.types import MessageType
 from opengewe.callback.models.base import BaseMessage
-from opengewe.client import GeweClient
+
+# 使用TYPE_CHECKING条件导入
+if TYPE_CHECKING:
+    from opengewe.client import GeweClient
 
 
 @dataclass
@@ -19,7 +22,7 @@ class FileNoticeMessage(BaseMessage):
 
     @classmethod
     async def from_dict(
-        cls, data: Dict[str, Any], client: Optional[GeweClient] = None
+        cls, data: Dict[str, Any], client: Optional["GeweClient"] = None
     ) -> "FileNoticeMessage":
         """从字典创建文件通知消息对象
 
@@ -106,7 +109,7 @@ class FileMessage(BaseMessage):
 
     @classmethod
     async def from_dict(
-        cls, data: Dict[str, Any], client: Optional[GeweClient] = None
+        cls, data: Dict[str, Any], client: Optional["GeweClient"] = None
     ) -> "FileMessage":
         """从字典创建文件消息对象
 

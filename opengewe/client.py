@@ -1,5 +1,5 @@
 import aiohttp
-from typing import Dict, Optional, Any, Literal
+from typing import Dict, Optional, Any, Literal, List
 import asyncio
 import qrcode
 from functools import partial
@@ -16,7 +16,13 @@ from opengewe.modules.account import AccountModule
 from opengewe.modules.sns import SnsModule
 from opengewe.modules.finder import FinderModule
 from opengewe.mixin import MessageMixin
+from opengewe.callback.factory import MessageFactory
+from opengewe.utils.plugin_manager import PluginManager
+from opengewe.utils.decorators import scheduler
+from opengewe.log import get_logger
 
+# 获取客户端日志记录器
+logger = get_logger("GeweClient")
 
 class GeweClient:
     """异步GeweAPI客户端
@@ -80,6 +86,14 @@ class GeweClient:
         
         # 将MessageMixin的方法注册到Client实例
         self._register_message_methods()
+        
+        # 初始化插件管理器
+        self.plugin_manager = PluginManager()
+        self.plugin_manager.set_client(self)
+        
+        # 初始化消息工厂
+        self.message_factory = MessageFactory(self)
+        self.message_factory.set_plugin_manager(self.plugin_manager)
 
     def __str__(self):
         return (
@@ -134,6 +148,20 @@ class GeweClient:
 
     async def close(self) -> None:
         """关闭客户端连接"""
+        # 关闭调度器
+        if scheduler.running:
+            scheduler.shutdown()
+            logger.info("定时任务调度器已关闭")
+        
+        # 卸载插件
+        if hasattr(self, 'plugin_manager'):
+            unloaded, failed = await self.plugin_manager.unload_plugins()
+            if unloaded:
+                logger.info(f"已卸载 {len(unloaded)} 个插件: {', '.join(unloaded)}")
+            if failed:
+                logger.warning(f"卸载失败的插件: {', '.join(failed)}")
+        
+        # 关闭HTTP会话
         if self._session and not self._session.closed:
             await self._session.close()
 
@@ -311,3 +339,54 @@ class GeweClient:
                 if callable(method):
                     # 将方法注册到Client实例
                     setattr(self, method_name, method)
+
+    async def start_plugins(self, plugins_directory: str = "plugins") -> List[str]:
+        """启动插件系统
+        
+        Args:
+            plugins_directory: 插件目录路径
+            
+        Returns:
+            List[str]: 成功加载的插件名称列表
+        """
+        # 导入调度器模块
+        from opengewe.utils.decorators import scheduler
+        import logging
+        
+        try:
+            # 启动调度器
+            if not scheduler.running:
+                # 打印调度器状态
+                logging.info(f"启动定时任务调度器。调度器时区: {scheduler.timezone}")
+                scheduler.start()
+                logging.info("定时任务调度器已启动成功")
+            else:
+                logging.info("定时任务调度器已在运行中")
+            
+            # 获取所有定时任务列表
+            all_jobs = scheduler.get_jobs()
+            if all_jobs:
+                logging.info(f"当前已有 {len(all_jobs)} 个定时任务:")
+                for job in all_jobs:
+                    next_run = job.next_run_time.strftime("%Y-%m-%d %H:%M:%S") if job.next_run_time else "已暂停"
+                    logging.info(f"  - 任务: {job.id}, 下次执行: {next_run}")
+            else:
+                logging.info("当前没有定时任务")
+            
+            # 加载插件
+            logging.info(f"开始从 {plugins_directory} 加载插件...")
+            loaded_plugins = await self.plugin_manager.load_plugins()
+            logging.info(f"已成功加载 {len(loaded_plugins)} 个插件: {', '.join(loaded_plugins)}")
+            
+            # 再次检查定时任务
+            all_jobs_after = scheduler.get_jobs()
+            if all_jobs_after:
+                logging.info(f"加载插件后，共有 {len(all_jobs_after)} 个定时任务:")
+                for job in all_jobs_after:
+                    next_run = job.next_run_time.strftime("%Y-%m-%d %H:%M:%S") if job.next_run_time else "已暂停"
+                    logging.info(f"  - 任务: {job.id}, 下次执行: {next_run}")
+            
+            return loaded_plugins
+        except Exception as e:
+            logging.error(f"启动插件系统时出错: {e}", exc_info=True)
+            return []

@@ -1,7 +1,9 @@
-import logging
 import tomllib  # 确保导入tomllib以读取配置文件
 import os  # 确保导入os模块
 import traceback  # 添加缺失的traceback导入
+from loguru import logger
+import sys
+from datetime import datetime
 
 from utils.plugin_base import PluginBase
 from utils.decorators import (
@@ -28,9 +30,15 @@ class ExamplePlugin(PluginBase):
     # 同步初始化
     def __init__(self):
         super().__init__()
+        
+        # 默认启用插件，即使读取配置文件失败
+        self.enable = True
+        
+        logger.info("ExamplePlugin.__init__ 被调用")
 
         # 获取配置文件路径
         config_path = os.path.join(os.path.dirname(__file__), "config.toml")
+        logger.debug(f"尝试从 {config_path} 读取配置文件")
 
         try:
             with open(config_path, "rb") as f:
@@ -38,85 +46,124 @@ class ExamplePlugin(PluginBase):
 
             # 读取基本配置
             basic_config = config.get("basic", {})
-            self.enable = basic_config.get("enable", False)  # 读取插件开关
+            config_enable = basic_config.get("enable", True)  # 默认为True
+            
+            logger.info(f"从配置文件读取到 enable = {config_enable}")
+            self.enable = config_enable
 
-        except Exception:
-            logging.error(f"加载ExamplePlugin配置文件失败: {traceback.format_exc()}")
-            self.enable = False  # 如果加载失败，禁用插件
+        except Exception as e:
+            logger.error(f"加载ExamplePlugin配置文件失败: {e}")
+            logger.error(traceback.format_exc())
+            # 如果配置文件读取失败，仍然启用插件
+            self.enable = True
+            logger.warning("配置读取失败，默认启用插件")
+            
+        logger.info(f"ExamplePlugin初始化完成，插件已{'启用' if self.enable else '禁用'}")
 
     # 异步初始化
     async def async_init(self):
-        logging.info("ExamplePlugin 异步初始化完成")
+        logger.info("ExamplePlugin 异步初始化完成")
+        logger.info(f"当前插件状态: {'启用' if self.enable else '禁用'}")
+        logger.info(f"当前Python路径: {sys.path}")
         return
 
     @on_text_message(priority=99)
     async def handle_text(self, client, message):
         if not self.enable:
+            logger.debug("插件已禁用，忽略文本消息")
             return  # 如果插件未启用，直接返回
-        logging.info("收到了文本消息。")
+        
+        try:
+            logger.info(f"收到了文本消息。消息对象: {message}")
+            # 这里可以添加具体的消息处理逻辑
+        except Exception as e:
+            logger.error(f"处理文本消息时出错: {e}")
+            logger.error(traceback.format_exc())
 
     @on_at_message(priority=50)
     async def handle_at(self, client, message):
         if not self.enable:
             return
-        logging.info("收到了被@消息，中等优先级")
+        try:
+            logger.info(f"收到了被@消息，中等优先级。消息内容: {message.content if hasattr(message, 'content') else '无内容'}")
+        except Exception as e:
+            logger.error(f"处理@消息时出错: {e}")
+            logger.error(traceback.format_exc())
 
     @on_voice_message()
     async def handle_voice(self, client, message):
         if not self.enable:
             return
-        logging.info("收到了语音消息，最低优先级")
+        logger.info("收到了语音消息，最低优先级")
 
     @on_image_message
     async def handle_image(self, client, message):
         if not self.enable:
             return
-        logging.info("收到了图片消息")
+        logger.info("收到了图片消息")
 
     @on_video_message
     async def handle_video(self, client, message):
         if not self.enable:
             return
-        logging.info("收到了视频消息")
+        logger.info("收到了视频消息")
 
     @on_file_message
     async def handle_file(self, client, message):
         if not self.enable:
             return
-        logging.info("收到了文件消息")
+        logger.info("收到了文件消息")
 
     @on_quote_message
     async def handle_quote(self, client, message):
         if not self.enable:
             return
-        logging.info("收到了引用消息")
+        logger.info("收到了引用消息")
 
     @on_pat_message
     async def handle_pat(self, client, message):
         if not self.enable:
             return
-        logging.info("收到了拍一拍消息")
+        logger.info("收到了拍一拍消息")
 
     @on_emoji_message
     async def handle_emoji(self, client, message):
         if not self.enable:
             return
-        logging.info("收到了表情消息")
+        logger.info("收到了表情消息")
 
     @schedule("interval", seconds=5)
     async def periodic_task(self, client):
+        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         if not self.enable:
+            logger.debug(f"[{current_time}] 插件已禁用，跳过定时任务")
             return
-        logging.info("我每5秒执行一次")
+        try:
+            logger.info(f"[{current_time}] 我每5秒执行一次")
+        except Exception as e:
+            logger.error(f"执行定时任务出错: {e}")
+            logger.error(traceback.format_exc())
 
     @schedule("cron", hour=8, minute=30, second=30)
     async def daily_task(self, client):
+        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         if not self.enable:
+            logger.debug(f"[{current_time}] 插件已禁用，跳过每日任务")
             return
-        logging.info("我每天早上8点30分30秒执行")
+        try:
+            logger.info(f"[{current_time}] 我每天早上8点30分30秒执行")
+        except Exception as e:
+            logger.error(f"执行每日任务出错: {e}")
+            logger.error(traceback.format_exc())
 
-    @schedule("date", run_date="2025-01-29 00:00:00")
+    @schedule("date", run_date="2025-05-15 11:02:00")
     async def new_year_task(self, client):
+        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         if not self.enable:
+            logger.debug(f"[{current_time}] 插件已禁用，跳过指定日期任务")
             return
-        logging.info("我在2025年1月29日执行")
+        try:
+            logger.info(f"[{current_time}] 我在2025年5月15日11点01分00秒执行")
+        except Exception as e:
+            logger.error(f"执行指定日期任务出错: {e}")
+            logger.error(traceback.format_exc())

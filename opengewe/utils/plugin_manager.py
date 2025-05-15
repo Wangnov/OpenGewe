@@ -1,3 +1,4 @@
+from __future__ import annotations
 """插件管理器模块
 
 提供插件管理器，负责插件的加载、卸载和重载。
@@ -9,13 +10,19 @@ import os
 import sys
 import tomllib
 import traceback
-import logging
-from typing import Dict, List, Type, Union, Tuple, Optional, Any
+from typing import Dict, List, Type, Union, Tuple, Optional, Any, TYPE_CHECKING
 
 from opengewe.utils.singleton import Singleton
 from opengewe.utils.event_manager import EventManager
 from opengewe.utils.plugin_base import PluginBase
+from opengewe.log import get_logger
 
+if TYPE_CHECKING:
+    from opengewe.client import GeweClient
+    from opengewe.callback.models.base import BaseMessage
+
+# 获取插件管理器日志记录器
+logger = get_logger("PluginManager")
 
 class PluginManager(metaclass=Singleton):
     """插件管理器
@@ -44,13 +51,13 @@ class PluginManager(metaclass=Singleton):
                     "disabled-plugins", []
                 )
         except FileNotFoundError:
-            logging.warning("未找到配置文件 main_config.toml，使用空的禁用插件列表")
+            logger.warning("未找到配置文件 main_config.toml，使用空的禁用插件列表")
             self.excluded_plugins = []
         except Exception:
-            logging.error(f"读取配置文件失败: {traceback.format_exc()}")
+            logger.error(f"读取配置文件失败: {traceback.format_exc()}")
             self.excluded_plugins = []
 
-    def set_client(self, client) -> None:
+    def set_client(self, client: "GeweClient") -> None:
         """设置客户端实例
 
         Args:
@@ -67,11 +74,32 @@ class PluginManager(metaclass=Singleton):
         Returns:
             bool: 是否成功加载插件
         """
+        # 确保插件路径已正确设置
+        self._ensure_plugin_paths()
+        
         if isinstance(plugin, str):
             return await self._load_plugin_name(plugin)
         elif isinstance(plugin, type) and issubclass(plugin, PluginBase):
             return await self._load_plugin_class(plugin)
         return False
+
+    def _ensure_plugin_paths(self) -> None:
+        """确保插件路径已正确设置
+        
+        将plugins目录和plugins/utils目录添加到Python的模块搜索路径中，
+        使插件可以通过'utils'模块名称直接导入桥接层
+        """
+        # 确保plugins目录在搜索路径中
+        plugins_dir = os.path.abspath("plugins")
+        if plugins_dir not in sys.path:
+            sys.path.insert(0, plugins_dir)
+        
+        # 确保当前目录在搜索路径中，有些插件可能使用相对导入
+        current_dir = os.getcwd()
+        if current_dir not in sys.path:
+            sys.path.insert(0, current_dir)
+            
+        logger.debug(f"已设置插件搜索路径: {sys.path[:3]}...")
 
     async def _load_plugin_class(
         self, plugin_class: Type[PluginBase], is_disabled: bool = False
@@ -99,9 +127,9 @@ class PluginManager(metaclass=Singleton):
                 if module_name.startswith("plugins."):
                     directory = module_name.split(".")[1]
                 else:
-                    logging.warning(f"非常规插件模块路径: {module_name}")
+                    logger.warning(f"非常规插件模块路径: {module_name}")
             except Exception as e:
-                logging.error(f"获取插件目录失败: {e}")
+                logger.error(f"获取插件目录失败: {e}")
                 directory = "error"
 
             # 记录插件信息，即使插件被禁用也会记录
@@ -117,7 +145,7 @@ class PluginManager(metaclass=Singleton):
 
             # 如果插件被禁用则不加载
             if is_disabled:
-                logging.info(f"插件 {plugin_name} 已被禁用，跳过加载")
+                logger.info(f"插件 {plugin_name} 已被禁用，跳过加载")
                 return False
 
             # 创建插件实例
@@ -134,10 +162,10 @@ class PluginManager(metaclass=Singleton):
             self.plugin_classes[plugin_name] = plugin_class
             self.plugin_info[plugin_name]["enabled"] = True
 
-            logging.info(f"加载插件 {plugin_name} 成功")
+            logger.info(f"加载插件 {plugin_name} 成功")
             return True
         except Exception:
-            logging.error(
+            logger.error(
                 f"加载插件 {plugin_name} 时发生错误:\n{traceback.format_exc()}"
             )
             return False
@@ -170,11 +198,11 @@ class PluginManager(metaclass=Singleton):
                             found = True
                             return await self._load_plugin_class(obj)
             except Exception:
-                logging.error(f"检查 {dirname} 时发生错误:\n{traceback.format_exc()}")
+                logger.error(f"检查 {dirname} 时发生错误:\n{traceback.format_exc()}")
                 continue
 
         if not found:
-            logging.warning(f"未找到插件类 {plugin_name}")
+            logger.warning(f"未找到插件类 {plugin_name}")
             return False
         return False
 
@@ -187,6 +215,9 @@ class PluginManager(metaclass=Singleton):
         Returns:
             List[str]: 成功加载的插件名称列表
         """
+        # 确保插件路径已正确设置
+        self._ensure_plugin_paths()
+        
         loaded_plugins = []
 
         for dirname in os.listdir("plugins"):
@@ -216,7 +247,7 @@ class PluginManager(metaclass=Singleton):
                             ):
                                 loaded_plugins.append(obj.__name__)
                 except Exception:
-                    logging.error(
+                    logger.error(
                         f"加载 {dirname} 时发生错误:\n{traceback.format_exc()}"
                     )
 
@@ -232,12 +263,12 @@ class PluginManager(metaclass=Singleton):
             bool: 是否成功卸载插件
         """
         if plugin_name not in self.plugins:
-            logging.warning(f"插件 {plugin_name} 未加载，无法卸载")
+            logger.warning(f"插件 {plugin_name} 未加载，无法卸载")
             return False
 
         # 防止卸载 ManagePlugin
         if plugin_name == "ManagePlugin":
-            logging.warning("ManagePlugin 不能被卸载")
+            logger.warning("ManagePlugin 不能被卸载")
             return False
 
         try:
@@ -253,10 +284,10 @@ class PluginManager(metaclass=Singleton):
             if plugin_name in self.plugin_info:
                 self.plugin_info[plugin_name]["enabled"] = False
 
-            logging.info(f"卸载插件 {plugin_name} 成功")
+            logger.info(f"卸载插件 {plugin_name} 成功")
             return True
         except Exception:
-            logging.error(
+            logger.error(
                 f"卸载插件 {plugin_name} 时发生错误:\n{traceback.format_exc()}"
             )
             return False
@@ -288,12 +319,12 @@ class PluginManager(metaclass=Singleton):
             bool: 是否成功重载插件
         """
         if plugin_name not in self.plugin_classes:
-            logging.warning(f"插件 {plugin_name} 未加载，无法重载")
+            logger.warning(f"插件 {plugin_name} 未加载，无法重载")
             return False
 
         # 防止重载 ManagePlugin
         if plugin_name == "ManagePlugin":
-            logging.warning("ManagePlugin 不能被重载")
+            logger.warning("ManagePlugin 不能被重载")
             return False
 
         try:
@@ -310,7 +341,7 @@ class PluginManager(metaclass=Singleton):
                 module = importlib.import_module(module_name)
                 importlib.reload(module)
             except Exception:
-                logging.error(
+                logger.error(
                     f"重新导入模块 {module_name} 失败: {traceback.format_exc()}"
                 )
                 return False
@@ -326,12 +357,12 @@ class PluginManager(metaclass=Singleton):
                     # 使用新的插件类重新加载
                     return await self._load_plugin_class(obj)
 
-            logging.error(
+            logger.error(
                 f"在重新加载的模块 {module_name} 中未找到插件类 {plugin_name}"
             )
             return False
         except Exception:
-            logging.error(
+            logger.error(
                 f"重载插件 {plugin_name} 时发生错误:\n{traceback.format_exc()}"
             )
             return False
@@ -371,7 +402,7 @@ class PluginManager(metaclass=Singleton):
 
             return reloaded_plugins
         except Exception:
-            logging.error(f"重载插件时发生错误:\n{traceback.format_exc()}")
+            logger.error(f"重载插件时发生错误:\n{traceback.format_exc()}")
             return reloaded_plugins
 
     async def refresh_plugins(self) -> Tuple[List[str], List[str]]:
@@ -382,9 +413,12 @@ class PluginManager(metaclass=Singleton):
         Returns:
             Tuple[List[str], List[str]]: 成功加载的插件名称列表和卸载但未能重新加载的插件名称列表
         """
+        # 确保插件路径已正确设置
+        self._ensure_plugin_paths()
+        
         # 记录当前加载的插件
         original_plugins = set(self.plugins.keys())
-        logging.info(f"刷新插件: {original_plugins}")
+        logger.info(f"刷新插件: {original_plugins}")
         # 卸载所有插件
         unloaded, _ = await self.unload_plugins()
 
@@ -420,3 +454,46 @@ class PluginManager(metaclass=Singleton):
 
         # 返回所有插件信息的列表
         return list(self.plugin_info.values())
+
+    async def register_plugin(self, plugin: Union[Type[PluginBase], str]) -> bool:
+        """注册插件（加载插件的别名）
+
+        Args:
+            plugin: 插件类或插件名称
+
+        Returns:
+            bool: 是否成功加载插件
+        """
+        return await self.load_plugin(plugin)
+
+    async def load_plugins_from_directory(
+        self, directory: str, prefix: str = ""
+    ) -> List[str]:
+        """从指定目录加载所有插件
+        
+        Args:
+            directory: 插件目录路径
+            prefix: 模块前缀
+            
+        Returns:
+            List[str]: 成功加载的插件名称列表
+        """
+        # 确保插件路径已正确设置
+        self._ensure_plugin_paths()
+        
+        loaded_plugins = []
+
+    async def process_message(self, message: "BaseMessage") -> None:
+        """处理消息
+        
+        将消息通过EventManager发送给所有插件的处理方法。
+        
+        Args:
+            message: BaseMessage实例
+        """
+        if not self.client:
+            logger.warning("未设置客户端实例，无法处理消息")
+            return
+            
+        # 使用EventManager发送消息事件
+        await EventManager.emit(message.type, self.client, message)

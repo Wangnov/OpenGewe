@@ -1,10 +1,13 @@
 from dataclasses import dataclass
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, TYPE_CHECKING
 import xml.etree.ElementTree as ET
 
 from opengewe.callback.types import MessageType
 from opengewe.callback.models.base import BaseMessage
-from opengewe.client import GeweClient
+
+# 使用TYPE_CHECKING条件导入
+if TYPE_CHECKING:
+    from opengewe.client import GeweClient
 
 
 @dataclass
@@ -20,7 +23,7 @@ class LinkMessage(BaseMessage):
 
     @classmethod
     def from_dict(
-        cls, data: Dict[str, Any], client: Optional[GeweClient] = None
+        cls, data: Dict[str, Any], client: Optional["GeweClient"] = None
     ) -> "LinkMessage":
         """从字典创建链接消息对象
 
@@ -107,7 +110,7 @@ class MiniappMessage(BaseMessage):
 
     @classmethod
     def from_dict(
-        cls, data: Dict[str, Any], client: Optional[GeweClient] = None
+        cls, data: Dict[str, Any], client: Optional["GeweClient"] = None
     ) -> "MiniappMessage":
         """从字典创建小程序消息对象
 

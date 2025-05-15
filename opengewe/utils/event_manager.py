@@ -46,36 +46,68 @@ class EventManager:
             *args: 传递给事件处理函数的位置参数
             **kwargs: 传递给事件处理函数的关键字参数
         """
-        if message_type not in cls._handlers:
-            return
-
-        # 通常第一个参数是client，第二个参数是message
-        if len(args) >= 2:
+        # 首先处理普通的消息类型处理器
+        if message_type in cls._handlers:
+            # 通常第一个参数是client，第二个参数是message
+            if len(args) >= 2:
+                client, message = args[0], args[1]
+                remaining_args = args[2:]
+                
+                for handler, instance, priority in cls._handlers[message_type]:
+                    # 检查是否为@消息处理器，如果是则跳过（会在下面专门处理）
+                    if hasattr(handler, "_is_at_message"):
+                        continue
+                        
+                    # 只对message进行深拷贝，client保持不变
+                    handler_args = (client, copy.deepcopy(message)) + tuple(
+                        copy.deepcopy(arg) for arg in remaining_args
+                    )
+                    new_kwargs = {k: copy.deepcopy(v) for k, v in kwargs.items()}
+                    
+                    result = await handler(*handler_args, **new_kwargs)
+                    
+                    if isinstance(result, bool) and not result:
+                        # 处理函数返回False时，停止后续处理
+                        break
+            else:
+                # 处理参数不足的情况
+                for handler, instance, priority in cls._handlers[message_type]:
+                    if hasattr(handler, "_is_at_message"):
+                        continue
+                        
+                    handler_args = tuple(copy.deepcopy(arg) for arg in args)
+                    new_kwargs = {k: copy.deepcopy(v) for k, v in kwargs.items()}
+                    
+                    result = await handler(*handler_args, **new_kwargs)
+                    
+                    if isinstance(result, bool) and not result:
+                        break
+        
+        # 处理@消息
+        if message_type == MessageType.TEXT and len(args) >= 2:
             client, message = args[0], args[1]
             remaining_args = args[2:]
-
-            for handler, instance, priority in cls._handlers[message_type]:
-                # 只对message进行深拷贝，client保持不变
-                handler_args = (client, copy.deepcopy(message)) + tuple(
-                    copy.deepcopy(arg) for arg in remaining_args
-                )
-                new_kwargs = {k: copy.deepcopy(v) for k, v in kwargs.items()}
-
-                result = await handler(*handler_args, **new_kwargs)
-
-                if isinstance(result, bool) and not result:
-                    # 处理函数返回False时，停止后续处理
-                    break
-        else:
-            # 处理参数不足的情况
-            for handler, instance, priority in cls._handlers[message_type]:
-                handler_args = tuple(copy.deepcopy(arg) for arg in args)
-                new_kwargs = {k: copy.deepcopy(v) for k, v in kwargs.items()}
-
-                result = await handler(*handler_args, **new_kwargs)
-
-                if isinstance(result, bool) and not result:
-                    break
+            
+            # 检查消息是否为@消息
+            is_at = getattr(message, "is_at", False)
+            
+            if is_at and MessageType.TEXT in cls._handlers:
+                for handler, instance, priority in cls._handlers[MessageType.TEXT]:
+                    # 只处理被标记为@消息处理器的处理器
+                    if not hasattr(handler, "_is_at_message"):
+                        continue
+                        
+                    # 只对message进行深拷贝，client保持不变
+                    handler_args = (client, copy.deepcopy(message)) + tuple(
+                        copy.deepcopy(arg) for arg in remaining_args
+                    )
+                    new_kwargs = {k: copy.deepcopy(v) for k, v in kwargs.items()}
+                    
+                    result = await handler(*handler_args, **new_kwargs)
+                    
+                    if isinstance(result, bool) and not result:
+                        # 处理函数返回False时，停止后续处理
+                        break
 
     @classmethod
     def unbind_instance(cls, instance: object) -> None:
