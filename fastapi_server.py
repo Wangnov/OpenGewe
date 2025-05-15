@@ -136,7 +136,7 @@ async def webhook(request: Request):
             )
 
         # 使用client的message_factory处理消息
-        logger.info(f"接收到消息: {data}")
+        logger.debug(f"接收到消息: {data}")
         task = client.message_factory.process_async(data)
 
         # 添加任务完成回调以记录异常
