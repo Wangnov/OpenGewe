@@ -9,7 +9,7 @@ from typing import Dict, Optional, Any, List
 
 from loguru import logger
 
-from opengewe.log.formatters import (
+from opengewe.logger.formatters import (
     format_console_message,
     should_escape_message,
 )
@@ -117,7 +117,7 @@ def create_batching_sink(sink, batch_size, flush_interval):
     Returns:
         批处理接收器
     """
-    from opengewe.log.utils import BatchingSink
+    from opengewe.logger.utils import BatchingSink
 
     return BatchingSink(sink, batch_size, flush_interval)
 

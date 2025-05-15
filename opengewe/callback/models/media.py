@@ -1,17 +1,18 @@
 from dataclasses import dataclass
 from typing import Dict, Any, Optional, TYPE_CHECKING
 import xml.etree.ElementTree as ET
-import re
 
 from opengewe.callback.types import MessageType
 from opengewe.callback.models.base import BaseMessage
-from opengewe.log import get_logger
+from opengewe.logger import get_logger
 
 # 使用TYPE_CHECKING条件导入，只用于类型注解
 if TYPE_CHECKING:
     from opengewe.client import GeweClient
 
 logger = get_logger("Callback")
+
+
 @dataclass
 class ImageMessage(BaseMessage):
     """图片消息"""
@@ -93,8 +94,10 @@ class ImageMessage(BaseMessage):
                                         )
                                 else:
                                     # 下载缩略图
-                                    download_result = await client.message.download_image(
-                                        msg.content, 3
+                                    download_result = (
+                                        await client.message.download_image(
+                                            msg.content, 3
+                                        )
                                     )
                                     if (
                                         download_result

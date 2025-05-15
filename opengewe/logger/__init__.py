@@ -3,8 +3,8 @@
 提供基于 loguru 的统一日志配置和使用接口。
 """
 
-from opengewe.log.config import setup_logger, get_logger, format_structured_record
-from opengewe.log.utils import (
+from opengewe.logger.config import setup_logger, get_logger, format_structured_record
+from opengewe.logger.utils import (
     disable_logger,
     enable_logger,
     intercept_logging,
