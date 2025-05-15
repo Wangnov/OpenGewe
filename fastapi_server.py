@@ -16,7 +16,7 @@ from contextlib import asynccontextmanager
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from opengewe.client import GeweClient
-from opengewe.log import init_default_logger, get_logger
+from opengewe.logger import init_default_logger, get_logger
 
 # 初始化日志系统（使用默认配置）
 init_default_logger(level="INFO")

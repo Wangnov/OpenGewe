@@ -1,13 +1,20 @@
 from __future__ import annotations
-from typing import Dict, List, Any, Optional, Type, Callable, Set, Coroutine, Union, TYPE_CHECKING
+from typing import (
+    Dict,
+    List,
+    Any,
+    Optional,
+    Type,
+    Callable,
+    Set,
+    Coroutine,
+    Union,
+    TYPE_CHECKING,
+)
 import json
 import asyncio
-from functools import partial
 
-from opengewe.log import get_logger
-
-# 获取消息工厂日志记录器
-logger = get_logger("MessageFactory")
+from opengewe.logger import get_logger
 
 from opengewe.callback.types import MessageType
 from opengewe.callback.models import BaseMessage
@@ -16,6 +23,9 @@ from opengewe.callback.handlers import DEFAULT_HANDLERS, BaseHandler
 if TYPE_CHECKING:
     from opengewe.client import GeweClient
     from opengewe.utils.plugin_manager import PluginManager
+
+# 获取消息工厂日志记录器
+logger = get_logger("MessageFactory")
 
 # 异步处理器类型定义
 AsyncHandlerResult = Union[BaseMessage, None]
@@ -54,7 +64,7 @@ class MessageFactory:
         # 注册默认的消息处理器
         for handler_cls in DEFAULT_HANDLERS:
             self.register_handler(handler_cls)
-        
+
         logger.debug(f"消息工厂初始化完成，已注册 {len(self.handlers)} 个消息处理器")
 
     def register_handler(self, handler_cls: Type[BaseHandler]) -> None:
@@ -76,11 +86,13 @@ class MessageFactory:
             callback: 异步回调函数，接收BaseMessage对象作为参数
         """
         self.on_message_callback = callback
-        logger.debug(f"注册消息回调函数成功: {callback.__name__ if hasattr(callback, '__name__') else str(callback)}")
-        
+        logger.debug(
+            f"注册消息回调函数成功: {callback.__name__ if hasattr(callback, '__name__') else str(callback)}"
+        )
+
     def set_plugin_manager(self, plugin_manager: "PluginManager") -> None:
         """设置插件管理器
-        
+
         Args:
             plugin_manager: 插件管理器实例
         """
@@ -103,9 +115,11 @@ class MessageFactory:
         # 遍历所有处理器，找到第一个可以处理该消息的处理器
         message = None
         type_name = data.get("TypeName", "未知")
-        
-        logger.debug(f"开始处理消息 TypeName={type_name}, Appid={data.get('Appid', '')}")
-        
+
+        logger.debug(
+            f"开始处理消息 TypeName={type_name}, Appid={data.get('Appid', '')}"
+        )
+
         matched_handler = None
         for handler in self.handlers:
             try:
@@ -114,13 +128,18 @@ class MessageFactory:
                     logger.debug(f"找到匹配的处理器: {matched_handler}")
                     message = await handler.handle(data)
                     if message:
-                        logger.debug(f"处理器 {matched_handler} 成功创建消息对象: {message.type.name}")
+                        logger.debug(
+                            f"处理器 {matched_handler} 成功创建消息对象: {message.type.name}"
+                        )
                     else:
                         logger.warning(f"处理器 {matched_handler} 返回了空消息对象")
                     break
             except Exception as e:
-                logger.error(f"处理器 {handler.__class__.__name__} 处理消息时出错: {e}", exc_info=True)
-        
+                logger.error(
+                    f"处理器 {handler.__class__.__name__} 处理消息时出错: {e}",
+                    exc_info=True,
+                )
+
         if not matched_handler:
             logger.debug(f"没有找到匹配的处理器处理消息 TypeName={type_name}")
 

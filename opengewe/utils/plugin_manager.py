@@ -1,8 +1,9 @@
-from __future__ import annotations
 """插件管理器模块
 
 提供插件管理器，负责插件的加载、卸载和重载。
 """
+
+from __future__ import annotations
 
 import importlib
 import inspect
@@ -15,7 +16,7 @@ from typing import Dict, List, Type, Union, Tuple, Optional, Any, TYPE_CHECKING
 from opengewe.utils.singleton import Singleton
 from opengewe.utils.event_manager import EventManager
 from opengewe.utils.plugin_base import PluginBase
-from opengewe.log import get_logger
+from opengewe.logger import get_logger
 
 if TYPE_CHECKING:
     from opengewe.client import GeweClient
@@ -23,6 +24,7 @@ if TYPE_CHECKING:
 
 # 获取插件管理器日志记录器
 logger = get_logger("PluginManager")
+
 
 class PluginManager(metaclass=Singleton):
     """插件管理器
@@ -76,7 +78,7 @@ class PluginManager(metaclass=Singleton):
         """
         # 确保插件路径已正确设置
         self._ensure_plugin_paths()
-        
+
         if isinstance(plugin, str):
             return await self._load_plugin_name(plugin)
         elif isinstance(plugin, type) and issubclass(plugin, PluginBase):
@@ -85,7 +87,7 @@ class PluginManager(metaclass=Singleton):
 
     def _ensure_plugin_paths(self) -> None:
         """确保插件路径已正确设置
-        
+
         将plugins目录和plugins/utils目录添加到Python的模块搜索路径中，
         使插件可以通过'utils'模块名称直接导入桥接层
         """
@@ -93,12 +95,12 @@ class PluginManager(metaclass=Singleton):
         plugins_dir = os.path.abspath("plugins")
         if plugins_dir not in sys.path:
             sys.path.insert(0, plugins_dir)
-        
+
         # 确保当前目录在搜索路径中，有些插件可能使用相对导入
         current_dir = os.getcwd()
         if current_dir not in sys.path:
             sys.path.insert(0, current_dir)
-            
+
         logger.debug(f"已设置插件搜索路径: {sys.path[:3]}...")
 
     async def _load_plugin_class(
@@ -217,7 +219,7 @@ class PluginManager(metaclass=Singleton):
         """
         # 确保插件路径已正确设置
         self._ensure_plugin_paths()
-        
+
         loaded_plugins = []
 
         for dirname in os.listdir("plugins"):
@@ -357,9 +359,7 @@ class PluginManager(metaclass=Singleton):
                     # 使用新的插件类重新加载
                     return await self._load_plugin_class(obj)
 
-            logger.error(
-                f"在重新加载的模块 {module_name} 中未找到插件类 {plugin_name}"
-            )
+            logger.error(f"在重新加载的模块 {module_name} 中未找到插件类 {plugin_name}")
             return False
         except Exception:
             logger.error(
@@ -415,7 +415,7 @@ class PluginManager(metaclass=Singleton):
         """
         # 确保插件路径已正确设置
         self._ensure_plugin_paths()
-        
+
         # 记录当前加载的插件
         original_plugins = set(self.plugins.keys())
         logger.info(f"刷新插件: {original_plugins}")
@@ -470,30 +470,28 @@ class PluginManager(metaclass=Singleton):
         self, directory: str, prefix: str = ""
     ) -> List[str]:
         """从指定目录加载所有插件
-        
+
         Args:
             directory: 插件目录路径
             prefix: 模块前缀
-            
+
         Returns:
             List[str]: 成功加载的插件名称列表
         """
         # 确保插件路径已正确设置
         self._ensure_plugin_paths()
-        
-        loaded_plugins = []
 
     async def process_message(self, message: "BaseMessage") -> None:
         """处理消息
-        
+
         将消息通过EventManager发送给所有插件的处理方法。
-        
+
         Args:
             message: BaseMessage实例
         """
         if not self.client:
             logger.warning("未设置客户端实例，无法处理消息")
             return
-            
+
         # 使用EventManager发送消息事件
         await EventManager.emit(message.type, self.client, message)

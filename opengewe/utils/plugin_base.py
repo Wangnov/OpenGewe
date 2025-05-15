@@ -6,7 +6,7 @@
 from abc import ABC
 from typing import Set
 from opengewe.utils.decorators import scheduler, add_job_safe, remove_job_safe
-from opengewe.log import get_logger
+from opengewe.logger import get_logger
 
 # 获取插件基类日志记录器
 logger = get_logger("PluginBase")
