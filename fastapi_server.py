@@ -252,5 +252,4 @@ async def set_log_level(level: str):
 
 if __name__ == "__main__":
     logger.info("启动OpenGewe回调服务器...")
-    # 修改端口为8080
     uvicorn.run(app, host="0.0.0.0", port=5433)
