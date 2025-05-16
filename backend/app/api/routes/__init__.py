@@ -5,16 +5,18 @@
 
 from fastapi import APIRouter
 
+from backend.app.api.routes import webhook, plugins, files, robots, system, admin
+
 # 创建主路由器
 api_router = APIRouter()
 
-# 导入并包含子路由器
-# 随着项目发展，可以添加更多的路由模块
-# from .users import router as users_router
-# from .messages import router as messages_router
-
-# api_router.include_router(users_router, prefix="/users", tags=["users"])
-# api_router.include_router(messages_router, prefix="/messages", tags=["messages"])
+# 注册所有子路由器
+api_router.include_router(webhook.router, prefix="/webhook", tags=["webhook"])
+api_router.include_router(plugins.router, prefix="/plugins", tags=["plugins"])
+api_router.include_router(files.router, prefix="/files", tags=["files"])
+api_router.include_router(robots.router, prefix="/robots", tags=["robots"])
+api_router.include_router(system.router, prefix="/system", tags=["system"])
+api_router.include_router(admin.router, prefix="/admin", tags=["admin"])
 
 
 # 添加健康检查路由
