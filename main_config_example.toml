@@ -1,7 +1,7 @@
 # OpenGewe配置文件示例
 
 [database]
-type = "mysql"                      # 数据库类型: "sqlite" 或 "mysql"
+type = "mysql"                      # 数据库类型: "mysql"
 mysql_host = "localhost"            # MySQL服务器地址
 mysql_port = 3306                   # MySQL端口
 mysql_user = "username"             # MySQL用户名
