@@ -18,10 +18,8 @@ sys.path.insert(
     0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 )
 
-# 引入模型基类和项目配置
+# 引入模型基类
 from backend.app.db.base import Base
-from backend.app.core.config import get_settings
-from backend.app.core.device import DeviceContext
 
 # 确保所有模型都被导入到Base中
 # 根据项目情况可能需要导入所有模型
@@ -36,29 +34,29 @@ fileConfig(config.config_file_name)
 # 设置MetaData对象以供Alembic使用
 target_metadata = Base.metadata
 
+# 开发过程中使用的默认URL
+default_url = "mysql+aiomysql://root:123456@localhost:3306/dev"  # 默认使用本地mysql
 
-def get_url(device_id=None):
+
+def get_url():
     """获取数据库连接URL
 
-    支持多schema环境，可以为不同设备生成不同的URL。
-
-    Args:
-        device_id: 可选的设备ID，如果提供则使用对应的schema
+    尝试从配置获取URL，如果失败则使用默认URL
 
     Returns:
         str: 数据库连接URL
     """
-    settings = get_settings()
+    try:
+        from backend.app.core.config import get_settings
+        from backend.app.core.device import DeviceContext
 
-    # 默认使用第一个设备的schema
-    if not device_id:
+        settings = get_settings()
         device_id = settings.devices.get_default_device_id()
-
-    # 获取schema名称
-    schema_name = settings.get_schema_name(device_id)
-
-    # 返回连接URL
-    return settings.database.get_connection_string(schema_name)
+        schema_name = settings.get_schema_name(device_id)
+        return settings.database.get_connection_string(schema_name)
+    except Exception:
+        # 如果配置获取失败，使用默认URL
+        return os.getenv("DATABASE_URL", default_url)
 
 
 def run_migrations_offline():
@@ -95,38 +93,31 @@ async def run_migrations_online():
     """在线运行迁移
 
     此函数在实际连接到数据库的情况下运行迁移。
-    支持异步操作和多schema环境。
+    支持异步操作。
     """
-    settings = get_settings()
-    device_ids = settings.get_device_ids()
+    # 获取URL
+    url = get_url()
 
-    # 对每个设备执行迁移
-    for device_id in device_ids:
-        # 使用设备上下文
-        async with DeviceContext(device_id):
-            # 获取URL
-            url = get_url(device_id)
+    # 替换配置中的URL
+    config_section = config.get_section(config.config_ini_section)
+    config_section["sqlalchemy.url"] = url
 
-            # 替换配置中的URL
-            config_section = config.get_section(config.config_ini_section)
-            config_section["sqlalchemy.url"] = url
+    # 创建引擎
+    connectable = AsyncEngine(
+        engine_from_config(
+            config_section,
+            prefix="sqlalchemy.",
+            poolclass=pool.NullPool,
+            future=True,
+        )
+    )
 
-            # 创建引擎
-            connectable = AsyncEngine(
-                engine_from_config(
-                    config_section,
-                    prefix="sqlalchemy.",
-                    poolclass=pool.NullPool,
-                    future=True,
-                )
-            )
+    # 执行迁移
+    async with connectable.connect() as connection:
+        await connection.run_sync(do_run_migrations)
 
-            # 执行迁移
-            async with connectable.connect() as connection:
-                await connection.run_sync(do_run_migrations)
-
-            # 关闭引擎
-            await connectable.dispose()
+    # 关闭引擎
+    await connectable.dispose()
 
 
 if context.is_offline_mode():
