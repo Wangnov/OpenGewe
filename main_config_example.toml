@@ -1,17 +1,47 @@
-[gewe]
-# 使用geweapi需传值http://api.geweapi.com/gewe/v2/api，或gewe临时提供的ip+端口地址。私有化部署则根据部署的镜像地址和端口来填写。
-# 当前geweapi管理后台中提供的base_url是http://218.78.116.24:10884/gewe/v2/api，日后可能恢复为域名或发生改变，请及时更新。
+# OpenGewe配置文件示例
+
+[database]
+type = "mysql"                      # 数据库类型: "sqlite" 或 "mysql"
+mysql_host = "localhost"            # MySQL服务器地址
+mysql_port = 3306                   # MySQL端口
+mysql_user = "username"             # MySQL用户名
+mysql_password = "password"         # MySQL密码
+mysql_database_prefix = "opengewe_" # 将与设备ID一起组成schema名，例如：opengewe_wx_123456
+auto_create_schema = true           # 是否自动创建不存在的schema
+manage_schema = true                # 是否管理schema（创建表结构等）
+
+[devices]
+# 默认设备配置
+[devices.default]
+name = "默认设备"
+# 使用geweapi需传值http://api.geweapi.com/gewe/v2/api，或gewe临时提供的ip+端口地址
+# 当前geweapi管理后台中提供的base_url可能为http://218.78.116.24:10884/gewe/v2/api
 base_url = "http://218.78.116.24:10884/gewe/v2/api"
-# 使用geweapi无需传值，私有化部署则根据部署的镜像地址和端口来填写。
+download_url = ""                                       # 使用geweapi无需传值，私有化部署则根据部署的镜像地址和端口来填写
+callback_url = "http://your_domain_or_ip:5432/callback" # 回调地址
+app_id = "wx_12345ABCdeFGhi6789"                        # 设备id，在geweapi的管理后台内扫码登录创建设备时生成
+token = "1234abcd-1234-1234-1234-1234abcd1234"          # geweapi平台分配的token
+is_gewe = true                                          # 是否使用geweapi，设置为false则切换至私有化部署
+
+# 设备2示例配置
+[devices.device2]
+name = "设备2"
+base_url = "http://api.geweapi.com/gewe/v2/api"
 download_url = ""
-# 设置回调地址。如果在geweapi的管理后台内已经为token绑定了回调地址，则无需在此设置。私有化部署，则用于调用代码的设置回调接口。
-callback_url = "http://your_domain_or_ip:5432/callback"
-# 设备id，在geweapi的管理后台内扫码登录创建设备时生成。私有化部署，则调用代码的登录流程，登录成功后代码会自动生成设备id填写至此。
-app_id = "wx_12345ABCdeFGhi6789"
-# geweapi平台分配的token，私有化部署则为自己调用获取token接口获取的token。
-token = "1234abcd-1234-1234-1234-1234abcd1234"
-# 是否强制切换geweapi，设置为false则切换至私有化部署。
+callback_url = "http://yourserver.com/callbacks/device2"
+app_id = "wx_another_device_id"
+token = "another-token-value"
 is_gewe = true
+
+# 设备3示例配置 - 私有化部署
+[devices.device3]
+name = "设备3-私有化部署"
+base_url = "http://192.168.1.100:8080/gewe/v2/api"
+download_url = "http://192.168.1.100:8080/download"
+callback_url = "http://yourserver.com/callbacks/device3"
+app_id = "wx_private_device_id"
+token = "private-token-value"
+is_gewe = false
 
 [plugins]
 plugins_dir = "plugins"             # 插件目录
@@ -19,12 +49,29 @@ enabled_plugins = ["ExamplePlugin"] # 启用的插件列表
 disabled_plugins = []               # 禁用的插件列表
 
 [queue]
-# 消息队列类型，可选值为"simple"或"advanced"。
-# 设为simple则使用asyncio消息队列，下面的设置则无效。
-# 设为advanced则使用celery消息队列，需要正确配置broker和backend等高级配置。
-queue_type = "simple"
-# 高级消息队列配置，仅当queue_type设为advanced时有效。
+queue_type = "simple" # 消息队列类型，可选值为"simple"或"advanced"
+# 以下配置仅当queue_type设为advanced时有效
 broker = "redis://localhost:6379/0"  # 消息队列后端连接URI，可用redis或rabbitmq
-backend = "redis://localhost:6379/0" # 消息队列结果存储URI，可用redis或rabbitmq
+backend = "redis://localhost:6379/0" # 消息队列结果存储URI
 name = "opengewe_messages"           # 队列名称
 concurrency = 4                      # worker并发数量
+
+[logging]
+level = "INFO"        # 日志级别: TRACE, DEBUG, INFO, SUCCESS, WARNING, ERROR, CRITICAL
+format = "color"      # 日志格式: "color", "json", "simple"
+rotation = "500 MB"   # 日志轮换大小
+retention = "10 days" # 日志保留时间
+compression = "zip"   # 日志压缩格式
+path = "./logs"       # 日志路径
+stdout = true         # 是否输出到控制台
+
+[backend]
+host = "0.0.0.0"                    # 后端服务绑定地址
+port = 5433                         # 后端服务端口
+debug = false                       # 是否开启调试模式
+secret_key = "your-secret-key-here" # 用于JWT令牌等的密钥
+cors_origins = ["*"]                # CORS源
+enable_docs = true                  # 是否启用OpenAPI文档
+docs_url = "/docs"                  # API文档URL
+enable_redis = false                # 是否启用Redis
+enable_admin = true                 # 是否启用管理接口
