@@ -9,9 +9,7 @@ email-validator>=2.1.0
 # 数据库支持
 sqlalchemy>=2.0.0
 alembic>=1.13.0
-mysqlclient>=2.2.0
 aiomysql>=0.2.0
-aiosqlite>=0.19.0
 
 # Redis支持
 redis>=5.0.1

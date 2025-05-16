@@ -496,7 +496,7 @@ touch backend/tests/__init__.py
 touch backend/requirements-backend.txt
 ```
 
-### 2. 核心配置实现
+### 2. 核心配置实现 （已完成）
 
 2.1. 实现配置管理
 ```python
@@ -513,7 +513,7 @@ touch backend/requirements-backend.txt
 # backend/app/core/security.py
 ```
 
-### 3. 数据库实现
+### 3. 数据库实现 （待执行）
 
 3.1. 实现数据库会话
 ```python
