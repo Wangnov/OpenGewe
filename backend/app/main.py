@@ -7,14 +7,16 @@
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 
-from opengewe.logger import setup_logging, get_logger
+from opengewe.logger import get_logger
 from backend.app.core.config import get_settings
 from backend.app.core.middleware import setup_middlewares
 from backend.app.core.device import get_device_id_dependency
 from backend.app.db.init_db import init_all_db
+from backend.app.gewe import client_manager
+from backend.app.utils.logger_config import setup_logger
 
 # 初始化日志
-setup_logging()
+setup_logger()
 logger = get_logger("App")
 
 # 加载应用配置
@@ -72,15 +74,29 @@ def create_application() -> FastAPI:
         await init_all_db()
         logger.success("数据库初始化完成")
 
+    @app.on_event("startup")
+    async def startup_gewe_client_manager():
+        """应用启动时初始化GeweClient管理器"""
+        logger.info("初始化GeweClient管理器...")
+        await client_manager.start()
+        logger.success("GeweClient管理器初始化完成")
+
     @app.on_event("shutdown")
     async def shutdown_db():
-        """应用关闭时清理资源"""
+        """应用关闭时清理数据库资源"""
         from backend.app.db.session import DatabaseManager
 
         logger.info("关闭数据库连接...")
         db_manager = DatabaseManager()
         await db_manager.close()
         logger.success("数据库连接已关闭")
+
+    @app.on_event("shutdown")
+    async def shutdown_gewe_client_manager():
+        """应用关闭时清理GeweClient资源"""
+        logger.info("关闭GeweClient管理器...")
+        await client_manager.stop()
+        logger.success("GeweClient管理器已关闭")
 
     return app
 
