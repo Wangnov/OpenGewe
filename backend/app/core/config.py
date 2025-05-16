@@ -10,17 +10,17 @@ import os
 from typing import List, Dict, Any, Optional, Union, Set
 
 import tomli
-from pydantic import BaseModel, field_validator, AnyHttpUrl
+from pydantic import BaseModel, field_validator, AnyHttpUrl, RootModel
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class DatabaseSettings(BaseModel):
     """数据库配置模型"""
 
-    mysql_host: str
+    mysql_host: str = "localhost"
     mysql_port: int = 3306
-    mysql_user: str
-    mysql_password: str
+    mysql_user: str = "root"
+    mysql_password: str = ""
     mysql_database_prefix: str = "opengewe_"
     auto_create_schema: bool = True
     manage_schema: bool = True
@@ -52,20 +52,20 @@ class DeviceSettings(BaseModel):
     is_gewe: bool = True
 
 
-class DevicesSettings(BaseModel):
+class DevicesSettings(RootModel):
     """所有设备的配置模型"""
 
-    __root__: Dict[str, DeviceSettings]
+    root: Dict[str, DeviceSettings] = {}
 
     def __init__(self, **data):
         # 处理从TOML读取的嵌套结构
         devices_data = data.get("devices", {})
-        super().__init__(__root__=devices_data)
+        super().__init__(root=devices_data)
 
     def __getitem__(self, key: str) -> DeviceSettings:
         """通过设备ID获取设备配置"""
-        if key in self.__root__:
-            return self.__root__[key]
+        if key in self.root:
+            return self.root[key]
         raise KeyError(f"设备ID '{key}' 不存在")
 
     def get(self, key: str, default=None) -> Optional[DeviceSettings]:
@@ -77,20 +77,20 @@ class DevicesSettings(BaseModel):
 
     def keys(self) -> Set[str]:
         """获取所有设备ID"""
-        return set(self.__root__.keys())
+        return set(self.root.keys())
 
     def items(self):
         """获取所有设备ID和配置"""
-        return self.__root__.items()
+        return self.root.items()
 
     def get_default_device_id(self) -> str:
         """获取默认设备ID"""
         # 优先使用名为'default'的设备
-        if "default" in self.__root__:
+        if "default" in self.root:
             return "default"
         # 或使用第一个设备
-        if self.__root__:
-            return next(iter(self.__root__))
+        if self.root:
+            return next(iter(self.root))
         raise ValueError("无可用设备配置")
 
 
@@ -183,10 +183,14 @@ class Settings(BaseSettings):
 
     # 子配置部分
     backend: BackendSettings = BackendSettings()
-    database: DatabaseSettings = DatabaseSettings()
+    database: DatabaseSettings = DatabaseSettings(
+        mysql_host="localhost",
+        mysql_user="root",
+        mysql_password="",
+    )
     redis: RedisSettings = RedisSettings()
     queue: QueueSettings = QueueSettings()
-    devices: DevicesSettings = None  # 必填
+    devices: Optional[DevicesSettings] = DevicesSettings()  # 可以为空
     plugins: PluginsSettings = PluginsSettings()
     logging: LoggingSettings = LoggingSettings()
 
