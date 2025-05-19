@@ -13,7 +13,6 @@ import uuid
 import psutil
 from datetime import datetime
 import importlib.metadata
-from typing import Dict, Any
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Depends, Request
@@ -31,7 +30,6 @@ from backend.app.core.config import get_settings
 from backend.app.core.middleware import setup_middlewares
 from backend.app.core.device import get_device_id_dependency
 from backend.app.db.init_db import init_all_db
-from backend.app.db.session import get_db_session
 from backend.app.gewe import client_manager
 from backend.app.utils.logger_config import setup_logger
 from backend.app.services.plugin_service import PluginService
