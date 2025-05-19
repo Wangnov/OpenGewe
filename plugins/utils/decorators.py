@@ -10,7 +10,6 @@ from opengewe.utils.decorators import (
     schedule,
     add_job_safe,
     remove_job_safe,
-    
     # 消息处理装饰器
     on_text_message,
     on_at_message,
@@ -57,7 +56,6 @@ __all__ = [
     "schedule",
     "add_job_safe",
     "remove_job_safe",
-    
     # 消息处理装饰器
     "on_text_message",
     "on_at_message",
@@ -95,4 +93,4 @@ __all__ = [
     "on_contact_deleted_message",
     "on_group_quit_message",
     "on_offline_message",
-] 
+]

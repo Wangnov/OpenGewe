@@ -20,8 +20,7 @@ uvicorn>=0.34.2
 pytz>=2025.2
 apscheduler>=3.11.0
 loguru>=0.6.0
-# 添加Redis支持
-aioredis>=2.0.1
+# Redis支持 (注：aioredis已集成到redis>=4.2.0中)
 redis>=6.0.0
 # 数据库支持
 sqlalchemy>=2.0.0

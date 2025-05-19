@@ -9,6 +9,8 @@ import importlib
 import inspect
 from typing import Dict, List, Optional, Any, Tuple
 
+from sqlalchemy import select
+
 from opengewe.client import GeweClient
 from opengewe.logger import get_logger
 from opengewe.utils.plugin_base import PluginBase
@@ -224,13 +226,16 @@ class PluginService:
         Returns:
             Tuple[int, int, int]: (添加的插件数, 更新的插件数, 失败的插件数)
         """
+        logger.debug("开始同步插件信息")
 
         # 扫描文件系统中的插件
         plugins = await PluginService.scan_plugins()
+        logger.debug(f"从文件系统中扫描到 {len(plugins)} 个插件")
 
         # 获取数据库中的插件
         db_plugins = await Plugin.get_all()
         db_plugin_names = {p.name for p in db_plugins}
+        logger.debug(f"数据库中已有 {len(db_plugins)} 个插件记录")
 
         added = 0
         updated = 0
@@ -240,78 +245,225 @@ class PluginService:
         for plugin_info in plugins:
             name = plugin_info["name"]
 
-            if name not in db_plugin_names:
-                # 添加新插件
-                result = await Plugin.create(
-                    name=name,
-                    display_name=plugin_info["display_name"],
-                    description=plugin_info["description"],
-                    version=plugin_info["version"],
-                    path=plugin_info["path"],
-                    author=plugin_info["author"],
-                )
-                if result:
-                    added += 1
-                else:
-                    failed += 1
-            else:
-                # 更新现有插件信息
-                plugin = next(p for p in db_plugins if p.name == name)
-
-                # 检查是否需要更新
-                if (
-                    plugin.display_name != plugin_info["display_name"]
-                    or plugin.description != plugin_info["description"]
-                    or plugin.version != plugin_info["version"]
-                    or plugin.author != plugin_info["author"]
-                    or plugin.path != plugin_info["path"]
-                ):
-                    # 更新插件信息
-                    plugin.display_name = plugin_info["display_name"]
-                    plugin.description = plugin_info["description"]
-                    plugin.version = plugin_info["version"]
-                    plugin.author = plugin_info["author"]
-                    plugin.path = plugin_info["path"]
-
-                    # 保存更新
-                    try:
-                        from backend.app.db.session import DatabaseManager
-
-                        db_manager = DatabaseManager()
-                        async with db_manager.get_session() as session:
-                            session.add(plugin)
-                            await session.commit()
-                            updated += 1
-                    except Exception as e:
-                        logger.error(f"更新插件 {name} 失败: {e}")
+            try:
+                if name not in db_plugin_names:
+                    # 添加新插件
+                    result = await Plugin.create(
+                        name=name,
+                        display_name=plugin_info["display_name"],
+                        description=plugin_info["description"],
+                        version=plugin_info["version"],
+                        path=plugin_info["path"],
+                        author=plugin_info["author"],
+                    )
+                    if result:
+                        added += 1
+                        logger.debug(f"添加新插件: {name}")
+                    else:
                         failed += 1
+                        logger.error(f"添加插件 {name} 失败")
+                else:
+                    # 更新现有插件信息
+                    plugin = next(p for p in db_plugins if p.name == name)
 
+                    # 检查是否需要更新
+                    if (
+                        plugin.display_name != plugin_info["display_name"]
+                        or plugin.description != plugin_info["description"]
+                        or plugin.version != plugin_info["version"]
+                        or plugin.author != plugin_info["author"]
+                        or plugin.path != plugin_info["path"]
+                    ):
+                        # 使用更安全的异步上下文管理器模式保存更新
+                        try:
+                            from backend.app.db import async_db_session
+
+                            # 在单独的会话中更新插件信息
+                            async with async_db_session() as session:
+                                # 再次查询以防并发更改
+                                refresh_query = await session.execute(
+                                    select(Plugin).where(Plugin.name == name)
+                                )
+                                db_plugin = refresh_query.scalars().first()
+
+                                if db_plugin:
+                                    db_plugin.display_name = plugin_info["display_name"]
+                                    db_plugin.description = plugin_info["description"]
+                                    db_plugin.version = plugin_info["version"]
+                                    db_plugin.author = plugin_info["author"]
+                                    db_plugin.path = plugin_info["path"]
+
+                                    await session.commit()
+                                    updated += 1
+                                    logger.debug(f"更新插件: {name}")
+                                else:
+                                    logger.warning(f"尝试更新插件 {name} 时找不到记录")
+                        except Exception as e:
+                            logger.error(f"更新插件 {name} 失败: {e}")
+                            failed += 1
+            except Exception as e:
+                logger.error(f"处理插件 {name} 时出错: {e}")
+                failed += 1
+
+        logger.info(
+            f"插件同步完成: 添加 {added} 个, 更新 {updated} 个, 失败 {failed} 个"
+        )
         return added, updated, failed
 
     @staticmethod
     async def get_loaded_plugins() -> List[Dict[str, Any]]:
-        """获取当前加载的插件
-
-        返回所有当前在GeweClient中加载的插件。
+        """获取当前已加载的插件
 
         Returns:
             List[Dict[str, Any]]: 已加载的插件列表
         """
-        try:
-            # 获取默认客户端
-            client = await get_gewe_client()
+        client = await get_gewe_client()
+        if not client:
+            return []
 
-            # 获取已加载的插件
-            if hasattr(client, "plugin_manager"):
-                # 获取插件信息
-                loaded_plugins = client.plugin_manager.get_plugin_info()
+        loaded_plugins = []
+        for plugin_name in client.plugin_manager.get_active_plugins():
+            plugin = await Plugin.get_by_name(plugin_name)
+            if plugin:
+                plugin_data = plugin.to_dict()
+                plugin_data["loaded"] = True
+                loaded_plugins.append(plugin_data)
+
+        return loaded_plugins
+
+    @staticmethod
+    async def load_enabled_plugins() -> Tuple[bool, str, Dict[str, Any]]:
+        """加载所有已启用的插件
+
+        在应用启动时调用此方法，为所有设备加载已启用的插件。
+
+        Returns:
+            Tuple[bool, str, Dict[str, Any]]:
+                (成功标志, 消息, 包含已加载和失败插件列表的字典)
+        """
+        try:
+            # 获取已启用的插件列表
+            logger.debug("正在获取已启用的插件列表...")
+            enabled_plugins = await Plugin.get_enabled()
+            plugin_names = [plugin.name for plugin in enabled_plugins]
+
+            # 如果数据库中没有启用的插件，尝试从配置文件读取
+            if not plugin_names:
+                settings = get_settings()
+                config_enabled_plugins = settings.plugins.enabled_plugins
+
+                if config_enabled_plugins:
+                    logger.info(
+                        f"数据库中没有启用的插件，从配置文件读取: {config_enabled_plugins}"
+                    )
+                    plugin_names = config_enabled_plugins
+                else:
+                    logger.info("没有已启用的插件需要加载")
+                    return (
+                        True,
+                        "没有已启用的插件需要加载",
+                        {"loaded": [], "failed": []},
+                    )
+
+            # 如果应用启动时没有请求上下文，使用默认设备
+            try:
+                # 获取GeweClient
+                client = await get_gewe_client()
+            except Exception as e:
+                # 如果获取失败（可能是因为没有请求上下文），尝试使用默认设备创建客户端
+                logger.warning(f"无法通过依赖获取客户端: {e}")
+                settings = get_settings()
+                try:
+                    default_device_id = settings.devices.get_default_device_id()
+                    logger.info(f"使用默认设备 {default_device_id} 创建客户端")
+
+                    from backend.app.gewe.client_manager import client_manager
+
+                    client = await client_manager.get_client(
+                        default_device_id, load_plugins=False
+                    )
+                except Exception as e2:
+                    logger.error(f"无法获取默认设备或创建客户端: {e2}")
+                    return (
+                        False,
+                        f"无法获取客户端: {str(e2)}",
+                        {"loaded": [], "failed": plugin_names},
+                    )
+
+            if not client:
+                logger.error("无法获取GeweClient，插件加载失败")
                 return (
-                    loaded_plugins
-                    if isinstance(loaded_plugins, list)
-                    else [loaded_plugins]
+                    False,
+                    "无法获取GeweClient",
+                    {"loaded": [], "failed": plugin_names},
                 )
 
-            return []
+            # 在单个事务中同步插件表
+            logger.debug("同步插件信息...")
+            try:
+                await PluginService.sync_plugins()
+            except Exception as e:
+                logger.warning(f"同步插件信息时出错: {e}")
+                # 继续加载，不中断流程
+
+            # 加载插件
+            loaded_plugins = []
+            failed_plugins = []
+
+            for plugin_name in plugin_names:
+                try:
+                    logger.info(f"正在加载插件: {plugin_name}")
+                    plugin_loaded = await client.plugin_manager.load_plugin(plugin_name)
+
+                    if plugin_loaded:
+                        loaded_plugins.append(plugin_name)
+                        logger.success(f"插件 {plugin_name} 加载成功")
+
+                        # 如果插件加载成功但数据库中未启用，则在数据库中启用它
+                        try:
+                            plugin = await Plugin.get_by_name(plugin_name)
+                            if plugin is None:
+                                # 可能是新插件，但在加载前未同步到数据库
+                                logger.debug(
+                                    f"插件 {plugin_name} 不在数据库中，将为其创建记录"
+                                )
+                                continue
+
+                            if not plugin.enabled:
+                                logger.info(
+                                    f"插件 {plugin_name} 已加载但数据库未启用，更新数据库"
+                                )
+                                await Plugin.toggle_enabled(plugin_name, True)
+                        except Exception as db_error:
+                            # 数据库操作失败不应影响插件加载流程
+                            logger.warning(f"更新插件状态时出现数据库错误: {db_error}")
+                    else:
+                        failed_plugins.append(plugin_name)
+                        logger.warning(f"插件 {plugin_name} 加载失败")
+                except Exception as e:
+                    failed_plugins.append(plugin_name)
+                    logger.error(f"加载插件 {plugin_name} 出错: {e}")
+
+            # 返回结果
+            if not failed_plugins:
+                return (
+                    True,
+                    f"成功加载 {len(loaded_plugins)} 个插件",
+                    {"loaded": loaded_plugins, "failed": failed_plugins},
+                )
+            elif loaded_plugins:
+                return (
+                    True,
+                    f"部分加载成功: 成功 {len(loaded_plugins)} 个, 失败 {len(failed_plugins)} 个",
+                    {"loaded": loaded_plugins, "failed": failed_plugins},
+                )
+            else:
+                return (
+                    False,
+                    "所有插件加载失败",
+                    {"loaded": [], "failed": failed_plugins},
+                )
+
         except Exception as e:
-            logger.error(f"获取已加载插件时出错: {e}")
-            return []
+            logger.error(f"加载插件时发生错误: {e}")
+            return False, f"加载插件出错: {str(e)}", {"loaded": [], "failed": []}

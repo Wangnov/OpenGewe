@@ -12,8 +12,7 @@ alembic>=1.13.0
 aiomysql>=0.2.0
 
 # Redis支持
-redis>=5.0.1
-aioredis>=2.0.1
+redis>=6.1.0
 
 # 安全和身份验证
 python-jose>=3.3.0

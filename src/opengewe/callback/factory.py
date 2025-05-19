@@ -241,6 +241,19 @@ class MessageFactory:
         task.add_done_callback(self._tasks.discard)
         return task
 
+    async def process_payload(self, payload: Dict[str, Any]) -> Optional[BaseMessage]:
+        """处理回调payload，是process方法的别名
+
+        用于处理webhook回调中的payload数据
+
+        Args:
+            payload: 原始消息数据，通常是从回调接口接收到的JSON数据
+
+        Returns:
+            处理后的消息对象，如果没有找到合适的处理器则返回None
+        """
+        return await self.process(payload)
+
     # 以下是插件系统相关方法，将在后续步骤中实现完整功能
 
     async def load_plugin(self, plugin_cls: Type) -> bool:

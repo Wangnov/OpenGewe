@@ -136,7 +136,17 @@ def add_job_safe(
 
     # 添加任务
     job = scheduler.add_job(func, trigger, args=[client], id=job_id, **trigger_args)
-    logger.debug(f"任务 {job_id} 已添加，下次执行时间: {job.next_run_time}")
+
+    # 安全地获取下次执行时间
+    try:
+        next_run_time = (
+            job.next_run_time.strftime("%Y-%m-%d %H:%M:%S%z")
+            if hasattr(job, "next_run_time") and job.next_run_time
+            else "未设置"
+        )
+        logger.debug(f"任务 {job_id} 已添加，下次执行时间: {next_run_time}")
+    except Exception as e:
+        logger.debug(f"任务 {job_id} 已添加，无法获取下次执行时间: {e}")
 
 
 def remove_job_safe(scheduler: AsyncIOScheduler, job_id: str) -> None:
