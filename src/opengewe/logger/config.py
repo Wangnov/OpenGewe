@@ -28,6 +28,20 @@ LEVEL_EMOJIS = {
     "CRITICAL": "🔥",
 }
 
+# 存储当前全局日志级别
+_GLOBAL_LOG_LEVEL = "INFO"
+
+
+# 获取全局日志级别
+def get_global_log_level() -> str:
+    """获取当前全局日志级别
+
+    Returns:
+        str: 当前设置的全局日志级别
+    """
+    return _GLOBAL_LOG_LEVEL
+
+
 # 默认日志格式 - 使用居中对齐
 DEFAULT_CONSOLE_FORMAT = (
     "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | "
@@ -166,6 +180,15 @@ def setup_logger(
         json_format: 自定义JSON格式，仅当structured=True时有效
         custom_handlers: 自定义处理器配置列表，如果为None则使用默认处理器
     """
+    # 设置全局日志级别
+    global _GLOBAL_LOG_LEVEL
+    _GLOBAL_LOG_LEVEL = level.upper()
+
+    # 更新formatters模块中的全局日志级别变量
+    import opengewe.logger.formatters
+
+    opengewe.logger.formatters.GLOBAL_LOG_LEVEL = level.upper()
+
     # 重置当前记录器
     logger.remove()
 

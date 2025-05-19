@@ -51,6 +51,8 @@ class GeweClientManager:
             self._manager_lock = asyncio.Lock()
             # 已加载插件的设备ID集合
             self._plugins_loaded: Set[str] = set()
+            # 管理器是否已启动
+            self._started = False
 
             self._initialized = True
             logger.debug("GeweClient管理器已初始化")
@@ -59,6 +61,7 @@ class GeweClientManager:
         """启动管理器，创建后台清理任务"""
         if self._cleanup_task is None:
             self._cleanup_task = asyncio.create_task(self._cleanup_idle_clients())
+            self._started = True
             logger.info("GeweClient管理器后台清理任务已启动")
 
     async def stop(self):
@@ -84,7 +87,18 @@ class GeweClientManager:
 
             self._clients.clear()
             self._last_used.clear()
+            self._started = False
             logger.info("所有GeweClient实例已关闭")
+
+    def is_ready(self) -> bool:
+        """检查GeweClient管理器是否已准备好服务请求
+
+        返回管理器的启动状态，表示是否可以提供GeweClient服务
+
+        Returns:
+            bool: 如果管理器已启动则返回True，否则返回False
+        """
+        return self._initialized and self._started
 
     async def _cleanup_idle_clients(self):
         """后台任务：清理空闲客户端"""
@@ -163,7 +177,9 @@ class GeweClientManager:
 
         # 创建锁（如果不存在）
         if device_id not in self._locks:
-            self._locks[device_id] = asyncio.Lock()
+            async with self._manager_lock:  # 使用管理器锁保护锁字典的修改
+                if device_id not in self._locks:  # 再次检查，避免竞态条件
+                    self._locks[device_id] = asyncio.Lock()
 
         # 获取锁以确保一次只有一个协程创建客户端
         async with self._locks[device_id]:
@@ -173,8 +189,11 @@ class GeweClientManager:
 
             # 创建新客户端
             client = await create_client(device_id=device_id)
-            self._clients[device_id] = client
-            logger.info(f"创建新客户端: {device_id}")
+
+            # 使用管理器锁保护客户端字典的修改
+            async with self._manager_lock:
+                self._clients[device_id] = client
+                logger.info(f"创建新客户端: {device_id}")
 
             # 如果需要，加载插件
             if load_plugins and device_id not in self._plugins_loaded:
@@ -186,7 +205,9 @@ class GeweClientManager:
                         logger.info(
                             f"设备 {device_id} 加载了 {len(loaded_plugins)} 个插件: {', '.join(loaded_plugins)}"
                         )
-                        self._plugins_loaded.add(device_id)
+                        # 使用管理器锁保护插件加载状态的修改
+                        async with self._manager_lock:
+                            self._plugins_loaded.add(device_id)
                     else:
                         logger.warning(f"设备 {device_id} 未加载任何插件")
                 except Exception as e:

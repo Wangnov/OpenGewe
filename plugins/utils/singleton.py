@@ -7,4 +7,4 @@
 from opengewe.utils.singleton import Singleton
 
 # 重新导出Singleton元类
-__all__ = ["Singleton"] 
+__all__ = ["Singleton"]

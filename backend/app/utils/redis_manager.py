@@ -6,8 +6,7 @@
 import asyncio
 from typing import Any, Dict, List, Optional, Set, Union, TypeVar
 
-import aioredis
-from aioredis.client import Redis
+from redis import asyncio as aioredis
 
 from opengewe.logger import get_logger
 from backend.app.core.config import get_settings
@@ -39,11 +38,11 @@ class RedisManager:
     def __init__(self):
         """初始化Redis管理器"""
         if not self._initialized:
-            self._redis: Optional[Redis] = None
+            self._redis: Optional[aioredis.Redis] = None
             self._lock = asyncio.Lock()
             self._initialized = True
 
-    async def _ensure_connection(self) -> Redis:
+    async def _ensure_connection(self) -> aioredis.Redis:
         """确保Redis连接可用
 
         Returns:

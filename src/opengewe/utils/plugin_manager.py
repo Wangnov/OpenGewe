@@ -91,17 +91,38 @@ class PluginManager(metaclass=Singleton):
         将plugins目录和plugins/utils目录添加到Python的模块搜索路径中，
         使插件可以通过'utils'模块名称直接导入桥接层
         """
-        # 确保plugins目录在搜索路径中
+        # 确保plugins目录存在
         plugins_dir = os.path.abspath("plugins")
+        if not os.path.exists(plugins_dir):
+            try:
+                os.makedirs(plugins_dir, exist_ok=True)
+                logger.info(f"插件目录不存在，已创建: {plugins_dir}")
+                # 创建__init__.py文件以使其成为有效的Python包
+                init_file = os.path.join(plugins_dir, "__init__.py")
+                if not os.path.exists(init_file):
+                    with open(init_file, "w") as f:
+                        f.write("# 插件目录\n")
+                    logger.info(f"创建了插件包初始化文件: {init_file}")
+            except Exception as e:
+                logger.error(f"创建插件目录失败: {e}")
+                logger.warning("将使用内存中的插件，不会加载文件系统中的插件")
+
+        # 确保plugins目录在搜索路径中
         if plugins_dir not in sys.path:
             sys.path.insert(0, plugins_dir)
+
+        # 确保plugins的父目录也在搜索路径中
+        # 这样插件可以通过相对导入找到utils包
+        parent_dir = os.path.dirname(plugins_dir)
+        if parent_dir not in sys.path:
+            sys.path.insert(0, parent_dir)
 
         # 确保当前目录在搜索路径中，有些插件可能使用相对导入
         current_dir = os.getcwd()
         if current_dir not in sys.path:
             sys.path.insert(0, current_dir)
 
-        logger.debug(f"已设置插件搜索路径: {sys.path[:3]}...")
+        logger.debug(f"已设置插件搜索路径: {sys.path[:5]}...")
 
     async def _load_plugin_class(
         self, plugin_class: Type[PluginBase], is_disabled: bool = False
@@ -198,26 +219,47 @@ class PluginManager(metaclass=Singleton):
             bool: 是否成功加载插件
         """
         found = False
-        for dirname in os.listdir("plugins"):
-            try:
-                if os.path.isdir(f"plugins/{dirname}") and os.path.exists(
-                    f"plugins/{dirname}/main.py"
-                ):
-                    module = importlib.import_module(f"plugins.{dirname}.main")
-                    importlib.reload(module)
 
-                    for name, obj in inspect.getmembers(module):
-                        if (
-                            inspect.isclass(obj)
-                            and issubclass(obj, PluginBase)
-                            and obj != PluginBase
-                            and obj.__name__ == plugin_name
-                        ):
-                            found = True
-                            return await self._load_plugin_class(obj)
-            except Exception:
-                logger.error(f"检查 {dirname} 时发生错误:\n{traceback.format_exc()}")
-                continue
+        try:
+            plugins_dir = os.path.abspath("plugins")
+            if not os.path.exists(plugins_dir):
+                logger.warning(f"插件目录不存在: {plugins_dir}")
+                return False
+
+            for dirname in os.listdir(plugins_dir):
+                try:
+                    plugin_path = os.path.join(plugins_dir, dirname)
+                    main_file = os.path.join(plugin_path, "main.py")
+
+                    if os.path.isdir(plugin_path) and os.path.exists(main_file):
+                        module = importlib.import_module(f"plugins.{dirname}.main")
+                        importlib.reload(module)
+
+                        for name, obj in inspect.getmembers(module):
+                            if (
+                                inspect.isclass(obj)
+                                and issubclass(obj, PluginBase)
+                                and obj != PluginBase
+                                and obj.__name__ == plugin_name
+                            ):
+                                found = True
+                                return await self._load_plugin_class(obj)
+                except Exception:
+                    logger.error(
+                        f"检查 {dirname} 时发生错误:\n{traceback.format_exc()}"
+                    )
+                    continue
+        except FileNotFoundError:
+            logger.warning(f"插件目录不存在: {plugins_dir}")
+            return False
+        except PermissionError:
+            logger.warning(f"无权限访问插件目录: {plugins_dir}")
+            return False
+        except Exception as e:
+            logger.error(
+                f"加载插件 {plugin_name} 时发生未知错误: {e}\n{traceback.format_exc()}"
+            )
+            return False
 
         if not found:
             logger.warning(f"未找到插件类 {plugin_name}")
@@ -238,36 +280,55 @@ class PluginManager(metaclass=Singleton):
 
         loaded_plugins = []
 
-        for dirname in os.listdir("plugins"):
-            if os.path.isdir(f"plugins/{dirname}") and os.path.exists(
-                f"plugins/{dirname}/main.py"
-            ):
-                try:
-                    module = importlib.import_module(f"plugins.{dirname}.main")
-                    # 重新加载模块，确保获取最新的代码
-                    importlib.reload(module)
+        try:
+            # 检查插件目录是否存在
+            plugins_dir = os.path.abspath("plugins")
+            if not os.path.exists(plugins_dir):
+                logger.warning(f"插件目录不存在: {plugins_dir}")
+                return loaded_plugins
 
-                    for name, obj in inspect.getmembers(module):
-                        if (
-                            inspect.isclass(obj)
-                            and issubclass(obj, PluginBase)
-                            and obj != PluginBase
-                        ):
-                            is_disabled = False
-                            if not load_disabled:
-                                is_disabled = (
-                                    obj.__name__ in self.excluded_plugins
-                                    or dirname in self.excluded_plugins
-                                )
+            # 检查插件目录是否可读
+            if not os.access(plugins_dir, os.R_OK):
+                logger.warning(f"无法读取插件目录: {plugins_dir}")
+                return loaded_plugins
 
-                            if await self._load_plugin_class(
-                                obj, is_disabled=is_disabled
+            for dirname in os.listdir(plugins_dir):
+                plugin_path = os.path.join(plugins_dir, dirname)
+                main_file = os.path.join(plugin_path, "main.py")
+
+                if os.path.isdir(plugin_path) and os.path.exists(main_file):
+                    try:
+                        module = importlib.import_module(f"plugins.{dirname}.main")
+                        # 重新加载模块，确保获取最新的代码
+                        importlib.reload(module)
+
+                        for name, obj in inspect.getmembers(module):
+                            if (
+                                inspect.isclass(obj)
+                                and issubclass(obj, PluginBase)
+                                and obj != PluginBase
                             ):
-                                loaded_plugins.append(obj.__name__)
-                except Exception:
-                    logger.error(
-                        f"加载 {dirname} 时发生错误:\n{traceback.format_exc()}"
-                    )
+                                is_disabled = False
+                                if not load_disabled:
+                                    is_disabled = (
+                                        obj.__name__ in self.excluded_plugins
+                                        or dirname in self.excluded_plugins
+                                    )
+
+                                if await self._load_plugin_class(
+                                    obj, is_disabled=is_disabled
+                                ):
+                                    loaded_plugins.append(obj.__name__)
+                    except Exception:
+                        logger.error(
+                            f"加载 {dirname} 时发生错误:\n{traceback.format_exc()}"
+                        )
+        except FileNotFoundError:
+            logger.warning(f"插件目录不存在: {plugins_dir}")
+        except PermissionError:
+            logger.warning(f"无权限访问插件目录: {plugins_dir}")
+        except Exception as e:
+            logger.error(f"加载插件时发生未知错误: {e}\n{traceback.format_exc()}")
 
         return loaded_plugins
 
@@ -496,6 +557,62 @@ class PluginManager(metaclass=Singleton):
         """
         # 确保插件路径已正确设置
         self._ensure_plugin_paths()
+
+        loaded_plugins = []
+
+        try:
+            # 检查指定目录是否存在
+            if not os.path.exists(directory):
+                logger.warning(f"指定的插件目录不存在: {directory}")
+                return loaded_plugins
+
+            # 检查指定目录是否可读
+            if not os.access(directory, os.R_OK):
+                logger.warning(f"无法读取指定的插件目录: {directory}")
+                return loaded_plugins
+
+            # 确保指定目录在搜索路径中
+            abs_directory = os.path.abspath(directory)
+            if abs_directory not in sys.path:
+                sys.path.insert(0, abs_directory)
+
+            for dirname in os.listdir(directory):
+                plugin_path = os.path.join(directory, dirname)
+                main_file = os.path.join(plugin_path, "main.py")
+
+                if os.path.isdir(plugin_path) and os.path.exists(main_file):
+                    try:
+                        # 构建模块名
+                        if prefix:
+                            module_name = f"{prefix}.{dirname}.main"
+                        else:
+                            module_name = f"{dirname}.main"
+
+                        module = importlib.import_module(module_name)
+                        importlib.reload(module)
+
+                        for name, obj in inspect.getmembers(module):
+                            if (
+                                inspect.isclass(obj)
+                                and issubclass(obj, PluginBase)
+                                and obj != PluginBase
+                            ):
+                                if await self._load_plugin_class(obj):
+                                    loaded_plugins.append(obj.__name__)
+                    except Exception:
+                        logger.error(
+                            f"从 {directory} 加载 {dirname} 时发生错误:\n{traceback.format_exc()}"
+                        )
+        except FileNotFoundError:
+            logger.warning(f"指定的插件目录不存在: {directory}")
+        except PermissionError:
+            logger.warning(f"无权限访问指定的插件目录: {directory}")
+        except Exception as e:
+            logger.error(
+                f"从 {directory} 加载插件时发生未知错误: {e}\n{traceback.format_exc()}"
+            )
+
+        return loaded_plugins
 
     async def process_message(self, message: "BaseMessage") -> None:
         """处理消息

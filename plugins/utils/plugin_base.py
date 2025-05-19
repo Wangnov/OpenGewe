@@ -7,4 +7,4 @@
 from opengewe.utils.plugin_base import PluginBase
 
 # 重新导出PluginBase类
-__all__ = ["PluginBase"] 
+__all__ = ["PluginBase"]

@@ -9,6 +9,9 @@ from typing import Dict, Any
 import xml.dom.minidom as minidom
 from xml.parsers.expat import ExpatError
 
+# 存储全局日志级别的变量，将由logger.config模块设置
+GLOBAL_LOG_LEVEL = "INFO"
+
 
 def should_escape_message(message: str) -> bool:
     """判断消息是否需要特殊处理
@@ -97,8 +100,14 @@ def format_console_message(record: Dict[str, Any]) -> str:
 
     # 处理超长消息
     if len(message) > 500:
-        preview = message[:200] + "..." + message[-200:]
-        return f"[长消息] ({len(message)} 字符): {preview} [使用DEBUG级别查看完整内容]"
+        # 检查全局日志级别，仅在非DEBUG级别时折叠消息
+        if GLOBAL_LOG_LEVEL not in ["DEBUG", "TRACE"]:
+            preview = message[:200] + "..." + message[-200:]
+            return (
+                f"[长消息] ({len(message)} 字符): {preview} [使用DEBUG级别查看完整内容]"
+            )
+        # 在DEBUG或TRACE级别时，显示完整消息
+        return message
 
     return message
 

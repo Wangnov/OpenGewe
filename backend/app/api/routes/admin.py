@@ -22,7 +22,7 @@ from backend.app.api.deps import (
 )
 from backend.app.services.admin_service import AdminService
 from backend.app.models.user import User
-from backend.app.db.session import get_db
+from backend.app.db.session import get_db_session as get_db
 
 # 创建路由实例
 router = APIRouter()

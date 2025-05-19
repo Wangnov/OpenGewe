@@ -7,4 +7,4 @@
 from opengewe.utils.event_manager import EventManager
 
 # 重新导出EventManager
-__all__ = ["EventManager"] 
+__all__ = ["EventManager"]

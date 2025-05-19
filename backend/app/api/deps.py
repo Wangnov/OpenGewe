@@ -14,7 +14,7 @@ from pydantic import ValidationError
 from opengewe.logger import get_logger
 from backend.app.core.config import get_settings
 from backend.app.models.user import User
-from backend.app.db.session import get_db
+from backend.app.db.session import get_db_session as get_db
 from backend.app.gewe.dependencies import get_gewe_client
 
 # 获取设置

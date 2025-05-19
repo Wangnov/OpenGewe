@@ -8,7 +8,7 @@
 from functools import lru_cache
 import os
 from typing import List, Dict, Any, Optional, Union, Set
-
+from pathlib import Path
 import tomli
 from pydantic import BaseModel, field_validator, AnyHttpUrl, RootModel
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -59,8 +59,7 @@ class DevicesSettings(RootModel):
 
     def __init__(self, **data):
         # 处理从TOML读取的嵌套结构
-        devices_data = data.get("devices", {})
-        super().__init__(root=devices_data)
+        super().__init__(root=data)
 
     def __getitem__(self, key: str) -> DeviceSettings:
         """通过设备ID获取设备配置"""
@@ -163,7 +162,7 @@ class BackendSettings(BaseModel):
 
     host: str = "0.0.0.0"
     port: int = 5433
-    debug: bool = False
+    debug: bool = True
     secret_key: str = "your-secret-key-here"
     cors_origins: List[Union[str, AnyHttpUrl]] = ["*"]
     enable_docs: bool = True
@@ -180,6 +179,9 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         env_nested_delimiter="__",
     )
+
+    # 应用程序版本
+    app_version: str = "0.1.0"
 
     # 子配置部分
     backend: BackendSettings = BackendSettings()
@@ -201,7 +203,13 @@ class Settings(BaseSettings):
     def from_toml(cls, toml_path: str = "main_config.toml") -> "Settings":
         """从TOML文件加载配置"""
         if not os.path.exists(toml_path):
-            raise FileNotFoundError(f"配置文件 {toml_path} 不存在")
+            try:
+                toml_path = (
+                    Path(__file__).parent.parent.parent.parent / "main_config.toml"
+                )
+                print(toml_path)
+            except Exception as e:
+                raise FileNotFoundError(f"配置文件 {toml_path} 不存在")
 
         with open(toml_path, "rb") as f:
             config_data = tomli.load(f)
