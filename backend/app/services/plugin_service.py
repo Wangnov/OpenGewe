@@ -365,30 +365,28 @@ class PluginService:
                         {"loaded": [], "failed": []},
                     )
 
-            # 如果应用启动时没有请求上下文，使用默认设备
+            # 在应用启动时，直接获取客户端而不使用依赖系统
+            client = None
+            settings = get_settings()
+
+            # 获取默认设备ID
             try:
-                # 获取GeweClient
-                client = await get_gewe_client()
+                default_device_id = settings.devices.get_default_device_id()
+                logger.info(f"使用默认设备 {default_device_id} 创建客户端")
+
+                # 直接从client_manager获取客户端，避免依赖系统问题
+                from backend.app.gewe.client_manager import client_manager
+
+                client = await client_manager.get_client(
+                    default_device_id, load_plugins=False
+                )
             except Exception as e:
-                # 如果获取失败（可能是因为没有请求上下文），尝试使用默认设备创建客户端
-                logger.warning(f"无法通过依赖获取客户端: {e}")
-                settings = get_settings()
-                try:
-                    default_device_id = settings.devices.get_default_device_id()
-                    logger.info(f"使用默认设备 {default_device_id} 创建客户端")
-
-                    from backend.app.gewe.client_manager import client_manager
-
-                    client = await client_manager.get_client(
-                        default_device_id, load_plugins=False
-                    )
-                except Exception as e2:
-                    logger.error(f"无法获取默认设备或创建客户端: {e2}")
-                    return (
-                        False,
-                        f"无法获取客户端: {str(e2)}",
-                        {"loaded": [], "failed": plugin_names},
-                    )
+                logger.error(f"无法获取默认设备或创建客户端: {e}")
+                return (
+                    False,
+                    f"无法获取客户端: {str(e)}",
+                    {"loaded": [], "failed": plugin_names},
+                )
 
             if not client:
                 logger.error("无法获取GeweClient，插件加载失败")

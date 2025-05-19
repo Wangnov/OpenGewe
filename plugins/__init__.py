@@ -50,11 +50,7 @@ class ImportHook:
                             except Exception as e:
                                 print(f"警告: 预加载模块 {module_name} 失败: {e}")
 
-        # 确保opengewe目录在系统路径中
-        root_dir = os.path.abspath(os.path.join(current_dir, ".."))
-        src_dir = os.path.join(root_dir, "src")
-        if src_dir not in sys.path and os.path.exists(src_dir):
-            sys.path.insert(0, src_dir)
+        # 注意：opengewe应该作为PyPI包安装
 
 
 # 安装导入钩子

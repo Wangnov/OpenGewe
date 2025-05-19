@@ -23,6 +23,12 @@ def setup_logger() -> None:
     基于应用配置初始化日志系统，集成OpenGewe的日志功能。
     """
     try:
+        # 首先应用loguru拦截，确保后续的日志记录都能正确识别来源
+        from opengewe.logger.utils import intercept_plugin_loguru
+
+        # 拦截loguru导入
+        intercept_plugin_loguru()
+
         # 获取配置
         settings = get_settings()
         log_config = settings.logging
@@ -53,9 +59,23 @@ def setup_logger() -> None:
         # 拦截标准库日志，重定向到loguru
         intercept_logging()
 
-        get_logger("Logger").info(
+        # 再次应用loguru拦截，确保它被正确应用
+        custom_logger = intercept_plugin_loguru()
+
+        logger = get_logger("Logger")
+        logger.info(
             f"日志系统初始化完成 [级别: {log_config.level}, 格式: {log_config.format}, 目录: {log_dir}]"
         )
+
+        # 验证拦截是否有效
+        import sys
+
+        if "loguru" in sys.modules:
+            from loguru import logger as loguru_logger
+
+            if not hasattr(loguru_logger, "_original_logger"):
+                print("警告: loguru拦截可能未完全生效")
+
     except Exception as e:
         # 使用备用配置初始化
         print(f"使用默认配置初始化日志系统: {str(e)}")

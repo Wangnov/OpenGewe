@@ -5,8 +5,20 @@
 
 from abc import ABC
 from typing import Set
+import sys
+import inspect
 from opengewe.utils.decorators import scheduler, add_job_safe, remove_job_safe
 from opengewe.logger import get_logger
+
+# 在日志系统加载前确保loguru已被拦截
+try:
+    from opengewe.logger.utils import intercept_plugin_loguru
+
+    # 尝试拦截loguru
+    intercept_plugin_loguru()
+except ImportError:
+    # 无法导入拦截函数，可能是循环导入
+    pass
 
 # 获取插件基类日志记录器
 logger = get_logger("PluginBase")
@@ -46,8 +58,35 @@ class PluginBase(ABC):
         """初始化插件实例"""
         self.enabled: bool = False
         self._scheduled_jobs: Set[str] = set()
+
+        # 强制拦截插件导入的loguru，确保日志正确标记
+        try:
+            from loguru import logger as loguru_logger
+
+            # 检查logger是否已被正确拦截
+            if not hasattr(loguru_logger, "_original_logger"):
+                # 如果没有，尝试再次拦截
+                try:
+                    from opengewe.logger.utils import intercept_plugin_loguru
+
+                    intercept_plugin_loguru()
+                except ImportError:
+                    # 无法导入，可能是循环导入
+                    pass
+        except ImportError:
+            # loguru可能未安装
+            pass
+
         # 创建插件特有的日志记录器
-        self.logger = get_logger(self.__class__.__name__)
+        plugin_name = self.__class__.__name__
+
+        # 设置模块的__plugin_name__变量，帮助日志系统识别插件
+        module = sys.modules.get(self.__class__.__module__)
+        if module:
+            setattr(module, "__plugin_name__", plugin_name)
+
+        # 创建插件专用logger
+        self.logger = get_logger(f"Plugins.{plugin_name}")
 
     async def on_enable(self, client=None) -> None:
         """插件启用时调用
@@ -71,9 +110,8 @@ class PluginBase(ABC):
                 self._scheduled_jobs.add(job_id)
 
         if self._scheduled_jobs:
-            logger.debug(
-                "插件 {} 已加载定时任务: {}",
-                self.__class__.__name__,
+            self.logger.debug(
+                "已加载定时任务: {}",
                 self._scheduled_jobs,
             )
 
@@ -88,7 +126,7 @@ class PluginBase(ABC):
         for job_id in self._scheduled_jobs:
             remove_job_safe(scheduler, job_id)
         if self._scheduled_jobs:
-            logger.debug("已卸载定时任务: {}", self._scheduled_jobs)
+            self.logger.debug("已卸载定时任务: {}", self._scheduled_jobs)
         self._scheduled_jobs.clear()
 
     async def async_init(self) -> None:
