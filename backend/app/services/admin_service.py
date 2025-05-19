@@ -278,6 +278,39 @@ class AdminService:
             logger.error(f"撤销用户 {username} 的API密钥时出错: {e}")
             return False, f"撤销API密钥出错: {str(e)}"
 
+    @staticmethod
+    async def init_admin() -> Tuple[bool, str, Optional[Dict[str, Any]]]:
+        """初始化管理员账户
+
+        仅当系统中没有任何用户时才能执行此操作。
+        默认管理员账户：
+        - 用户名：admin
+        - 密码：admin123
+        - 邮箱：admin@opengewe.com
+
+        Returns:
+            Tuple[bool, str, Optional[Dict[str, Any]]]: (是否成功, 消息, 用户信息)
+        """
+        # 检查是否已有用户
+        users = await User.get_all()
+        if users:
+            return False, "系统中已存在用户，无法初始化管理员账户", None
+
+        # 创建管理员账户
+        admin = await User.create(
+            username="admin",
+            email="admin@opengewe.com",
+            password="admin123",
+            full_name="系统管理员",
+            is_superuser=True,
+            is_admin=True,
+        )
+
+        if not admin:
+            return False, "创建管理员账户失败", None
+
+        return True, "管理员账户初始化成功", AdminService._sanitize_user(admin.to_dict())
+
     # ----------------------- 配置管理 -----------------------
 
     @staticmethod
