@@ -35,6 +35,7 @@ class User(Base):
     full_name = Column(String(100), nullable=True, comment="全名")
     is_active = Column(Boolean, default=True, comment="是否活跃")
     is_superuser = Column(Boolean, default=False, comment="是否超级用户")
+    is_admin = Column(Boolean, default=False, comment="是否管理员")
     last_login = Column(DateTime, nullable=True, comment="最后登录时间")
     api_key = Column(String(64), unique=True, nullable=True, comment="API密钥")
     api_key_expires = Column(DateTime, nullable=True, comment="API密钥过期时间")
@@ -171,6 +172,7 @@ class User(Base):
         password: str,
         full_name: Optional[str] = None,
         is_superuser: bool = False,
+        is_admin: bool = False,
     ) -> Optional["User"]:
         """创建新用户
 
@@ -180,6 +182,7 @@ class User(Base):
             password: 明文密码
             full_name: 全名
             is_superuser: 是否超级用户
+            is_admin: 是否管理员
 
         Returns:
             Optional[User]: 创建的用户对象，失败则为None
@@ -206,6 +209,7 @@ class User(Base):
                     full_name=full_name,
                     is_active=True,
                     is_superuser=is_superuser,
+                    is_admin=is_admin,
                 )
 
                 # 设置密码
