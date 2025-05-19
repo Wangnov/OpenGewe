@@ -531,45 +531,115 @@ class PluginLoggerProxy:
 
     def __init__(self, original_logger):
         self._original_logger = original_logger
-        self._plugin_name = None
+        # 保存一个缓存，避免每次调用都要重新检测
+        self._source_cache = {}
 
     def _detect_plugin_name(self):
         """从调用栈中检测插件名称"""
         frame = inspect.currentframe()
 
         try:
+            # 首先，看看当前帧的代码是否在调用栈中
+            code_id = id(frame.f_code)
+            if code_id in self._source_cache:
+                return self._source_cache[code_id]
+
             # 向上遍历调用栈，查找插件来源
-            for _ in range(20):  # 限制查找深度
+            for _ in range(30):  # 增加搜索深度以确保找到正确的插件调用
                 if frame is None:
                     break
 
                 module_name = frame.f_globals.get("__name__", "")
                 filename = frame.f_code.co_filename
+                func_name = frame.f_code.co_name
+
+                # 检查是否可以从局部变量中找到self，并获取类名
+                if "self" in frame.f_locals:
+                    self_obj = frame.f_locals["self"]
+                    if hasattr(self_obj, "__class__"):
+                        class_name = self_obj.__class__.__name__
+                        module_path = getattr(self_obj.__class__, "__module__", "")
+
+                        # 首先检查是否是插件类的实例
+                        if class_name.endswith("Plugin"):
+                            source = f"Plugins.{class_name}"
+                            # 缓存结果
+                            self._source_cache[code_id] = source
+                            return source
+                        # 其次检查模块是否来自插件目录
+                        elif module_path.startswith("plugins."):
+                            parts = module_path.split(".")
+                            if len(parts) > 1 and parts[1] != "utils":
+                                plugin_name = parts[1]
+                                source = f"Plugins.{plugin_name}"
+                                # 缓存结果
+                                self._source_cache[code_id] = source
+                                return source
 
                 # 检查是否是插件目录中的文件
                 if "plugins/" in filename or "plugins\\" in filename:
+                    # 从文件路径中提取插件名称
                     plugin_parts = filename.split(os.path.sep)
-                    plugin_idx = -1
-
-                    # 查找plugins目录的索引
-                    for i, part in enumerate(plugin_parts):
-                        if part == "plugins" and i + 1 < len(plugin_parts):
-                            plugin_idx = i + 1
-                            break
-
-                    if plugin_idx != -1 and plugin_idx < len(plugin_parts):
-                        plugin_name = plugin_parts[plugin_idx]
-                        return f"Plugin.{plugin_name}"
+                    try:
+                        # 查找plugins目录索引
+                        plugins_idx = plugin_parts.index("plugins")
+                        # 取下一个部分作为插件名
+                        if plugins_idx + 1 < len(plugin_parts):
+                            plugin_name = plugin_parts[plugins_idx + 1]
+                            # 避免将utils目录识别为插件
+                            if plugin_name != "utils" and not plugin_name.startswith(
+                                "__"
+                            ):
+                                source = f"Plugins.{plugin_name}"
+                                # 缓存结果
+                                self._source_cache[code_id] = source
+                                return source
+                    except ValueError:
+                        pass  # plugins不在路径中
 
                 # 或者从模块名称中提取
                 if module_name.startswith("plugins."):
                     parts = module_name.split(".")
                     if len(parts) > 1:
-                        return f"Plugin.{parts[1]}"
+                        plugin_name = parts[1]
+                        # 避免utils模块被识别为插件
+                        if plugin_name != "utils" and not plugin_name.startswith("__"):
+                            source = f"Plugins.{plugin_name}"
+                            # 缓存结果
+                            self._source_cache[code_id] = source
+                            return source
+
+                # 检查调用方所在的模块是否定义了__plugin_name__
+                plugin_name = frame.f_globals.get("__plugin_name__")
+                if plugin_name and isinstance(plugin_name, str):
+                    source = f"Plugins.{plugin_name}"
+                    # 缓存结果
+                    self._source_cache[code_id] = source
+                    return source
 
                 frame = frame.f_back
 
-            return "Plugin.Unknown"
+            # 如果没能确定具体插件，但确定是从插件目录调用的
+            if (
+                "plugins" in filename
+                or module_name.startswith("plugins.")
+                or (
+                    hasattr(frame, "f_locals")
+                    and "self" in frame.f_locals
+                    and hasattr(frame.f_locals["self"], "__class__")
+                    and "Plugin" in frame.f_locals["self"].__class__.__name__
+                )
+            ):
+                source = "Plugins.Unknown"
+                # 缓存结果
+                self._source_cache[code_id] = source
+                return source
+
+            # 默认为系统日志
+            source = "OpenGewe"
+            # 缓存结果
+            self._source_cache[code_id] = source
+            return source
         finally:
             del frame  # 避免循环引用
 
@@ -644,17 +714,45 @@ class PluginLoggerProxy:
         return attr
 
 
-# 保存原始loguru模块
-_original_loguru = sys.modules.get("loguru")
-_original_logger = logger
+# 全局变量，用于跟踪是否已应用拦截
+_loguru_intercepted = False
 
 
 def intercept_plugin_loguru():
     """拦截插件对loguru的使用，自动添加插件来源标识
 
-    这个函数通过替换sys.modules中的loguru模块，确保插件导入loguru时
-    获取的是我们的自定义版本，从而在日志记录时自动添加插件来源。
+    这个函数通过替换sys.modules中的loguru模块和logger对象，确保插件导入loguru时
+    获取到我们的自定义版本，从而在日志记录时自动添加插件来源。
     """
+    global _loguru_intercepted
+
+    # 如果已经被拦截，不要重复操作
+    if _loguru_intercepted:
+        # 检查替换是否有效
+        if hasattr(sys.modules.get("loguru", {}), "logger"):
+            if isinstance(sys.modules["loguru"].logger, PluginLoggerProxy):
+                return
+
+    # 保存原始loguru模块和logger对象
+    _original_loguru = None
+    _original_logger = None
+
+    # 尝试获取原始模块和logger
+    try:
+        import loguru
+
+        _original_loguru = loguru
+        _original_logger = loguru.logger
+    except ImportError:
+        # 如果loguru未安装，尝试从sys.modules获取
+        _original_loguru = sys.modules.get("loguru")
+        if _original_loguru:
+            _original_logger = getattr(_original_loguru, "logger", None)
+
+    # 如果无法获取原始对象，无法进行拦截
+    if not _original_loguru or not _original_logger:
+        print("警告: 无法获取原始loguru模块或logger对象，插件日志拦截将不会生效")
+        return
 
     # 创建一个新的loguru模块，包装原始logger
     class CustomLoguru(ModuleType):
@@ -667,10 +765,40 @@ def intercept_plugin_loguru():
             # 使用代理替换logger
             self.logger = PluginLoggerProxy(_original_logger)
 
-    # 使用自定义模块替换sys.modules中的loguru
+    # 创建我们的自定义loguru模块
     custom_loguru = CustomLoguru()
+
+    # 替换sys.modules中的loguru
     sys.modules["loguru"] = custom_loguru
 
-    # 同时替换logger全局变量，因为有些代码可能直接导入了logger
-    if "logger" in sys.modules.get("loguru", {}).__dict__:
-        sys.modules["loguru"].__dict__["logger"] = custom_loguru.logger
+    # 直接替换原始模块的logger属性，确保已经导入的引用也被更新
+    if _original_loguru and hasattr(_original_loguru, "logger"):
+        _original_loguru.logger = custom_loguru.logger
+
+    # 将修改后的logger对象挂载到全局变量中，确保即使有代码直接从logger模块导入，也能拦截到
+    if "logger" in sys.modules:
+        try:
+            sys.modules["logger"] = custom_loguru
+        except Exception:
+            pass
+
+    # 标记已拦截
+    _loguru_intercepted = True
+
+    # 设置钩子，在导入模块时自动处理
+    original_import = __import__
+
+    def patched_import(name, globals=None, locals=None, fromlist=(), level=0):
+        module = original_import(name, globals, locals, fromlist, level)
+        # 如果是尝试导入loguru，确保返回我们的自定义模块
+        if name == "loguru" and not isinstance(module, CustomLoguru):
+            return custom_loguru
+        return module
+
+    try:
+        builtins = original_import("builtins")
+        builtins.__import__ = patched_import
+    except Exception:
+        pass
+
+    return custom_loguru.logger  # 返回代理logger对象，以便在需要时使用
