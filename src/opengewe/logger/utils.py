@@ -551,7 +551,6 @@ class PluginLoggerProxy:
 
                 module_name = frame.f_globals.get("__name__", "")
                 filename = frame.f_code.co_filename
-                func_name = frame.f_code.co_name
 
                 # 检查是否可以从局部变量中找到self，并获取类名
                 if "self" in frame.f_locals:

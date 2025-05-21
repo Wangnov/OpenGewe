@@ -41,7 +41,7 @@ async def start_client(config_path: str, device_id: str) -> None:
         config_path: 配置文件路径
         device_id: 设备ID
     """
-    import tomli
+    import tomllib
     from opengewe import GeweClient
     from opengewe.logger import get_logger
 
@@ -50,11 +50,11 @@ async def start_client(config_path: str, device_id: str) -> None:
 
     try:
         with open(config_path, "rb") as f:
-            config = tomli.load(f)
+            config = tomllib.load(f)
     except FileNotFoundError:
         logger.error(f"配置文件不存在: {config_path}")
         sys.exit(1)
-    except tomli.TOMLDecodeError as e:
+    except tomllib.TOMLDecodeError as e:
         logger.error(f"配置文件格式错误: {e}")
         sys.exit(1)
 

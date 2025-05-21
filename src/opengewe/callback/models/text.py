@@ -1,11 +1,13 @@
 from dataclasses import dataclass
 from typing import Dict, Any
 import xml.etree.ElementTree as ET
-import logging
 
 from opengewe.callback.types import MessageType
 from opengewe.callback.models.base import BaseMessage
+from opengewe.logger import get_logger
 
+# 获取客户端日志记录器
+logger = get_logger("GeweClient")
 
 @dataclass
 class TextMessage(BaseMessage):
@@ -48,7 +50,7 @@ class TextMessage(BaseMessage):
 
             return msg
         except Exception as e:
-            logging.error(f"TextMessage.from_dict处理失败: {e}", exc_info=True)
+            logger.error(f"TextMessage.from_dict处理失败: {e}", exc_info=True)
             raise
 
 
@@ -109,9 +111,9 @@ class QuoteMessage(BaseMessage):
                             msg.text = content_node.text
                     except Exception as e:
                         # 解析失败时记录异常信息但不影响消息处理
-                        logging.error(f"解析引用消息XML失败: {e}", exc_info=True)
+                        logger.error(f"解析引用消息XML失败: {e}", exc_info=True)
 
             return msg
         except Exception as e:
-            logging.error(f"QuoteMessage.from_dict处理失败: {e}", exc_info=True)
+            logger.error(f"QuoteMessage.from_dict处理失败: {e}", exc_info=True)
             raise

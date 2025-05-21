@@ -14,7 +14,6 @@ Celery worker 启动脚本
 """
 
 import os
-import sys
 from .advanced import celery
 
 if __name__ == "__main__":

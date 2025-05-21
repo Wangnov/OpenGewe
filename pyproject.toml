@@ -5,7 +5,7 @@ description = "基于Gewe和Gewechat的开源微信机器人异步框架，提�
 readme = "README.md"
 requires-python = ">=3.13"
 license = { text = "MIT" }
-authors = [{ name = "Wangnov", email = "1055726487@qq.com" }]
+authors = [{ name = "Wangnov" }]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -18,57 +18,19 @@ classifiers = [
 ]
 keywords = ["wechat", "bot", "automation", "geweapi", "weixin", "async"]
 dependencies = [
-    "blinker>=1.9.0",
-    "certifi>=2025.1.31",
-    "charset-normalizer>=3.4.1",
-    "click>=8.1.8",
-    "idna>=3.10",
     "qrcode>=8.1",
-    "typing-extensions>=4.13.2",
-    "urllib3>=2.4.0",
     "aiohttp>=3.9.2",
-    "aiofiles>=23.2.1",
-    "aiodns>=3.1.1",
     "pytz>=2025.2",
     "apscheduler>=3.11.0",
     "loguru>=0.6.0",
-    "setuptools>=80.7.1",
-    "redis>=6.1.0",
-    "tomli>=2.0.1",
-]
-
-[project.optional-dependencies]
-# 高级队列支持
-celery = ["celery>=5.5.2"]
-# 完整支持
-full = [
-    "celery>=5.5.2",
-    "sqlalchemy>=2.0.0",
-    "alembic>=1.12.0",
-    "aiomysql>=0.2.0",
-    "aiosqlite>=0.19.0",
-    "python-jose>=3.3.0",
-    "passlib>=1.7.4",
-    "bcrypt>=4.0.1",
-    "pydantic>=2.5.0",
-    "pydantic-settings>=2.0.0",
-]
-# 开发环境
-dev = [
-    "black>=24.2.0",
-    "isort>=5.13.2",
-    "flake8>=7.0.0",
-    "mypy>=1.8.0",
-    "pytest>=8.0.0",
-    "pytest-asyncio>=0.21.0",
-    "pytest-cov>=4.1.0",
+    "celery>=5.5.2"
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/opengewe"
-Documentation = "https://github.com/yourusername/opengewe"
-"Bug Tracker" = "https://github.com/yourusername/opengewe/issues"
-"Source Code" = "https://github.com/yourusername/opengewe"
+Homepage = "https://github.com/Wangnov/opengewe"
+Documentation = "https://github.com/Wangnov/opengewe"
+"Bug Tracker" = "https://github.com/Wangnov/opengewe/issues"
+"Source Code" = "https://github.com/Wangnov/opengewe"
 
 [project.scripts]
 opengewe = "opengewe.__main__:main"

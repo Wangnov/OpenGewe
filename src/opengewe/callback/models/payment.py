@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 import xml.etree.ElementTree as ET
 
 from opengewe.callback.types import MessageType

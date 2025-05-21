@@ -397,52 +397,51 @@ class GeweClient:
         """
         # 导入调度器模块
         from opengewe.utils.decorators import scheduler
-        import logging
 
         try:
             # 启动调度器
             if not scheduler.running:
                 # 打印调度器状态
-                logging.info(f"启动定时任务调度器。调度器时区: {scheduler.timezone}")
+                logger.info(f"启动定时任务调度器。调度器时区: {scheduler.timezone}")
                 scheduler.start()
-                logging.info("定时任务调度器已启动成功")
+                logger.info("定时任务调度器已启动成功")
             else:
-                logging.info("定时任务调度器已在运行中")
+                logger.info("定时任务调度器已在运行中")
 
             # 获取所有定时任务列表
             all_jobs = scheduler.get_jobs()
             if all_jobs:
-                logging.info(f"当前已有 {len(all_jobs)} 个定时任务:")
+                logger.info(f"当前已有 {len(all_jobs)} 个定时任务:")
                 for job in all_jobs:
                     next_run = (
                         job.next_run_time.strftime("%Y-%m-%d %H:%M:%S")
                         if job.next_run_time
                         else "已暂停"
                     )
-                    logging.info(f"  - 任务: {job.id}, 下次执行: {next_run}")
+                    logger.info(f"  - 任务: {job.id}, 下次执行: {next_run}")
             else:
-                logging.info("当前没有定时任务")
+                logger.info("当前没有定时任务")
 
             # 加载插件
-            logging.info(f"开始从 {plugins_directory} 加载插件...")
+            logger.info(f"开始从 {plugins_directory} 加载插件...")
             loaded_plugins = await self.plugin_manager.load_plugins(plugins_directory)
-            logging.info(
+            logger.info(
                 f"已成功加载 {len(loaded_plugins)} 个插件: {', '.join(loaded_plugins)}"
             )
 
             # 再次检查定时任务
             all_jobs_after = scheduler.get_jobs()
             if all_jobs_after:
-                logging.info(f"加载插件后，共有 {len(all_jobs_after)} 个定时任务:")
+                logger.info(f"加载插件后，共有 {len(all_jobs_after)} 个定时任务:")
                 for job in all_jobs_after:
                     next_run = (
                         job.next_run_time.strftime("%Y-%m-%d %H:%M:%S")
                         if job.next_run_time
                         else "已暂停"
                     )
-                    logging.info(f"  - 任务: {job.id}, 下次执行: {next_run}")
+                    logger.info(f"  - 任务: {job.id}, 下次执行: {next_run}")
 
             return loaded_plugins
         except Exception as e:
-            logging.error(f"启动插件系统时出错: {e}", exc_info=True)
+            logger.error(f"启动插件系统时出错: {e}", exc_info=True)
             return []

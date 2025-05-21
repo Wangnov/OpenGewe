@@ -1,6 +1,6 @@
 import asyncio
 from asyncio import Future, Queue, sleep
-from typing import Any, Awaitable, Callable, Tuple
+from typing import Any, Awaitable, Callable
 
 from loguru import logger
 
