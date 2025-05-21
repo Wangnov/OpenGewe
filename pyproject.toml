@@ -24,7 +24,6 @@ dependencies = [
     "click>=8.1.8",
     "idna>=3.10",
     "qrcode>=8.1",
-    "typing>=3.10.0.0",
     "typing-extensions>=4.13.2",
     "urllib3>=2.4.0",
     "aiohttp>=3.9.2",
