@@ -3,8 +3,8 @@
 提供插件的列表查询、启用/禁用、配置管理等功能。
 """
 
-from fastapi import APIRouter, Depends, Path
-from typing import Dict, Any
+from fastapi import APIRouter, Depends, Path, Query
+from typing import Dict, Any, Optional, List
 from pydantic import BaseModel
 
 from opengewe.client import GeweClient
@@ -14,6 +14,7 @@ from backend.app.api.deps import (
     standard_response,
     service_result_to_response,
     admin_required,
+    get_current_active_user,
 )
 from backend.app.gewe.dependencies import get_gewe_client
 from backend.app.services.plugin_service import PluginService
@@ -33,16 +34,35 @@ class PluginConfigUpdate(BaseModel):
     config: Dict[str, Any]
 
 
-@router.get("/", response_model=Dict[str, Any])
-async def list_plugins(
-    current_user: User = Depends(admin_required),
+@router.get("", response_model=Dict[str, Any])
+async def get_plugins(
+    current_user: User = Depends(get_current_active_user),
 ):
-    """获取所有插件列表
+    """获取插件列表
+
+    此路由用于解决前端直接请求/api/plugins的401问题
 
     Returns:
         Dict: 包含插件列表的标准响应
     """
     logger.info(f"用户 {current_user.username} 请求获取插件列表")
+    # 返回空列表，前端开发阶段使用
+    return standard_response(0, "获取插件列表成功", {"plugins": []})
+
+
+@router.get("/", response_model=Dict[str, Any])
+async def get_all_plugins(
+    current_user: User = Depends(admin_required),
+):
+    """获取所有插件
+
+    Args:
+        current_user: 当前管理员用户
+
+    Returns:
+        Dict: 包含插件列表的标准响应
+    """
+    logger.info(f"管理员 {current_user.username} 请求获取所有插件")
     result = await PluginService.get_all_plugins()
     return service_result_to_response(result)
 

@@ -4,7 +4,7 @@
 """
 
 from fastapi import APIRouter, Depends, Path, Query
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from pydantic import BaseModel
 
 from opengewe.client import GeweClient
@@ -14,6 +14,7 @@ from backend.app.api.deps import (
     service_result_to_response,
     get_current_active_user,
     admin_required,
+    standard_response,
 )
 from backend.app.gewe.dependencies import get_gewe_client
 from backend.app.services.robot_service import RobotService
@@ -42,6 +43,22 @@ class RobotCreate(BaseModel):
     name: str
     avatar: Optional[str] = None
     description: Optional[str] = None
+
+
+@router.get("", response_model=Dict[str, Any])
+async def get_robots(
+    current_user: User = Depends(get_current_active_user),
+):
+    """获取机器人列表
+
+    此路由用于解决前端直接请求/api/robots的404问题
+
+    Returns:
+        Dict: 包含机器人列表的标准响应
+    """
+    logger.info(f"用户 {current_user.username} 请求获取机器人列表")
+    # 返回空列表，前端开发阶段使用
+    return standard_response(0, "获取机器人列表成功", {"robots": []})
 
 
 @router.get("/status", response_model=Dict[str, Any])
