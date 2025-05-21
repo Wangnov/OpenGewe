@@ -17,15 +17,15 @@
 
 ## 项目概述
 
-本计划详细描述了将现有的 `fastapi_server.py` 重构为完整的、模块化的FastAPI后端服务的步骤。新的后端服务将集成 `opengewe` 包的功能，同时提供更强大的扩展性、可维护性和可测试性。服务将支持SQLite和MySQL两种数据库选项，并预留Redis接口以支持多机器人状态管理。
+本计划详细描述了开发完整的、模块化的FastAPI后端服务的步骤。本后端服务是一个微信机器人管理后台，将通过调用 `opengewe` 包的功能，在配置好插件的情况下，按照插件的，同时提供更强大的扩展性、可维护性和可测试性。服务将支持MySQL数据持久化，并预留Redis接口以支持多机器人状态管理。
 
 ### 项目目标
 
 1. 创建模块化、可扩展的FastAPI后端服务
 2. 保持与 `opengewe` 包的松耦合集成
-3. 实现数据库支持(SQLite和MySQL)
+3. 实现数据库支持(MySQL)
 4. 预留Redis接口以支持多机器人状态管理
-5. 为前端提供完整的API接口
+5. 为前端提供更多，更完整的API接口
 
 ## 目录结构
 
@@ -103,17 +103,12 @@ backend/
 │       ├── test_plugin_service.py
 │       └── ...
 │
-├── alembic/                  # 数据库迁移
-│   ├── versions/
-│   │   └── ...
-│   ├── env.py
-│   └── alembic.ini
 │
 ├── scripts/                  # 实用脚本
 │   ├── create_user.py        # 创建管理用户
 │   └── init_db.py            # 初始化数据库
 │
-└── requirements-backend.txt  # 后端依赖
+└── requirements.txt  # 后端依赖
 ```
 
 ## 模块划分
