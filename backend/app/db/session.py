@@ -25,9 +25,15 @@ from backend.app.core.device import get_current_device_id
 # 获取日志记录器
 logger = get_logger("DB")
 
-# 创建全局数据库操作信号量，限制并发连接数
-# 这有助于防止 "readexactly() called while another coroutine is already waiting for incoming data" 错误
-DB_SEMAPHORE = asyncio.Semaphore(5)  # 限制最大并发连接数为5
+# 创建全局数据库操作信号量，增加并发连接数限制
+DB_SEMAPHORE = asyncio.Semaphore(20)  # 增加到20个并发连接
+
+# 数据库操作超时设置
+DB_OPERATION_TIMEOUT = 30  # 数据库操作超时时间（秒）
+DB_CONNECTION_TIMEOUT = 30  # 数据库连接超时时间（秒）
+
+# 管理员数据库名称
+ADMIN_DATABASE = "opengewe_admin"
 
 
 class DatabaseManager(metaclass=Singleton):
@@ -58,17 +64,51 @@ class DatabaseManager(metaclass=Singleton):
         # 活跃连接计数器
         self.active_connections = 0
         # 最大活跃连接数
-        self.max_active_connections = 20
+        self.max_active_connections = 30  # 增加最大活跃连接数
         # 连接监控
         self.connection_tracker = {}
+        # 启动定期健康检查
+        self._start_health_check()
 
-    async def get_engine(self, device_id: Optional[str] = None) -> AsyncEngine:
+    def _start_health_check(self):
+        """启动定期健康检查任务"""
+
+        async def health_check_task():
+            while True:
+                try:
+                    await self._check_connections()
+                    await asyncio.sleep(60)  # 每分钟检查一次
+                except Exception as e:
+                    logger.error(f"健康检查任务出错: {e}")
+
+        asyncio.create_task(health_check_task())
+
+    async def _check_connections(self):
+        """检查所有连接的健康状态"""
+        current_time = asyncio.get_event_loop().time()
+        for device_id, tracker in self.connection_tracker.items():
+            # 检查最后使用时间
+            if current_time - tracker["last_used"] > 3600:  # 1小时未使用
+                try:
+                    engine = self.engines.get(device_id)
+                    if engine:
+                        await engine.dispose()
+                        del self.engines[device_id]
+                        logger.info(f"已清理闲置的数据库连接: {device_id}")
+                except Exception as e:
+                    logger.error(f"清理数据库连接失败: {e}")
+
+    async def get_engine(
+        self, device_id: Optional[str] = None, is_admin: bool = False
+    ) -> AsyncEngine:
         """获取数据库引擎
 
-        如果device_id未提供，将使用当前上下文中的device_id或默认设备
+        如果device_id未提供且is_admin为False，将使用当前上下文中的device_id或默认设备
+        如果is_admin为True，将返回admin数据库的引擎
 
         Args:
             device_id: 设备ID，用于确定使用哪个schema
+            is_admin: 是否使用admin数据库
 
         Returns:
             AsyncEngine: SQLAlchemy异步引擎
@@ -77,37 +117,56 @@ class DatabaseManager(metaclass=Singleton):
             OperationalError: 无法连接到MySQL数据库
             Exception: 其他数据库错误
         """
-        # 确定device_id
-        device_id = (
-            device_id
-            or get_current_device_id()
-            or self.settings.devices.get_default_device_id()
-        )
+        # 确定使用哪个数据库
+        if is_admin:
+            engine_key = "admin"
+            schema_name = ADMIN_DATABASE
+        else:
+            device_id = (
+                device_id
+                or get_current_device_id()
+                or self.settings.devices.get_default_device_id()
+            )
+            engine_key = device_id
+            schema_name = self.settings.get_schema_name(device_id)
 
         # 如果引擎已经存在，直接返回
-        if device_id in self.engines:
-            return self.engines[device_id]
+        if engine_key in self.engines:
+            # 更新最后使用时间
+            self.connection_tracker[engine_key] = {
+                "last_used": asyncio.get_event_loop().time(),
+                "activity_count": self.connection_tracker.get(engine_key, {}).get(
+                    "activity_count", 0
+                )
+                + 1,
+            }
+            return self.engines[engine_key]
 
         # 创建新引擎
         try:
             # 使用管理器锁保护引擎创建过程
             async with self.manager_lock:
                 # 再次检查，避免竞态条件
-                if device_id in self.engines:
-                    return self.engines[device_id]
+                if engine_key in self.engines:
+                    return self.engines[engine_key]
 
-                # MySQL模式，每个设备使用独立schema
-                schema_name = self.settings.get_schema_name(device_id)
+                # 从配置中获取超时设置
+                connect_timeout = self.settings.database.connect_timeout or 10
 
                 # 优化的连接池配置
                 pool_options = {
-                    "pool_size": 5,  # 连接池基础大小
-                    "max_overflow": 10,  # 允许的额外连接数
-                    "pool_timeout": 30,  # 获取连接超时时间（秒）
-                    "pool_recycle": 1800,  # 连接回收时间（秒）
+                    "pool_size": 10,  # 增加连接池基础大小
+                    "max_overflow": 20,  # 增加额外连接数
+                    "pool_timeout": 20,  # 增加获取连接超时时间
+                    "pool_recycle": 300,  # 连接回收时间5分钟
                     "pool_pre_ping": True,  # 使用前检查连接是否有效
                     "echo": False,  # 是否打印SQL语句
                     "future": True,  # 使用SQLAlchemy 2.0 API
+                    "connect_args": {
+                        "connect_timeout": DB_CONNECTION_TIMEOUT,
+                        "charset": "utf8mb4",  # 使用utf8mb4字符集
+                        "use_unicode": True,
+                    },
                 }
 
                 # 首先连接到默认数据库
@@ -123,15 +182,15 @@ class DatabaseManager(metaclass=Singleton):
                 schema_engine = create_async_engine(schema_url, **pool_options)
 
                 # 记录引擎创建时间
-                self.engines[device_id] = schema_engine
-                self.connection_tracker[device_id] = {
+                self.engines[engine_key] = schema_engine
+                self.connection_tracker[engine_key] = {
                     "created_at": asyncio.get_event_loop().time(),
                     "last_used": asyncio.get_event_loop().time(),
                     "activity_count": 0,
                 }
 
                 logger.info(
-                    f"为设备 '{device_id}' 创建新的数据库引擎，使用schema: {schema_name}"
+                    f"为{'管理员' if is_admin else f'设备 {device_id}'} 创建新的数据库引擎，使用schema: {schema_name}"
                 )
                 return schema_engine
 
@@ -142,7 +201,7 @@ class DatabaseManager(metaclass=Singleton):
                 f"MySQL连接失败: {str(e)}. 请检查数据库设置和连接。", params={}, orig=e
             )
         except Exception as e:
-            error_msg = f"创建数据库引擎失败 (device_id={device_id}): {str(e)}"
+            error_msg = f"创建数据库引擎失败 (key={engine_key}): {str(e)}"
             logger.error(error_msg)
             raise
 
@@ -208,147 +267,98 @@ class DatabaseManager(metaclass=Singleton):
 
         return False
 
+    async def get_admin_session(self) -> AsyncSession:
+        """获取管理员数据库会话
+
+        Returns:
+            AsyncSession: 管理员数据库会话
+        """
+        session_factory = await self.get_session_factory(is_admin=True)
+        return session_factory()
+
     async def get_session_factory(
-        self, device_id: Optional[str] = None
+        self, device_id: Optional[str] = None, is_admin: bool = False
     ) -> async_scoped_session:
         """获取会话工厂
 
         Args:
             device_id: 设备ID，用于确定使用哪个schema
+            is_admin: 是否使用admin数据库
 
         Returns:
             async_scoped_session: 会话工厂
         """
-        # 确定device_id
-        device_id = (
-            device_id
-            or get_current_device_id()
-            or self.settings.devices.get_default_device_id()
-        )
-
-        # 监控活跃连接数
-        if self.active_connections >= self.max_active_connections:
-            logger.warning(
-                f"活跃连接数达到最大限制 ({self.active_connections}/{self.max_active_connections})，"
-                f"请检查是否存在连接泄漏"
+        # 确定使用哪个数据库
+        if is_admin:
+            engine_key = "admin"
+        else:
+            device_id = (
+                device_id
+                or get_current_device_id()
+                or self.settings.devices.get_default_device_id()
             )
-            # 尝试清理潜在的旧连接
-            await self._do_cleanup()
+            engine_key = device_id
 
         # 如果会话工厂已经存在，直接返回
-        if device_id in self.session_factories:
-            # 更新连接使用统计
-            if device_id in self.connection_tracker:
-                self.connection_tracker[device_id]["last_used"] = (
-                    asyncio.get_event_loop().time()
-                )
-                self.connection_tracker[device_id]["activity_count"] += 1
-            return self.session_factories[device_id]
+        if engine_key in self.session_factories:
+            return self.session_factories[engine_key]
 
         # 使用管理器锁保护会话工厂创建过程
         async with self.manager_lock:
             # 再次检查，避免竞态条件
-            if device_id in self.session_factories:
-                return self.session_factories[device_id]
+            if engine_key in self.session_factories:
+                return self.session_factories[engine_key]
 
-            # 添加重试机制，提高可靠性
-            max_attempts = 3
-            last_error = None
+            # 获取引擎并创建会话工厂
+            engine = await self.get_engine(device_id, is_admin)
+            session_factory = async_scoped_session(
+                sessionmaker(
+                    engine,
+                    class_=AsyncSession,
+                    expire_on_commit=False,
+                    autocommit=False,
+                    autoflush=False,
+                ),
+                scopefunc=asyncio.current_task,
+            )
 
-            for attempt in range(1, max_attempts + 1):
-                try:
-                    # 设置超时，避免永久等待
-                    async with asyncio.timeout(5):  # 5秒超时
-                        # 获取引擎并创建会话工厂
-                        engine = await self.get_engine(device_id)
+            self.session_factories[engine_key] = session_factory
+            return session_factory
 
-                        # 创建会话配置，使用expire_on_commit=False避免过期问题
-                        session_factory = async_scoped_session(
-                            sessionmaker(
-                                engine,
-                                class_=AsyncSession,
-                                expire_on_commit=False,
-                                # 设置自动提交和自动刷新
-                                autocommit=False,
-                                autoflush=False,
-                            ),
-                            scopefunc=asyncio.current_task,
-                        )
-
-                        self.session_factories[device_id] = session_factory
-
-                        # 增加活跃连接计数
-                        self.active_connections += 1
-
-                        logger.debug(
-                            f"为设备 '{device_id}' 创建新的会话工厂，当前活跃连接数: {self.active_connections}"
-                        )
-
-                        return session_factory
-                except asyncio.TimeoutError:
-                    last_error = "创建会话工厂超时"
-                    if attempt < max_attempts:
-                        logger.warning(
-                            f"创建会话工厂超时，尝试第{attempt}/{max_attempts}次"
-                        )
-                        # 指数退避等待
-                        await asyncio.sleep(0.5 * (2 ** (attempt - 1)))
-                    else:
-                        logger.error(
-                            f"创建会话工厂失败 (device_id={device_id}): {last_error}"
-                        )
-                except Exception as e:
-                    last_error = e
-                    if attempt < max_attempts:
-                        logger.warning(
-                            f"创建会话工厂失败，尝试第{attempt}/{max_attempts}次: {e}"
-                        )
-                        # 指数退避等待
-                        await asyncio.sleep(0.5 * (2 ** (attempt - 1)))
-                    else:
-                        logger.error(f"创建会话工厂失败 (device_id={device_id}): {e}")
-
-            # 如果重试失败，清理可能部分创建的资源
-            if device_id in self.engines:
-                try:
-                    await self.engines[device_id].dispose()
-                    del self.engines[device_id]
-                except Exception as cleanup_error:
-                    logger.error(f"清理失败的引擎资源时出错: {cleanup_error}")
-
-            # 所有尝试都失败，抛出最后一个错误
-            if last_error:
-                raise Exception(f"创建会话工厂失败: {last_error}")
-            else:
-                raise Exception("创建会话工厂失败: 未知错误")
-
-    def get_session(self, device_id: Optional[str] = None) -> AsyncSession:
+    def get_session(
+        self, device_id: Optional[str] = None, is_admin: bool = False
+    ) -> AsyncSession:
         """获取数据库会话
 
-        如果device_id未提供，将使用当前上下文中的device_id
+        如果device_id未提供且is_admin为False，将使用当前上下文中的device_id
+        如果is_admin为True，将返回admin数据库的会话
 
         Args:
             device_id: 可选的设备ID，用于指定schema
+            is_admin: 是否使用admin数据库
 
         Returns:
             AsyncSession: SQLAlchemy异步会话
         """
-        # 这里使用同步方法创建会话，但实际的数据库操作是异步的
-        device_id = (
-            device_id
-            or get_current_device_id()
-            or self.settings.devices.get_default_device_id()
-        )
+        # 当使用admin数据库时，忽略device_id
+        if not is_admin:
+            device_id = (
+                device_id
+                or get_current_device_id()
+                or self.settings.devices.get_default_device_id()
+            )
 
         async def _get_session_async():
             # 每次获取会话时记录一下连接使用统计
-            if device_id in self.connection_tracker:
+            if not is_admin and device_id in self.connection_tracker:
                 self.connection_tracker[device_id]["last_used"] = (
                     asyncio.get_event_loop().time()
                 )
                 self.connection_tracker[device_id]["activity_count"] += 1
 
-            session_factory = await self.get_session_factory(device_id)
+            session_factory = await self.get_session_factory(
+                device_id, is_admin=is_admin
+            )
             session = session_factory()
             return session
 
@@ -360,12 +370,16 @@ class DatabaseManager(metaclass=Singleton):
             # 但我们不能等待它完成，因为这会阻塞事件循环
             # 所以我们返回一个特殊的代理对象
             proxy = AsyncSessionProxy(fut)
-            logger.debug(f"通过代理创建会话 (device_id={device_id})")
+            logger.debug(
+                f"通过代理创建会话 ({'admin' if is_admin else f'device_id={device_id}'})"
+            )
             return proxy
         else:
             # 如果没有运行中的事件循环，我们可以运行一个新的
             session = loop.run_until_complete(_get_session_async())
-            logger.debug(f"直接创建会话 (device_id={device_id})")
+            logger.debug(
+                f"直接创建会话 ({'admin' if is_admin else f'device_id={device_id}'})"
+            )
             return session
 
     async def close(self):
@@ -662,22 +676,20 @@ class AsyncSessionProxy:
 # 提供简便的获取会话函数，用于依赖注入
 async def get_db_session(
     device_id: Optional[str] = None,
+    is_admin: bool = False,
 ) -> AsyncGenerator[AsyncSession, None]:
     """获取数据库会话的辅助函数
 
     用于依赖注入场景，每个请求获取一个新的会话。
-    如果不提供device_id，则使用当前上下文中的device_id。
+    如果不提供device_id且is_admin为False，则使用当前上下文中的device_id。
 
     Args:
         device_id: 可选的设备ID，用于指定schema
+        is_admin: 是否使用admin数据库
 
     Yields:
         AsyncSession: 数据库会话
     """
-    # 使用当前上下文中的设备ID或传入的设备ID
-    device_id = device_id or get_current_device_id()
-
-    # 创建数据库管理器实例
     db_manager = DatabaseManager()
     session = None
 
@@ -685,11 +697,11 @@ async def get_db_session(
     async with DB_SEMAPHORE:
         try:
             # 获取会话工厂
-            session_factory = await db_manager.get_session_factory(device_id)
+            session_factory = await db_manager.get_session_factory(device_id, is_admin)
             session = session_factory()
 
             # 添加一些日志以帮助调试
-            logger.debug(f"创建新的数据库会话 (device_id={device_id})")
+            logger.debug(f"创建新的{'管理员' if is_admin else '设备'} 数据库会话")
 
             yield session
         except Exception as e:
@@ -699,25 +711,17 @@ async def get_db_session(
             # 确保会话一定会被关闭，即使出现异常
             if session:
                 try:
-                    # 关闭会话
                     await session.close()
-                    # 减少活跃连接计数
-                    if (
-                        hasattr(db_manager, "active_connections")
-                        and db_manager.active_connections > 0
-                    ):
-                        db_manager.active_connections -= 1
-                    logger.debug(f"数据库会话成功关闭 (device_id={device_id})")
+                    logger.debug(f"数据库会话成功关闭")
                 except Exception as e:
                     logger.error(f"关闭数据库会话失败: {e}")
-                    # 不再尝试直接关闭底层连接，因为SQLAlchemy异步会话没有暴露这个API
-                    # 而是通过引擎级别的dispose来处理连接泄漏问题
 
 
 # 提供一个异步上下文管理器适配器，便于在 async with 语句中使用
 @asynccontextmanager
 async def async_db_session(
     device_id: Optional[str] = None,
+    is_admin: bool = False,
 ) -> AsyncGenerator[AsyncSession, None]:
     """数据库会话的异步上下文管理器
 
@@ -725,18 +729,19 @@ async def async_db_session(
 
     Example:
         ```python
-        async with async_db_session() as session:
+        async with async_db_session(is_admin=True) as session:
             result = await session.execute(query)
             # ...
         ```
 
     Args:
         device_id: 可选的设备ID，用于指定schema
+        is_admin: 是否使用admin数据库
 
     Yields:
         AsyncSession: 数据库会话
     """
-    async for session in get_db_session(device_id):
+    async for session in get_db_session(device_id, is_admin):
         try:
             yield session
         finally:

@@ -7,10 +7,17 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "start": "react-router-serve ./build/server/index.js",
-    "typecheck": "react-router typegen && tsc"
+    "typecheck": "react-router typegen && tsc",
+    "optimize": "node ./optimize.js",
+    "check-backend": "node ./check-backend.js"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
+    "@fortawesome/fontawesome-svg-core": "^6.7.2",
+    "@fortawesome/free-brands-svg-icons": "^6.7.2",
+    "@fortawesome/free-regular-svg-icons": "^6.7.2",
+    "@fortawesome/free-solid-svg-icons": "^6.7.2",
+    "@fortawesome/react-fontawesome": "^0.2.2",
     "@hookform/resolvers": "^5.0.1",
     "@mantine/code-highlight": "^8.0.1",
     "@mantine/core": "^8.0.1",
@@ -23,7 +30,6 @@
     "@mantine/tiptap": "^8.0.1",
     "@react-router/node": "^7.5.3",
     "@react-router/serve": "^7.5.3",
-    "@tabler/icons-react": "^3.33.0",
     "axios": "^1.9.0",
     "dayjs": "^1.11.13",
     "isbot": "^5.1.27",
@@ -37,6 +43,7 @@
     "zustand": "^5.0.4"
   },
   "devDependencies": {
+    "@babel/plugin-transform-react-jsx": "^7.27.1",
     "@react-router/dev": "^7.5.3",
     "@tailwindcss/vite": "^4.1.4",
     "@types/lodash": "^4.14.202",
@@ -47,6 +54,7 @@
     "tailwindcss": "^4.1.4",
     "typescript": "^5.8.3",
     "vite": "^6.3.3",
+    "vite-plugin-compression": "^0.5.1",
     "vite-tsconfig-paths": "^5.1.4"
   },
   "version": "1.0.0",

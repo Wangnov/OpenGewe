@@ -19,16 +19,7 @@ import {
 import { useForm, zodResolver } from '@mantine/form';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
-import { 
-  IconPlus, 
-  IconSearch, 
-  IconDotsVertical, 
-  IconRefresh, 
-  IconLogin, 
-  IconLogout, 
-  IconTrash, 
-  IconEye 
-} from '@tabler/icons-react';
+import { Icons } from '../../utils/fa-icon-loader';
 import { z } from 'zod';
 import { useRobotStore } from '../../stores/robots';
 
@@ -138,7 +129,7 @@ export default function RobotListPage() {
     <Stack gap="md">
       <Group justify="space-between">
         <Title order={2}>机器人管理</Title>
-        <Button leftSection={<IconPlus size={16} />} onClick={open}>
+        <Button leftSection={Icons.Plus({ size: 16 })} onClick={open}>
           添加机器人
         </Button>
       </Group>
@@ -146,14 +137,14 @@ export default function RobotListPage() {
       <Group mb="md">
         <TextInput
           placeholder="搜索机器人"
-          leftSection={<IconSearch size={16} />}
+          leftSection={Icons.Search({ size: 16 })}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           style={{ flexGrow: 1 }}
         />
         <Button 
           variant="outline" 
-          leftSection={<IconRefresh size={16} />}
+          leftSection={Icons.icon("sync", "solid", { size: 16 })}
           onClick={() => fetchRobots()}
         >
           刷新
@@ -199,20 +190,20 @@ export default function RobotListPage() {
                       </Badge>
                       <Menu position="bottom-end" shadow="md">
                         <Menu.Target>
-                          <ActionIcon size="sm" variant="subtle">
-                            <IconDotsVertical size={14} />
+                          <ActionIcon variant="subtle" size="sm">
+                            {Icons.icon("ellipsis-v", "solid", { size: 16 })}
                           </ActionIcon>
                         </Menu.Target>
                         <Menu.Dropdown>
                           <Menu.Item 
-                            leftSection={<IconEye size={14} />}
+                            leftSection={Icons.icon("eye", "solid", { size: 14 })}
                             onClick={() => navigate(`/robots/${robot.id}`)}
                           >
-                            详情
+                            查看详情
                           </Menu.Item>
-                          {robot.status !== 'online' && (
+                          {robot.status === 'offline' && (
                             <Menu.Item 
-                              leftSection={<IconLogin size={14} />}
+                              leftSection={Icons.icon("sign-in-alt", "solid", { size: 14 })}
                               onClick={() => handleLoginRobot(robot.id, robot.name)}
                             >
                               登录
@@ -220,16 +211,14 @@ export default function RobotListPage() {
                           )}
                           {robot.status === 'online' && (
                             <Menu.Item 
-                              leftSection={<IconLogout size={14} />}
+                              leftSection={Icons.icon("sign-out-alt", "solid", { size: 14 })}
                               onClick={() => handleLogoutRobot(robot.id, robot.name)}
-                              color="orange"
                             >
                               登出
                             </Menu.Item>
                           )}
-                          <Menu.Divider />
                           <Menu.Item 
-                            leftSection={<IconTrash size={14} />}
+                            leftSection={Icons.icon("trash", "solid", { size: 14, color: "red" })}
                             onClick={() => handleDeleteRobot(robot.id, robot.name)}
                             color="red"
                           >
@@ -240,73 +229,29 @@ export default function RobotListPage() {
                     </Group>
                   </Group>
                 </Card.Section>
-
-                <Stack gap="xs" mt="md">
-                  <Group gap="xs">
-                    <Text fw={500} size="sm">
-                      ID:
-                    </Text>
-                    <Text size="sm" c="dimmed">
-                      {robot.id}
-                    </Text>
-                  </Group>
-                  <Group gap="xs">
-                    <Text fw={500} size="sm">
-                      App ID:
-                    </Text>
-                    <Text size="sm" c="dimmed" truncate>
-                      {robot.app_id || '未设置'}
-                    </Text>
-                  </Group>
-                  {robot.wxid && (
-                    <Group gap="xs">
-                      <Text fw={500} size="sm">
-                        微信ID:
-                      </Text>
-                      <Text size="sm" c="dimmed" truncate>
-                        {robot.wxid}
-                      </Text>
-                    </Group>
-                  )}
-                  {robot.last_login_time && (
-                    <Group gap="xs">
-                      <Text fw={500} size="sm">
-                        最后登录:
-                      </Text>
-                      <Text size="sm" c="dimmed">
-                        {new Date(robot.last_login_time).toLocaleString()}
-                      </Text>
-                    </Group>
-                  )}
-                </Stack>
-
-                <Group mt="lg" justify="flex-end">
-                  <Button 
-                    variant="light" 
-                    size="xs"
-                    onClick={() => navigate(`/robots/${robot.id}`)}
-                  >
-                    查看详情
-                  </Button>
-                  {robot.status !== 'online' && (
-                    <Button 
-                      variant="filled" 
-                      size="xs"
-                      onClick={() => handleLoginRobot(robot.id, robot.name)}
-                    >
-                      登录
-                    </Button>
-                  )}
-                  {robot.status === 'online' && (
-                    <Button 
-                      variant="outline" 
-                      color="red" 
-                      size="xs"
-                      onClick={() => handleLogoutRobot(robot.id, robot.name)}
-                    >
-                      登出
-                    </Button>
-                  )}
+                <Group mt="md" gap="xs" align="flex-start">
+                  <Text size="sm" fw={500} w={60}>
+                    ID:
+                  </Text>
+                  <Text size="sm" style={{ flex: 1, wordBreak: 'break-all' }}>
+                    {robot.id}
+                  </Text>
+                </Group>
+                <Group mt="xs" gap="xs" align="flex-start">
+                  <Text size="sm" fw={500} w={60}>
+                    App ID:
+                  </Text>
+                  <Text size="sm" style={{ flex: 1, wordBreak: 'break-all' }}>
+                    {robot.app_id || '-'}
+                  </Text>
+                </Group>
+                <Group mt="xs" gap="xs" align="flex-start">
+                  <Text size="sm" fw={500} w={60}>
+                    创建:
+                  </Text>
+                  <Text size="sm" c="dimmed">
+                    {new Date(robot.created_at).toLocaleString()}
+                  </Text>
                 </Group>
               </Card>
             ))}
@@ -314,42 +259,25 @@ export default function RobotListPage() {
         )}
       </Box>
 
-      {/* 创建机器人模态框 */}
-      <Modal 
-        opened={opened} 
-        onClose={() => {
-          close();
-          form.reset();
-        }}
-        title="添加机器人"
-      >
+      <Modal opened={opened} onClose={close} title="添加机器人" centered>
         <form onSubmit={form.onSubmit(handleCreateRobot)}>
-          <Stack>
-            <TextInput
-              label="机器人名称"
-              placeholder="输入机器人名称"
-              required
-              {...form.getInputProps('name')}
-            />
-            <TextInput
-              label="App ID (可选)"
-              description="如果有已存在的设备ID，可以在此输入"
-              placeholder="输入App ID"
-              {...form.getInputProps('app_id')}
-            />
-
-            <Group justify="flex-end" mt="md">
-              <Button variant="outline" onClick={() => {
-                close();
-                form.reset();
-              }}>
-                取消
-              </Button>
-              <Button type="submit" loading={isLoading}>
-                创建
-              </Button>
-            </Group>
-          </Stack>
+          <TextInput
+            label="名称"
+            placeholder="请输入机器人名称"
+            withAsterisk
+            mb="md"
+            {...form.getInputProps('name')}
+          />
+          <TextInput
+            label="App ID"
+            placeholder="可选，自动生成"
+            mb="md"
+            {...form.getInputProps('app_id')}
+          />
+          <Group justify="flex-end" mt="xl">
+            <Button variant="outline" onClick={close}>取消</Button>
+            <Button type="submit">添加</Button>
+          </Group>
         </form>
       </Modal>
     </Stack>

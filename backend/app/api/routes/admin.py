@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Dict, Any, Optional
 from datetime import timedelta
 from pydantic import BaseModel, EmailStr, Field
+import asyncio
 
 from opengewe.logger import get_logger
 
@@ -29,6 +30,13 @@ router = APIRouter()
 
 # 获取日志记录器
 logger = get_logger("API.Admin")
+
+
+# 获取管理员数据库会话的依赖函数
+async def get_admin_db():
+    """获取管理员数据库会话"""
+    async for session in get_db(is_admin=True):
+        yield session
 
 
 # 用户创建模型
@@ -64,7 +72,7 @@ class PasswordChange(BaseModel):
 @router.post("/login", response_model=Dict[str, Any])
 async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_admin_db),
 ):
     """管理员登录
 
@@ -76,11 +84,26 @@ async def login(
         Dict: 包含访问令牌的标准响应
     """
     logger.info(f"用户 {form_data.username} 尝试登录")
+    print(f"[Debug] 登录尝试: 用户名={form_data.username}, 密码={form_data.password}")
 
     # 获取用户
-    user = await User.get_by_username(db, form_data.username)
-    if not user or not user.verify_password(form_data.password):
-        logger.warning(f"用户 {form_data.username} 登录失败：无效的凭证")
+    user = await User.get_by_username(form_data.username)
+
+    if not user:
+        logger.warning(f"用户 {form_data.username} 登录失败：用户不存在")
+        print(f"[Debug] 登录失败: 用户 {form_data.username} 不存在")
+        return standard_response(1, "无效的用户名或密码")
+
+    # 输出用户信息和密码哈希进行调试
+    print(f"[Debug] 用户信息: ID={user.id}, 哈希密码={user.hashed_password}")
+
+    # 验证密码
+    password_valid = user.verify_password(form_data.password)
+    print(f"[Debug] 密码验证结果: {password_valid}")
+
+    if not password_valid:
+        logger.warning(f"用户 {form_data.username} 登录失败：密码错误")
+        print(f"[Debug] 登录失败: 密码错误")
         return standard_response(1, "无效的用户名或密码")
 
     if not user.is_active:
@@ -143,7 +166,7 @@ async def get_current_user_info(
 async def change_password(
     password_data: PasswordChange,
     current_user: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_admin_db),
 ):
     """修改当前用户密码
 
@@ -320,4 +343,184 @@ async def init_admin():
     logger.info("请求初始化管理员账户")
 
     result = await AdminService.init_admin()
+    return service_result_to_response(result)
+
+
+@router.get("/check-init", response_model=Dict[str, Any])
+async def check_admin_init():
+    """检查管理员账户是否已初始化，并在必要时初始化
+
+    此接口用于前端检查管理员账户状态，如果没有管理员账户，则自动初始化
+
+    Returns:
+        Dict: 包含管理员账户状态的标准响应
+    """
+    logger.info("检查管理员账户状态")
+
+    try:
+        # 使用单一优化的SQL查询，直接检查管理员账户
+        from sqlalchemy import text
+        from backend.app.db.session import DatabaseManager, DB_OPERATION_TIMEOUT
+
+        db_manager = DatabaseManager()
+
+        # 使用更长的超时时间
+        async with asyncio.timeout(DB_OPERATION_TIMEOUT * 2):
+            # 获取引擎直接连接
+            engine = await db_manager.get_engine(is_admin=True)
+            async with engine.connect() as conn:
+                try:
+                    # 更简单的查询：直接检查管理员账户是否存在
+                    logger.debug("执行管理员账户检查查询")
+                    result = await conn.execute(
+                        text(
+                            "SELECT id, username, email, full_name, is_active, is_admin, is_superuser, created_at, updated_at FROM users WHERE is_admin = TRUE LIMIT 1"
+                        )
+                    )
+                    admin_record = result.first()
+
+                    if admin_record:
+                        # 管理员账户已存在
+                        admin_data = {
+                            "id": admin_record.id,
+                            "username": admin_record.username,
+                            "email": admin_record.email,
+                            "full_name": admin_record.full_name,
+                            "is_active": admin_record.is_active,
+                            "is_admin": admin_record.is_admin,
+                            "is_superuser": admin_record.is_superuser,
+                            "created_at": admin_record.created_at.isoformat()
+                            if admin_record.created_at
+                            else None,
+                            "updated_at": admin_record.updated_at.isoformat()
+                            if admin_record.updated_at
+                            else None,
+                        }
+
+                        logger.info(f"管理员账户已存在: {admin_data['username']}")
+                        return standard_response(
+                            0,
+                            "管理员账户已存在",
+                            {
+                                "initialized": True,
+                                "admin": AdminService._sanitize_user(admin_data),
+                                "status": "success",
+                                "detail": "已初始化",
+                            },
+                        )
+                    else:
+                        # 检查表是否存在但没有管理员账户
+                        has_table = await conn.run_sync(
+                            lambda sync_conn: sync_conn.dialect.has_table(
+                                sync_conn, "users"
+                            )
+                        )
+
+                        if not has_table:
+                            logger.info("users表不存在，需要初始化管理员数据库")
+                        else:
+                            logger.info(
+                                "users表存在但没有管理员账户，需要初始化管理员账户"
+                            )
+
+                        # 初始化管理员账户
+                        await conn.close()  # 确保连接正确关闭
+                        logger.info("正在初始化管理员账户")
+                        success, message, admin_info = await AdminService.init_admin()
+
+                        if not success:
+                            logger.error(f"初始化管理员账户失败: {message}")
+                            return standard_response(
+                                1,
+                                message,
+                                {
+                                    "initialized": False,
+                                    "error": message,
+                                    "status": "error",
+                                    "detail": "初始化失败",
+                                },
+                            )
+
+                        logger.success("管理员账户初始化成功")
+                        return standard_response(
+                            0,
+                            "管理员账户初始化成功",
+                            {
+                                "initialized": True,
+                                "admin": admin_info,
+                                "status": "success",
+                                "detail": "初始化成功",
+                            },
+                        )
+                except Exception as e:
+                    logger.error(f"查询管理员账户时数据库错误: {e}")
+                    raise
+
+    except asyncio.TimeoutError as e:
+        logger.error(f"检查管理员账户状态超时: {e}")
+        return standard_response(
+            1,
+            "检查管理员账户状态超时",
+            {
+                "initialized": False,
+                "error": "操作超时，请稍后重试",
+                "status": "error",
+                "detail": "操作超时",
+            },
+        )
+    except Exception as e:
+        logger.error(f"检查管理员账户状态时发生错误: {e}")
+        # 在检查失败的情况下尝试初始化
+        try:
+            logger.info("检查失败，尝试直接初始化管理员账户")
+            success, message, admin_info = await AdminService.init_admin()
+
+            if not success:
+                return standard_response(
+                    1,
+                    f"检查管理员状态失败，尝试初始化也失败: {str(e)}",
+                    {
+                        "initialized": False,
+                        "error": str(e),
+                        "status": "error",
+                        "detail": "数据库操作失败",
+                    },
+                )
+
+            return standard_response(
+                0,
+                "管理员账户初始化成功",
+                {
+                    "initialized": True,
+                    "admin": admin_info,
+                    "status": "success",
+                    "detail": "初始化成功",
+                },
+            )
+        except Exception as inner_e:
+            logger.error(f"尝试初始化管理员账户时发生错误: {inner_e}")
+            return standard_response(
+                1,
+                f"无法检查或初始化管理员账户: {str(e)}; {str(inner_e)}",
+                {
+                    "initialized": False,
+                    "error": f"{str(e)}; {str(inner_e)}",
+                    "status": "error",
+                    "detail": "严重错误",
+                },
+            )
+
+
+@router.post("/reset-password", response_model=Dict[str, Any])
+async def reset_admin_password():
+    """重置管理员密码为默认密码
+
+    此接口用于将管理员密码重置为配置文件中的默认密码
+
+    Returns:
+        Dict: 操作结果的标准响应
+    """
+    logger.info("开始重置管理员密码")
+
+    result = await AdminService.reset_admin_password()
     return service_result_to_response(result)

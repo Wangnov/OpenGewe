@@ -13,12 +13,7 @@ import {
 import { useSystemStore } from '../stores/system';
 import { useRobotStore } from '../stores/robots';
 import { usePluginStore } from '../stores/plugins';
-import { 
-  IconRobot, 
-  IconPlugConnected, 
-  IconCpu, 
-  IconDatabase 
-} from '@tabler/icons-react';
+import { Icons } from '../utils/fa-icon-loader';
 
 /**
  * 系统概览组件
@@ -38,7 +33,7 @@ const SystemOverview = () => {
             <Text size="xs" c="dimmed">CPU使用率</Text>
             <Title order={3}>{status.cpu_usage}%</Title>
           </div>
-          <IconCpu size={32} color="blue" />
+          {Icons.icon("microchip", "solid", { size: 32, color: "blue" })}
         </Group>
         <RingProgress
           sections={[{ value: status.cpu_usage, color: 'blue' }]}
@@ -54,7 +49,7 @@ const SystemOverview = () => {
             <Text size="xs" c="dimmed">内存使用率</Text>
             <Title order={3}>{status.memory_usage}%</Title>
           </div>
-          <IconDatabase size={32} color="green" />
+          {Icons.icon("database", "solid", { size: 32, color: "green" })}
         </Group>
         <RingProgress
           sections={[{ value: status.memory_usage, color: 'green' }]}
@@ -73,7 +68,7 @@ const SystemOverview = () => {
               <Text c="dimmed" size="sm">/ {status.robots_count.total}</Text>
             </Group>
           </div>
-          <IconRobot size={32} color="violet" />
+          {Icons.icon("robot", "solid", { size: 32, color: "violet" })}
         </Group>
         <Text size="xs" c="dimmed" mt="md">
           {status.robots_count.online} 个在线，{status.robots_count.total - status.robots_count.online} 个离线
@@ -89,7 +84,7 @@ const SystemOverview = () => {
               <Text c="dimmed" size="sm">/ {status.plugins_count.total}</Text>
             </Group>
           </div>
-          <IconPlugConnected size={32} color="orange" />
+          {Icons.icon("plug", "solid", { size: 32, color: "orange" })}
         </Group>
         <Text size="xs" c="dimmed" mt="md">
           {status.plugins_count.enabled} 个启用，{status.plugins_count.total - status.plugins_count.enabled} 个禁用

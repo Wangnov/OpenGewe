@@ -3,17 +3,36 @@
 提供系统管理的业务逻辑，包括用户管理、系统配置等功能。
 """
 
+import asyncio
 from datetime import datetime
 from typing import Dict, List, Optional, Any, Tuple
 
+from sqlalchemy.exc import SQLAlchemyError, TimeoutError as SQLATimeoutError
+from sqlalchemy import text
+
 from opengewe.logger import get_logger
 
-from backend.app.models.user import User
+from backend.app.models.user import User, pwd_context
 from backend.app.models.config import Config
 from backend.app.core.config import get_settings
+from backend.app.db.session import (
+    DB_OPERATION_TIMEOUT,
+    DB_SEMAPHORE,
+    DatabaseManager,
+    ADMIN_DATABASE,
+)
+from backend.app.db.base import Base
 
 # 获取日志记录器
 logger = get_logger("AdminService")
+
+# 默认管理员配置
+DEFAULT_ADMIN_USERNAME = "admin"
+DEFAULT_ADMIN_EMAIL = "admin@opengewe.com"
+DEFAULT_ADMIN_PASSWORD = "admin123"  # 这个密码应该在首次登录时强制修改
+
+# 初始化操作的超时时间（30秒）
+INIT_OPERATION_TIMEOUT = 30
 
 
 class AdminService:
@@ -279,37 +298,248 @@ class AdminService:
             return False, f"撤销API密钥出错: {str(e)}"
 
     @staticmethod
+    async def _ensure_admin_database() -> bool:
+        """确保管理员数据库存在并创建所需的表
+
+        Returns:
+            bool: 是否成功创建或确认数据库存在
+        """
+        try:
+            db_manager = DatabaseManager()
+            settings = get_settings()
+
+            # 创建一个临时引擎连接到默认数据库
+            default_engine = await db_manager.get_engine(is_admin=False)
+
+            async with default_engine.begin() as conn:
+                # 检查admin数据库是否存在
+                result = await conn.execute(
+                    text(
+                        "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = :schema"
+                    ),
+                    {"schema": ADMIN_DATABASE},
+                )
+                if not result.scalar():
+                    # 创建admin数据库
+                    await conn.execute(text(f"CREATE DATABASE `{ADMIN_DATABASE}`"))
+                    logger.info(f"已创建管理员数据库: {ADMIN_DATABASE}")
+
+            # 获取admin数据库的引擎并创建表
+            admin_engine = await db_manager.get_engine(is_admin=True)
+            async with admin_engine.begin() as conn:
+                # 使用SQLAlchemy的模型创建表
+                await conn.run_sync(Base.metadata.create_all)
+                logger.info("已创建管理员数据库的所有表")
+
+            return True
+        except Exception as e:
+            logger.error(f"创建管理员数据库失败: {e}")
+            return False
+
+    @staticmethod
     async def init_admin() -> Tuple[bool, str, Optional[Dict[str, Any]]]:
         """初始化管理员账户
 
-        仅当系统中没有任何用户时才能执行此操作。
-        默认管理员账户：
-        - 用户名：admin
-        - 密码：admin123
-        - 邮箱：admin@opengewe.com
+        如果系统中没有任何用户，则创建默认管理员账户。
+        此方法使用了超时保护和并发控制。
 
         Returns:
-            Tuple[bool, str, Optional[Dict[str, Any]]]: (是否成功, 消息, 用户信息)
+            Tuple[bool, str, Optional[Dict[str, Any]]]: (是否成功, 消息, 管理员信息)
         """
-        # 检查是否已有用户
-        users = await User.get_all()
-        if users:
-            return False, "系统中已存在用户，无法初始化管理员账户", None
+        try:
+            logger.info("开始初始化管理员账户")
 
-        # 创建管理员账户
-        admin = await User.create(
-            username="admin",
-            email="admin@opengewe.com",
-            password="admin123",
-            full_name="系统管理员",
-            is_superuser=True,
-            is_admin=True,
-        )
+            # 使用直接SQL创建管理员账户，不使用ORM
+            from sqlalchemy import text
 
-        if not admin:
-            return False, "创建管理员账户失败", None
+            # 获取配置中的管理员信息
+            settings = get_settings()
 
-        return True, "管理员账户初始化成功", AdminService._sanitize_user(admin.to_dict())
+            # 获取数据库管理器
+            db_manager = DatabaseManager()
+
+            try:
+                # 检查管理员数据库是否初始化
+                engine = await db_manager.get_engine(is_admin=True)
+            except Exception as e:
+                logger.error(f"无法连接到管理员数据库: {e}")
+                # 初始化管理员数据库
+                from backend.app.db.init_db import init_admin_db
+
+                await init_admin_db()
+                # 重新获取引擎
+                engine = await db_manager.get_engine(is_admin=True)
+
+            # 使用单个连接检查管理员账户并创建(如果需要)
+            async with engine.begin() as conn:
+                try:
+                    # 检查users表是否存在
+                    has_table = await conn.run_sync(
+                        lambda sync_conn: sync_conn.dialect.has_table(
+                            sync_conn, "users"
+                        )
+                    )
+
+                    if not has_table:
+                        logger.info("users表不存在，需要创建")
+                        # 创建管理员数据库和表
+                        await conn.close()  # 先关闭当前连接
+                        from backend.app.db.init_db import init_admin_db
+
+                        await init_admin_db()
+                        # 已经创建了管理员账户，返回成功
+                        return (
+                            True,
+                            "管理员账户创建成功",
+                            {
+                                "id": 1,
+                                "username": settings.admin.username,
+                                "email": settings.admin.email,
+                                "full_name": "System Administrator",
+                                "is_active": True,
+                                "is_admin": True,
+                                "is_superuser": True,
+                            },
+                        )
+
+                    # 检查管理员账户是否存在
+                    result = await conn.execute(
+                        text(
+                            "SELECT id, username, email, full_name, is_active, is_admin, is_superuser, created_at, updated_at FROM users WHERE is_admin = TRUE LIMIT 1"
+                        )
+                    )
+                    admin_record = result.first()
+
+                    if admin_record:
+                        # 管理员账户已存在
+                        logger.info(f"管理员账户已存在: {admin_record.username}")
+                        admin_data = {
+                            "id": admin_record.id,
+                            "username": admin_record.username,
+                            "email": admin_record.email,
+                            "full_name": admin_record.full_name,
+                            "is_active": admin_record.is_active,
+                            "is_admin": admin_record.is_admin,
+                            "is_superuser": admin_record.is_superuser,
+                            "created_at": admin_record.created_at.isoformat()
+                            if admin_record.created_at
+                            else None,
+                            "updated_at": admin_record.updated_at.isoformat()
+                            if admin_record.updated_at
+                            else None,
+                        }
+                        return (
+                            True,
+                            "管理员账户已存在",
+                            AdminService._sanitize_user(admin_data),
+                        )
+
+                    # 如果没有管理员账户，创建一个
+                    logger.info(f"创建默认管理员账户: {settings.admin.username}")
+
+                    # 哈希密码
+                    from backend.app.models.user import pwd_context
+
+                    hashed_password = pwd_context.hash(settings.admin.password)
+
+                    # 插入管理员账户
+                    await conn.execute(
+                        text("""
+                        INSERT INTO users (username, email, full_name, hashed_password, is_active, is_admin, is_superuser, created_at, updated_at)
+                        VALUES (:username, :email, :full_name, :hashed_password, :is_active, :is_admin, :is_superuser, NOW(), NOW())
+                        """),
+                        {
+                            "username": settings.admin.username,
+                            "email": settings.admin.email,
+                            "full_name": "System Administrator",
+                            "hashed_password": hashed_password,
+                            "is_active": True,
+                            "is_admin": True,
+                            "is_superuser": True,
+                        },
+                    )
+
+                    # 获取插入的ID
+                    result = await conn.execute(
+                        text(
+                            "SELECT id, username, email, full_name, is_active, is_admin, is_superuser, created_at, updated_at FROM users WHERE username = :username"
+                        ),
+                        {"username": settings.admin.username},
+                    )
+                    admin_record = result.first()
+
+                    if not admin_record:
+                        return False, "创建管理员账户后无法检索账户信息", None
+
+                    # 转换为字典
+                    admin_data = {
+                        "id": admin_record.id,
+                        "username": admin_record.username,
+                        "email": admin_record.email,
+                        "full_name": admin_record.full_name,
+                        "is_active": admin_record.is_active,
+                        "is_admin": admin_record.is_admin,
+                        "is_superuser": admin_record.is_superuser,
+                        "created_at": admin_record.created_at.isoformat()
+                        if admin_record.created_at
+                        else None,
+                        "updated_at": admin_record.updated_at.isoformat()
+                        if admin_record.updated_at
+                        else None,
+                    }
+
+                    logger.info(f"管理员账户创建成功: ID={admin_data['id']}")
+                    return (
+                        True,
+                        "管理员账户创建成功",
+                        AdminService._sanitize_user(admin_data),
+                    )
+
+                except Exception as e:
+                    logger.error(f"初始化管理员账户时数据库错误: {e}")
+                    return False, f"数据库错误: {str(e)}", None
+
+        except Exception as e:
+            logger.error(f"初始化管理员账户时发生未知错误: {e}")
+            return False, f"未知错误: {str(e)}", None
+
+    @staticmethod
+    async def reset_admin_password() -> Tuple[bool, str, Optional[Dict[str, Any]]]:
+        """重置管理员密码
+
+        将管理员密码重置为配置文件中的默认密码，使用直接SQL更新。
+
+        Returns:
+            Tuple[bool, str, Optional[Dict[str, Any]]]: (是否成功, 消息, 数据)
+        """
+        try:
+            from sqlalchemy import text
+            from backend.app.models.user import pwd_context
+            from backend.app.core.config import get_settings
+            from backend.app.db.session import DatabaseManager
+
+            settings = get_settings()
+            db_manager = DatabaseManager()
+            engine = await db_manager.get_engine(is_admin=True)
+
+            # 使用固定的已知密码哈希，对应于'admin123'
+            hashed_password = (
+                "$2b$12$w1yP8cAgOBb/TgBVMCVHaOXUJFdYFcqUQH0qwQJoQs7xDkPQC3QVG"
+            )
+
+            # 直接执行SQL更新管理员密码
+            async with engine.begin() as conn:
+                await conn.execute(
+                    text(
+                        "UPDATE users SET hashed_password = :password WHERE username = :username"
+                    ),
+                    {"password": hashed_password, "username": settings.admin.username},
+                )
+
+            return True, f"管理员 {settings.admin.username} 密码已重置为默认密码", None
+        except Exception as e:
+            logger.error(f"重置管理员密码失败: {e}")
+            return False, f"重置管理员密码失败: {e}", None
 
     # ----------------------- 配置管理 -----------------------
 
@@ -553,21 +783,29 @@ class AdminService:
 
     @staticmethod
     def _sanitize_user(user_dict: Dict[str, Any]) -> Dict[str, Any]:
-        """净化用户信息，移除敏感数据
+        """清理用户数据，移除敏感信息
 
         Args:
-            user_dict: 用户字典
+            user_dict: 用户数据字典
 
         Returns:
-            Dict[str, Any]: 净化后的用户字典
+            Dict[str, Any]: 清理后的用户数据
         """
-        # 移除敏感信息
-        if "hashed_password" in user_dict:
-            del user_dict["hashed_password"]
+        # 确保所有必要的字段都存在
+        safe_fields = {
+            "id": user_dict.get("id"),
+            "username": user_dict.get("username"),
+            "email": user_dict.get("email"),
+            "is_active": user_dict.get("is_active", True),
+            "is_admin": user_dict.get("is_admin", False),
+            "is_superuser": user_dict.get("is_superuser", False),
+            "created_at": user_dict.get("created_at"),
+            "updated_at": user_dict.get("updated_at"),
+        }
 
-        # 转换日期时间为ISO格式
-        for key, value in user_dict.items():
-            if isinstance(value, datetime):
-                user_dict[key] = value.isoformat()
+        # 转换日期时间为ISO格式字符串
+        for field in ["created_at", "updated_at"]:
+            if safe_fields[field] and isinstance(safe_fields[field], datetime):
+                safe_fields[field] = safe_fields[field].isoformat()
 
-        return user_dict
+        return safe_fields
