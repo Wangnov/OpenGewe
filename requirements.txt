@@ -15,23 +15,21 @@ urllib3>=2.4.0
 aiohttp>=3.9.2
 aiofiles>=23.2.1
 aiodns>=3.1.1
-fastapi>=0.115.0
-uvicorn>=0.34.2
 pytz>=2025.2
 apscheduler>=3.11.0
 loguru>=0.6.0
-# Redis支持 (注：aioredis已集成到redis>=4.2.0中)
-redis>=6.0.0
-# 数据库支持
+setuptools>=80.7.1
+redis>=6.1.0
+tomli>=2.0.1
+
+# 可选依赖
+celery>=5.5.2
 sqlalchemy>=2.0.0
 alembic>=1.12.0
 aiomysql>=0.2.0
 aiosqlite>=0.19.0
-# 认证和加密
 python-jose>=3.3.0
 passlib>=1.7.4
 bcrypt>=4.0.1
-# 配置支持
 pydantic>=2.5.0
 pydantic-settings>=2.0.0
-tomli>=2.0.1
