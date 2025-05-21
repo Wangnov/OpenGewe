@@ -6,13 +6,10 @@
 
 > 基于 GeWeAPI 和 GeWe 私有部署方案的异步 Python 微信机器人框架，提供高性能的微信自动化解决方案
 
-## 项目状态
-
-⚠️ **注意：由于原免费私有部署方案[Gewechat](https://github.com/Devo919/Gewechat)原项目暂停维护，本项目虽然兼容Gewechat，但不推荐使用。**
-
 ## 简介
 
 OpenGewe 是一个基于 [GeWeAPI](https://geweapi.com) 的微信机器人框架，专注于提供个人微信二次开发能力。本框架采用微信iPad协议登录，提供稳定、安全的微信API访问能力。
+
 
 ## 主要特性
 
@@ -27,6 +24,8 @@ OpenGewe 是一个基于 [GeWeAPI](https://geweapi.com) 的微信机器人框架
 - 🎵 **视频号交互** - 支持视频号相关的操作
 
 ## 兼容性说明
+
+⚠️ **注意：由于原免费私有部署方案[Gewechat](https://github.com/Devo919/Gewechat)原项目暂停维护，本项目虽然兼容Gewechat，但不推荐使用。**
 
 本项目**计划**完全兼容Gewechat付费版本[GeWeAPI](https://geweapi.com)。由于原项目暂停维护，我们建议用户转向使用GeWeAPI以获得持续的支持和更新。使用GeWeAPI只需修改`base_url`为：`http://api.geweapi.com/gewe/v2/api`，系统会自动识别并切换到付费版模式。
 
