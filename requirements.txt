@@ -9,7 +9,6 @@ markupsafe>=3.0.2
 numpy>=2.2.5
 pilk>=0.2.4
 qrcode>=8.1
-typing>=3.10.0.0
 typing-extensions>=4.13.2
 urllib3>=2.4.0
 aiohttp>=3.9.2
