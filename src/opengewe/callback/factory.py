@@ -3,10 +3,10 @@ from typing import (
     Dict,
     List,
     Any,
+    Set,
     Optional,
     Type,
     Callable,
-    Set,
     Coroutine,
     Union,
     TYPE_CHECKING,
@@ -15,7 +15,6 @@ import json
 import asyncio
 
 from opengewe.logger import get_logger
-
 from opengewe.callback.types import MessageType
 from opengewe.callback.models import BaseMessage
 from opengewe.callback.handlers import DEFAULT_HANDLERS, BaseHandler

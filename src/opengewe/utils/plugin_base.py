@@ -6,7 +6,6 @@
 from abc import ABC
 from typing import Set
 import sys
-import inspect
 from opengewe.utils.decorators import scheduler, add_job_safe, remove_job_safe
 from opengewe.logger import get_logger
 

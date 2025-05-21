@@ -1,9 +1,7 @@
 import asyncio
-import inspect
 import os
 from asyncio import Future
-from functools import partial
-from typing import Any, Awaitable, Callable, Dict, Optional, Tuple, Union
+from typing import Any, Awaitable, Callable, Dict, Optional
 
 from celery import Celery
 from loguru import logger

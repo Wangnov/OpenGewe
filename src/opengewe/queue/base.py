@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Awaitable, TypeVar, Dict, Union, Optional
+from typing import Any, Callable, Awaitable, TypeVar, Dict
 
 # 定义泛型类型
 T = TypeVar("T")

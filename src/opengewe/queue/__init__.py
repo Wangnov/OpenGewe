@@ -6,16 +6,15 @@ OpenGewe消息队列模块
 """
 
 from typing import Literal, Optional, Any
-import logging
 
 from celery import Celery
 
 from .base import BaseMessageQueue, QueueError
 from .simple import SimpleMessageQueue
 from .advanced import AdvancedMessageQueue, create_celery_app, celery
-
+from opengewe.logger import get_logger
 # 获取队列日志记录器
-logger = logging.getLogger("opengewe.queue")
+logger = get_logger("opengewe.queue")
 
 
 def create_message_queue(
