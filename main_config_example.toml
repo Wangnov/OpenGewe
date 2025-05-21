@@ -1,30 +1,19 @@
-# OpenGewe配置文件示例
-
-[database]
-type = "mysql"                      # 数据库类型: "mysql"
-mysql_host = "localhost"            # MySQL服务器地址
-mysql_port = 3306                   # MySQL端口
-mysql_user = "username"             # MySQL用户名
-mysql_password = "password"         # MySQL密码
-mysql_database_prefix = "opengewe_" # 将与设备ID一起组成schema名，例如：opengewe_wx_123456
-auto_create_schema = true           # 是否自动创建不存在的schema
-manage_schema = true                # 是否管理schema（创建表结构等）
-
-[devices]
+# OpenGewe配置文件
+[gewe_apps]
 # 默认设备配置
-[devices.default]
+[gewe_apps.1]
 name = "默认设备"
 # 使用geweapi需传值http://api.geweapi.com/gewe/v2/api，或gewe临时提供的ip+端口地址
 # 当前geweapi管理后台中提供的base_url可能为http://218.78.116.24:10884/gewe/v2/api
 base_url = "http://218.78.116.24:10884/gewe/v2/api"
-download_url = ""                                       # 使用geweapi无需传值，私有化部署则根据部署的镜像地址和端口来填写
-callback_url = "http://your_domain_or_ip:5432/callback" # 回调地址
-app_id = "wx_12345ABCdeFGhi6789"                        # 设备id，在geweapi的管理后台内扫码登录创建设备时生成
-token = "1234abcd-1234-1234-1234-1234abcd1234"          # geweapi平台分配的token
-is_gewe = true                                          # 是否使用geweapi，设置为false则切换至私有化部署
+download_url = ""                                   # 使用geweapi无需传值，私有化部署则根据部署的镜像地址和端口来填写
+callback_url = ""                                   # 使用geweapi无需传值，而是在geweapi后台中设置，私有化部署则根据部署的后端回调服务填写回调地址
+app_id = "wx_12345ABCdeFGhi6789"                    # 设备id，在geweapi的管理后台内扫码登录创建设备时生成
+token = "1234abcd-1234-1234-1234-1234abcd1234"      # geweapi平台分配的token
+is_gewe = true                                      # 是否使用geweapi，设置为false则切换至私有化部署
 
 # 设备2示例配置
-[devices.device2]
+[gewe_apps.2]
 name = "设备2"
 base_url = "http://api.geweapi.com/gewe/v2/api"
 download_url = ""
@@ -34,7 +23,7 @@ token = "another-token-value"
 is_gewe = true
 
 # 设备3示例配置 - 私有化部署
-[devices.device3]
+[gewe_apps.3]
 name = "设备3-私有化部署"
 base_url = "http://192.168.1.100:8080/gewe/v2/api"
 download_url = "http://192.168.1.100:8080/download"
@@ -45,8 +34,8 @@ is_gewe = false
 
 [plugins]
 plugins_dir = "plugins"             # 插件目录
-enabled_plugins = ["ExamplePlugin"] # 启用的插件列表
-disabled_plugins = []               # 禁用的插件列表
+enabled_plugins = ["ExamplePlugin"] # 全局启用的插件列表，全局启用则全部设备都会加载并启用该插件
+disabled_plugins = []               # 全局禁用的插件列表，全局禁用则不会加载
 
 [queue]
 queue_type = "simple" # 消息队列类型，可选值为"simple"或"advanced"
@@ -64,14 +53,3 @@ retention = "10 days" # 日志保留时间
 compression = "zip"   # 日志压缩格式
 path = "./logs"       # 日志路径
 stdout = true         # 是否输出到控制台
-
-[backend]
-host = "0.0.0.0"                    # 后端服务绑定地址
-port = 5433                         # 后端服务端口
-debug = false                       # 是否开启调试模式
-secret_key = "your-secret-key-here" # 用于JWT令牌等的密钥
-cors_origins = ["*"]                # CORS源
-enable_docs = true                  # 是否启用OpenAPI文档
-docs_url = "/docs"                  # API文档URL
-enable_redis = false                # 是否启用Redis
-enable_admin = true                 # 是否启用管理接口
