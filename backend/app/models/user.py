@@ -459,7 +459,7 @@ class User(Base):
             Optional[User]: 用户对象，如果不存在则为None
         """
         try:
-            # 使用显式字段列表查询
+            # 使用最基本的字段查询，避免依赖可能不存在的字段
             query = select(
                 User.id,
                 User.username,
@@ -467,12 +467,8 @@ class User(Base):
                 User.hashed_password,
                 User.is_active,
                 User.is_admin,
-                User.is_superuser,
                 User.created_at,
                 User.updated_at,
-                User.api_key,
-                User.api_key_expires,
-                User.last_login,
             ).where(User.id == user_id)
 
             result = await db.execute(query)
@@ -481,7 +477,7 @@ class User(Base):
             if not row:
                 return None
 
-            # 手动构建用户对象
+            # 手动构建用户对象，设置默认值
             user = User()
             user.id = row[0]
             user.username = row[1]
@@ -489,13 +485,15 @@ class User(Base):
             user.hashed_password = row[3]
             user.is_active = row[4]
             user.is_admin = row[5]
-            user.is_superuser = row[6]
-            user.created_at = row[7]
-            user.updated_at = row[8]
-            user.api_key = row[9]
-            user.api_key_expires = row[10]
-            user.last_login = row[11]
-            user.full_name = "System Administrator"  # 硬编码默认值
+            user.created_at = row[6]
+            user.updated_at = row[7]
+
+            # 设置默认值
+            user.is_superuser = user.is_admin  # 默认超级用户与管理员相同
+            user.api_key = None
+            user.api_key_expires = None
+            user.last_login = None
+            user.full_name = "System Administrator"  # 默认管理员名称
 
             return user
         except Exception as e:

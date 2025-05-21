@@ -20,6 +20,7 @@ from backend.app.api.deps import (
     get_current_active_user,
     create_access_token,
     ACCESS_TOKEN_EXPIRE_MINUTES,
+    get_admin_db,
 )
 from backend.app.services.admin_service import AdminService
 from backend.app.models.user import User
@@ -32,11 +33,7 @@ router = APIRouter()
 logger = get_logger("API.Admin")
 
 
-# 获取管理员数据库会话的依赖函数
-async def get_admin_db():
-    """获取管理员数据库会话"""
-    async for session in get_db(is_admin=True):
-        yield session
+# 获取管理员数据库会话的依赖函数已移至deps.py
 
 
 # 用户创建模型

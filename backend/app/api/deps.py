@@ -82,14 +82,21 @@ def create_access_token(data: Dict, expires_delta: Optional[timedelta] = None) -
     return jwt.encode(to_encode, settings.backend.secret_key, algorithm=ALGORITHM)
 
 
+# 获取管理员数据库会话的依赖函数
+async def get_admin_db():
+    """获取管理员数据库会话"""
+    async for session in get_db(is_admin=True):
+        yield session
+
+
 async def get_current_user(
-    token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)
+    token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_admin_db)
 ) -> User:
     """获取当前已认证用户
 
     Args:
         token: JWT访问令牌
-        db: 数据库会话
+        db: 管理员数据库会话
 
     Returns:
         User: 当前用户模型实例
