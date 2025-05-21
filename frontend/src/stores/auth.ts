@@ -29,30 +29,48 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   login: async (credentials: LoginCredentials) => {
     try {
       set({ isLoading: true, error: null });
+      console.log('[Auth Store] 尝试登录:', credentials.username);
+      
       const response = await AuthService.login(credentials);
+      console.log('[Auth Store] 登录响应:', response);
       
       if (response.success && response.data) {
         // 保存令牌
         localStorage.setItem('auth_token', response.data.access_token);
         
-        // 获取用户信息
-        const user = await get().fetchUserInfo();
-        
-        set({ 
-          isAuthenticated: true, 
-          isLoading: false,
-          user
-        });
-        
-        return true;
+        // 检查用户信息是否存在
+        if (response.data.user) {
+          console.log('[Auth Store] 登录成功，用户信息:', response.data.user);
+          set({ 
+            isAuthenticated: true, 
+            isLoading: false,
+            user: response.data.user
+          });
+          return true;
+        } else {
+          // 如果没有用户信息，尝试获取
+          console.log('[Auth Store] 登录成功但缺少用户信息，尝试获取用户信息');
+          const userInfo = await get().fetchUserInfo();
+          
+          if (userInfo) {
+            return true;
+          } else {
+            set({ 
+              isLoading: false, 
+              error: '登录成功但无法获取用户信息'
+            });
+            return false;
+          }
+        }
       } else {
         set({ 
           isLoading: false, 
-          error: response.message || '登录失败，请检查用户名和密码' 
+          error: response.message || response.error || '登录失败，请检查用户名和密码' 
         });
         return false;
       }
     } catch (error) {
+      console.error('[Auth Store] 登录错误:', error);
       set({ 
         isLoading: false, 
         error: error instanceof Error ? error.message : '登录过程中发生错误' 

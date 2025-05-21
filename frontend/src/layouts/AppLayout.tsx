@@ -17,17 +17,7 @@ import {
   Title
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { 
-  IconGauge, 
-  IconUsers, 
-  IconRobot, 
-  IconPlugConnected,
-  IconSettings,
-  IconLogout,
-  IconUser,
-  IconMoonStars,
-  IconSun
-} from '@tabler/icons-react';
+import { Icons } from '../utils/fa-icon-loader';
 import { useAuthStore } from '../stores/auth';
 
 /**
@@ -42,11 +32,11 @@ export function AppLayout() {
 
   // 导航项配置
   const navItems = [
-    { label: '仪表盘', icon: <IconGauge size={20} />, path: '/' },
-    { label: '机器人管理', icon: <IconRobot size={20} />, path: '/robots' },
-    { label: '插件管理', icon: <IconPlugConnected size={20} />, path: '/plugins' },
-    { label: '用户管理', icon: <IconUsers size={20} />, path: '/users' },
-    { label: '系统设置', icon: <IconSettings size={20} />, path: '/settings' },
+    { label: '仪表盘', icon: Icons.icon("tachometer-alt", "solid", { size: 20 }), path: '/' },
+    { label: '机器人管理', icon: Icons.icon("robot", "solid", { size: 20 }), path: '/robots' },
+    { label: '插件管理', icon: Icons.icon("plug", "solid", { size: 20 }), path: '/plugins' },
+    { label: '用户管理', icon: Icons.icon("users", "solid", { size: 20 }), path: '/users' },
+    { label: '系统设置', icon: Icons.icon("cog", "solid", { size: 20 }), path: '/settings' },
   ];
 
   // 处理登出
@@ -88,11 +78,10 @@ export function AppLayout() {
               onClick={toggleColorScheme} 
               size="lg"
             >
-              {colorScheme === 'dark' ? (
-                <IconSun size={20} />
-              ) : (
-                <IconMoonStars size={20} />
-              )}
+              {colorScheme === 'dark' ? 
+                Icons.icon("sun", "solid", { size: 20 }) : 
+                Icons.icon("moon", "solid", { size: 20 })
+              }
             </ActionIcon>
 
             <Menu position="bottom-end" shadow="md">
@@ -113,12 +102,12 @@ export function AppLayout() {
               </Menu.Target>
 
               <Menu.Dropdown>
-                <Menu.Item leftSection={<IconUser size={14} />}>
+                <Menu.Item leftSection={Icons.icon("user", "solid", { size: 14 })}>
                   个人资料
                 </Menu.Item>
                 <Menu.Divider />
                 <Menu.Item 
-                  leftSection={<IconLogout size={14} />}
+                  leftSection={Icons.icon("sign-out-alt", "solid", { size: 14 })}
                   onClick={handleLogout}
                   color="red"
                 >

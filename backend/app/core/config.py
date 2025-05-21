@@ -24,6 +24,9 @@ class DatabaseSettings(BaseModel):
     mysql_database_prefix: str = "opengewe_"
     auto_create_schema: bool = True
     manage_schema: bool = True
+    connect_timeout: int = 10
+    read_timeout: int = 30
+    write_timeout: int = 30
     connect_args: Dict[str, Any] = {}
 
     def get_connection_string(self, schema_name: Optional[str] = None) -> str:
@@ -171,6 +174,14 @@ class BackendSettings(BaseModel):
     enable_admin: bool = True
 
 
+class AdminSettings(BaseModel):
+    """管理员配置模型"""
+
+    username: str = "admin"
+    password: str = "admin123"
+    email: str = "admin@opengewe.com"
+
+
 class Settings(BaseSettings):
     """应用程序总配置"""
 
@@ -195,6 +206,7 @@ class Settings(BaseSettings):
     devices: Optional[DevicesSettings] = DevicesSettings()  # 可以为空
     plugins: PluginsSettings = PluginsSettings()
     logging: LoggingSettings = LoggingSettings()
+    admin: AdminSettings = AdminSettings()  # 管理员配置
 
     # 缓存的配置数据
     _config_data: Dict[str, Any] = {}

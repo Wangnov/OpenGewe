@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug - Font Awesome Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .icon-test {
+            margin: 20px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .icon-row {
+            display: flex;
+            gap: 20px;
+            margin: 10px 0;
+        }
+
+        .icon-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+    <!-- 直接引入Font Awesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.0/css/all.min.css">
+</head>
+
+<body>
+    <h1>Font Awesome 图标测试</h1>
+    <p>此页面用于测试Font Awesome图标加载是否正常</p>
+
+    <div class="icon-test">
+        <h2>固体图标 (Solid)</h2>
+        <div class="icon-row">
+            <div class="icon-item">
+                <i class="fas fa-home fa-2x"></i>
+                <span>home</span>
+            </div>
+            <div class="icon-item">
+                <i class="fas fa-user fa-2x"></i>
+                <span>user</span>
+            </div>
+            <div class="icon-item">
+                <i class="fas fa-cog fa-2x"></i>
+                <span>cog</span>
+            </div>
+            <div class="icon-item">
+                <i class="fas fa-robot fa-2x"></i>
+                <span>robot</span>
+            </div>
+            <div class="icon-item">
+                <i class="fas fa-plug fa-2x"></i>
+                <span>plug</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="icon-test">
+        <h2>常规图标 (Regular)</h2>
+        <div class="icon-row">
+            <div class="icon-item">
+                <i class="far fa-user fa-2x"></i>
+                <span>user</span>
+            </div>
+            <div class="icon-item">
+                <i class="far fa-heart fa-2x"></i>
+                <span>heart</span>
+            </div>
+            <div class="icon-item">
+                <i class="far fa-circle fa-2x"></i>
+                <span>circle</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="icon-test">
+        <h2>品牌图标 (Brands)</h2>
+        <div class="icon-row">
+            <div class="icon-item">
+                <i class="fab fa-github fa-2x"></i>
+                <span>github</span>
+            </div>
+            <div class="icon-item">
+                <i class="fab fa-react fa-2x"></i>
+                <span>react</span>
+            </div>
+            <div class="icon-item">
+                <i class="fab fa-weixin fa-2x"></i>
+                <span>weixin</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="icon-test">
+        <h2>测试fa-icon-loader中使用的图标</h2>
+        <div class="icon-row">
+            <div class="icon-item">
+                <i class="fas fa-microchip fa-2x"></i>
+                <span>microchip</span>
+            </div>
+            <div class="icon-item">
+                <i class="fas fa-database fa-2x"></i>
+                <span>database</span>
+            </div>
+            <div class="icon-item">
+                <i class="fas fa-ellipsis-v fa-2x"></i>
+                <span>ellipsis-v</span>
+            </div>
+            <div class="icon-item">
+                <i class="fas fa-sign-in-alt fa-2x"></i>
+                <span>sign-in-alt</span>
+            </div>
+            <div class="icon-item">
+                <i class="fas fa-sign-out-alt fa-2x"></i>
+                <span>sign-out-alt</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 输出检测结果
+        console.log('Font Awesome Debug Page Loaded');
+        const iconElements = document.querySelectorAll('i[class*="fa-"]');
+        console.log(`Found ${iconElements.length} icon elements`);
+
+        // 检查图标是否正确显示
+        // 如果图标元素的宽度或高度为0，则可能是图标未正确加载
+        let loadFailures = 0;
+        iconElements.forEach((icon, index) => {
+            const rect = icon.getBoundingClientRect();
+            if (rect.width === 0 || rect.height === 0) {
+                console.error(`Icon #${index} (${icon.className}) failed to load properly`);
+                loadFailures++;
+            }
+        });
+
+        if (loadFailures > 0) {
+            console.error(`${loadFailures} icons failed to load properly`);
+        } else {
+            console.log('All icons loaded successfully');
+        }
+    </script>
+</body>
+
+</html>

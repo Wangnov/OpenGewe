@@ -231,6 +231,10 @@ def create_application() -> FastAPI:
     # 使用版本前缀
     app.include_router(api_router, prefix="/api/v1")
 
+    # 添加无前缀版本的路由，与前端客户端兼容
+    app.include_router(api_router, prefix="/api")
+    logger.info("已注册API路由（包含v1前缀和无前缀版本）")
+
     # 单独注册webhook路由到根路径，使/webhook也能直接访问
     from backend.app.api.routes import webhook
 
