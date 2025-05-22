@@ -41,7 +41,12 @@ async def start_client(config_path: str, device_id: str) -> None:
         config_path: 配置文件路径
         device_id: 设备ID
     """
-    import tomllib
+    # 根据Python版本导入不同的TOML解析库
+    try:
+        import tomllib
+    except ImportError:
+        import tomli as tomllib
+        
     from opengewe import GeweClient
     from opengewe.logger import get_logger
 

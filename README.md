@@ -1,7 +1,7 @@
 # OpenGewe
 
 ![版本](https://img.shields.io/badge/版本-0.0.1-blue)
-![Python](https://img.shields.io/badge/Python-3.13+-brightgreen)
+![Python](https://img.shields.io/badge/Python-3.8+-brightgreen)
 ![协议](https://img.shields.io/badge/协议-MIT-green)
 
 > 基于 GeWeAPI 和 GeWe 私有部署方案的异步 Python 微信机器人框架，提供高性能的微信自动化解决方案
