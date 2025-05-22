@@ -27,7 +27,7 @@ OpenGewe 是一个基于 [GeWeAPI](https://geweapi.com) 的微信机器人框架
 
 ⚠️ **注意：由于原免费私有部署方案[Gewechat](https://github.com/Devo919/Gewechat)原项目暂停维护，本项目虽然兼容Gewechat，但不推荐使用。**
 
-本项目**计划**完全兼容Gewechat付费版本[GeWeAPI](https://geweapi.com)。由于原项目暂停维护，我们建议用户转向使用GeWeAPI以获得持续的支持和更新。使用GeWeAPI只需修改`base_url`为：`http://api.geweapi.com/gewe/v2/api`，系统会自动识别并切换到付费版模式。
+本项目**计划**完全兼容Gewechat付费版本[GeWeAPI](https://geweapi.com)。由于原项目暂停维护，我们建议用户转向使用GeWeAPI以获得持续的支持和更新。使用GeWeAPI只需修改`base_url`为：`http://www.geweapi.com/gewe/v2/api`，系统会自动识别并切换到付费版模式。
 
 ## 迁移到GeWeAPI
 
@@ -35,7 +35,7 @@ OpenGewe 是一个基于 [GeWeAPI](https://geweapi.com) 的微信机器人框架
 
 1. 访问[GeWeAPI官方网站](https://geweapi.com)注册账号
 2. 获取GeWeAPI的token
-3. 在配置中将`base_url`修改为Gewe API地址：`http://api.geweapi.com/gewe/v2/api` 或备用地址（GeWeAPI管理后台中显示的）
+3. 在配置中将`base_url`修改为Gewe API地址：`http://www.geweapi.com/gewe/v2/api` 或备用地址（GeWeAPI管理后台中显示的）
 4. 在GeWeAPI管理后台中扫码登录微信账号，获得app_id
 5. 在GeWeAPI管理后台中对此token设置回调服务器的地址
 
@@ -66,7 +66,7 @@ from opengewe import GeweClient
 async def main():
     # 创建客户端实例
     client = GeweClient(
-        base_url="http://api.geweapi.com/gewe/v2/api",  # GeWeAPI服务的基础URL
+        base_url="http://www.geweapi.com/gewe/v2/api",  # GeWeAPI服务的基础URL
         download_url="",  # 使用付费版无需填写
         callback_url="http://your_callback_server/callback",  # 回调服务器URL
         app_id="your_app_id",  # 登录成功后返回的app_id
@@ -99,7 +99,7 @@ OpenGewe 使用 TOML 格式的配置文件，默认为 `main_config.toml`：
 # 多设备配置
 [gewe_apps.1]
 name = "默认设备"
-base_url = "http://api.geweapi.com/gewe/v2/api"
+base_url = "http://www.geweapi.com/gewe/v2/api"
 app_id = "your_app_id"
 token = "your_token"
 is_gewe = true

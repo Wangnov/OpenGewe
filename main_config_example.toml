@@ -3,7 +3,7 @@
 # 默认设备配置
 [gewe_apps.1]
 name = "默认设备"
-# 使用geweapi需传值http://api.geweapi.com/gewe/v2/api，或gewe临时提供的ip+端口地址
+# 使用geweapi需传值http://www.geweapi.com/gewe/v2/api，或gewe临时提供的ip+端口地址
 # 当前geweapi管理后台中提供的base_url可能为http://218.78.116.24:10884/gewe/v2/api
 base_url = "http://218.78.116.24:10884/gewe/v2/api"
 download_url = ""                                   # 使用geweapi无需传值，私有化部署则根据部署的镜像地址和端口来填写
@@ -15,7 +15,7 @@ is_gewe = true                                      # 是否使用geweapi，设�
 # 设备2示例配置
 [gewe_apps.2]
 name = "设备2"
-base_url = "http://api.geweapi.com/gewe/v2/api"
+base_url = "http://www.geweapi.com/gewe/v2/api"
 download_url = ""
 callback_url = "http://yourserver.com/callbacks/device2"
 app_id = "wx_another_device_id"
