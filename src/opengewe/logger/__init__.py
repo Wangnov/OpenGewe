@@ -3,7 +3,21 @@
 提供基于 loguru 的统一日志配置和使用接口。
 """
 
-from opengewe.logger.config import setup_logger, get_logger, format_structured_record
+import os
+import sys
+# 根据Python版本导入不同的TOML解析库
+try:
+    import tomllib
+except ImportError:
+    import tomli as tomllib
+
+from opengewe.logger.config import (
+    setup_logger, 
+    get_logger, 
+    format_structured_record,
+    configure_from_dict,
+    load_logging_config
+)
 from opengewe.logger.utils import (
     disable_logger,
     enable_logger,
@@ -24,6 +38,7 @@ def init_default_logger(
     batch_size: int = 0,
     flush_interval: float = 0.0,
     structured: bool = False,
+    config_file: str = "main_config.toml",
 ):
     """初始化默认日志系统
 
@@ -39,7 +54,26 @@ def init_default_logger(
         batch_size: 批处理大小，设为0禁用批处理，默认为0
         flush_interval: 批处理刷新间隔(秒)，设为0禁用自动刷新，默认为0
         structured: 是否启用结构化日志(JSON格式)，默认为False
+        config_file: TOML配置文件路径，默认为main_config.toml
     """
+    # 尝试从配置文件加载设置
+    config = {}
+    try:
+        if os.path.exists(config_file):
+            with open(config_file, "rb") as f:
+                config = tomllib.load(f)
+                # 如果配置文件中包含日志配置，优先使用配置文件中的设置
+                if "logging" in config:
+                    load_logging_config(config)
+                    # 配置已加载，拦截标准库日志和插件日志
+                    intercept_logging()
+                    intercept_plugin_loguru()
+                    return
+    except Exception as e:
+        # 如果配置文件加载失败，使用默认设置
+        print(f"加载日志配置文件失败: {e}，将使用默认配置")
+    
+    # 如果没有配置文件或配置文件中没有日志配置，使用参数设置
     # 设置默认日志配置
     setup_logger(
         level=level,
@@ -71,4 +105,6 @@ __all__ = [
     "traced_function",
     "log_group",
     "format_structured_record",
+    "configure_from_dict",
+    "load_logging_config",
 ]

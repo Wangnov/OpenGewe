@@ -5,7 +5,8 @@
 
 import os
 import sys
-from typing import Dict, Optional, Any, List
+import json
+from typing import Dict, Optional, Any, List, Union, Callable
 
 from loguru import logger
 
@@ -31,6 +32,17 @@ LEVEL_EMOJIS = {
 # 存储当前全局日志级别
 _GLOBAL_LOG_LEVEL = "INFO"
 
+# 存储全局配置项
+_LOGGER_CONFIG = {
+    "console": True,
+    "file": True,
+    "level": "INFO",
+    "format": "color",  # 可选值: "color", "simple", "json"
+    "stdout": True,  # 是否将日志输出到标准输出
+    "show_source": True,  # 是否显示日志源
+    "show_time": True,  # 是否显示时间
+}
+
 
 # 获取全局日志级别
 def get_global_log_level() -> str:
@@ -42,11 +54,29 @@ def get_global_log_level() -> str:
     return _GLOBAL_LOG_LEVEL
 
 
+# 获取日志格式
+def get_log_format() -> str:
+    """获取当前日志格式
+
+    Returns:
+        str: 当前设置的日志格式
+    """
+    return _LOGGER_CONFIG.get("format", "color")
+
+
 # 默认日志格式 - 使用居中对齐
 DEFAULT_CONSOLE_FORMAT = (
     "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | "
     "<level>{level.name: ^8}</level> {extra[level_emoji]} | "
     "<cyan>[{extra[source]}]</cyan> - "
+    "{message}"
+)
+
+# 简单的控制台格式
+SIMPLE_CONSOLE_FORMAT = (
+    "{time:YYYY-MM-DD HH:mm:ss} | "
+    "{level.name: ^8} | "
+    "[{extra[source]}] - "
     "{message}"
 )
 
@@ -82,6 +112,10 @@ DEFAULT_HANDLERS = [
         "retention": "30 days",
         "compression": "zip",
         "format": "{time:YYYY-MM-DD HH:mm:ss} | {level.name: ^8} {extra[level_emoji]} | [{extra[source]}] | {message}",
+        "filter": lambda record: "API" in record["extra"].get("source", "") 
+                              or "api" in record["message"].lower()
+                              or "请求" in record["message"]
+                              or "响应" in record["message"],
     },
     # 添加DEBUG级别日志文件，记录详细信息
     {
@@ -102,7 +136,8 @@ DEFAULT_HANDLERS = [
         "format": "{time:YYYY-MM-DD HH:mm:ss} | {level.name: ^8} {extra[level_emoji]} | [{extra[source]}] | {message}",
         "filter": lambda record: "scheduler" in record["message"].lower()
         or "task" in record["message"].lower()
-        or "job" in record["message"].lower(),
+        or "job" in record["message"].lower()
+        or "Scheduler" in record["extra"].get("source", ""),
     },
     # 添加错误日志文件
     {
@@ -114,6 +149,17 @@ DEFAULT_HANDLERS = [
         "format": "{time:YYYY-MM-DD HH:mm:ss} | {level.name: ^8} {extra[level_emoji]} | [{extra[source]}] | {file}:{line} - {message}",
         "backtrace": True,
         "diagnose": True,
+    },
+    # 添加插件日志文件
+    {
+        "sink": "logs/plugins_{time:YYYY-MM-DD}.log",
+        "level": "DEBUG",
+        "rotation": "1 day",
+        "retention": "30 days",
+        "compression": "zip",
+        "format": "{time:YYYY-MM-DD HH:mm:ss} | {level.name: ^8} {extra[level_emoji]} | [{extra[source]}] | {message}",
+        "filter": lambda record: "Plugin" in record["extra"].get("source", "") 
+                              or record["extra"].get("source", "").startswith("Plugins."),
     },
 ]
 
@@ -136,6 +182,52 @@ def create_batching_sink(sink, batch_size, flush_interval):
     return BatchingSink(sink, batch_size, flush_interval)
 
 
+def configure_from_dict(config: Dict[str, Any]) -> None:
+    """从字典配置日志系统
+
+    Args:
+        config: 配置字典，包含日志相关配置项
+    """
+    # 更新全局配置
+    global _LOGGER_CONFIG
+    _LOGGER_CONFIG.update({k: v for k, v in config.items() if k in _LOGGER_CONFIG})
+    
+    # 提取主要配置项
+    level = config.get("level", "INFO")
+    format_type = config.get("format", "color")
+    log_dir = config.get("path", DEFAULT_LOG_DIR)
+    console = config.get("stdout", True)
+    
+    # 解析日志轮转参数
+    rotation = config.get("rotation", "1 day")
+    retention = config.get("retention", "30 days")
+    compression = config.get("compression", "zip")
+    
+    # 根据format_type选择格式
+    if format_type == "json":
+        structured = True
+        console_format = lambda record: format_structured_record(record, DEFAULT_JSON_FORMAT)
+    elif format_type == "simple":
+        structured = False
+        console_format = SIMPLE_CONSOLE_FORMAT
+    else:  # 默认彩色格式
+        structured = False
+        console_format = DEFAULT_CONSOLE_FORMAT
+    
+    # 配置日志系统
+    setup_logger(
+        console=console,
+        file=True,
+        level=level,
+        log_dir=log_dir,
+        rotation=rotation,
+        retention=retention,
+        compression=compression,
+        console_format=console_format,
+        structured=structured,
+    )
+
+
 def setup_logger(
     console: bool = True,
     file: bool = True,
@@ -144,8 +236,8 @@ def setup_logger(
     rotation: str = "1 day",
     retention: str = "30 days",
     compression: str = "zip",
-    console_format: str = DEFAULT_CONSOLE_FORMAT,
-    file_format: str = DEFAULT_FILE_FORMAT,
+    console_format: Union[str, Callable] = DEFAULT_CONSOLE_FORMAT,
+    file_format: Union[str, Callable] = DEFAULT_FILE_FORMAT,
     backtrace: bool = True,
     diagnose: bool = True,
     enqueue: bool = True,
@@ -219,8 +311,7 @@ def setup_logger(
     if console:
         # 使用结构化日志格式（如果启用）
         actual_format = console_format
-        if structured:
-
+        if structured and not callable(actual_format):
             def actual_format(record):
                 return format_structured_record(
                     record, json_format or DEFAULT_JSON_FORMAT
@@ -246,8 +337,7 @@ def setup_logger(
     if file:
         # 使用结构化日志格式（如果启用）
         actual_format = file_format
-        if structured:
-
+        if structured and not callable(actual_format):
             def actual_format(record):
                 return format_structured_record(
                     record, json_format or DEFAULT_JSON_FORMAT
@@ -353,8 +443,13 @@ def setup_logger(
                     record, json_format or DEFAULT_JSON_FORMAT
                 )
 
-            # 添加批处理支持（如果需要）
+            # 确保日志目录存在
             sink = config.get("sink")
+            if isinstance(sink, str) and sink.startswith(log_dir):
+                # 创建目录
+                os.makedirs(os.path.dirname(sink), exist_ok=True)
+
+            # 添加批处理支持（如果需要）
             if batch_size > 0 and isinstance(sink, str):  # 只对文件路径应用批处理
                 config["sink"] = create_batching_sink(sink, batch_size, flush_interval)
 
@@ -377,8 +472,6 @@ def format_structured_record(
     Returns:
         格式化后的JSON字符串
     """
-    import json
-
     # 深度复制格式化字典
     output = {}
 
@@ -401,7 +494,7 @@ def format_structured_record(
         if key not in ["level_emoji", "source"] and value is not None:
             output[key] = value
 
-    return json.dumps(output)
+    return json.dumps(output, ensure_ascii=False)
 
 
 def get_logger(source: str = "OpenGewe", **extra_context):
@@ -417,3 +510,17 @@ def get_logger(source: str = "OpenGewe", **extra_context):
     context = {"source": source}
     context.update(extra_context)
     return logger.bind(**context)
+
+# 解析日志配置文件
+def load_logging_config(config_dict: Dict[str, Any]) -> None:
+    """从配置文件加载日志配置
+
+    Args:
+        config_dict: 配置字典
+    """
+    if "logging" in config_dict:
+        logging_config = config_dict["logging"]
+        configure_from_dict(logging_config)
+    else:
+        # 使用默认配置
+        setup_logger()

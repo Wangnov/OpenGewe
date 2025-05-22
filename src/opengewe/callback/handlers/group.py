@@ -9,6 +9,9 @@ from opengewe.callback.models import (
     GroupInfoUpdateMessage,
     GroupTodoMessage,
     GroupInviteMessage,
+    GroupRemovedMessage,
+    GroupKickMessage,
+    GroupDismissMessage,
 )
 from opengewe.callback.handlers.base import BaseHandler
 
@@ -194,3 +197,84 @@ class GroupTodoHandler(BaseHandler):
         """处理群待办消息"""
         # 直接使用GroupTodoMessage类处理消息
         return GroupTodoMessage.from_dict(data)
+
+
+class GroupRemovedMessageHandler(BaseHandler):
+    """被移除群聊消息处理器"""
+
+    async def can_handle(self, data: Dict[str, Any]) -> bool:
+        """判断是否为被移除群聊消息"""
+        if data.get("TypeName") != "AddMsg":
+            return False
+
+        if "Data" not in data:
+            return False
+
+        # 系统消息类型为10000
+        if data["Data"].get("MsgType") != 10000:
+            return False
+
+        content = data["Data"].get("Content", {}).get("string", "")
+        return "移出了群聊" in content
+
+    async def handle(self, data: Dict[str, Any]) -> Optional[BaseMessage]:
+        """处理被移除群聊消息"""
+        try:
+            message = GroupRemovedMessage.from_dict(data)
+            return message
+        except Exception as e:
+            return None
+
+
+class GroupKickMessageHandler(BaseHandler):
+    """踢出群聊消息处理器"""
+
+    async def can_handle(self, data: Dict[str, Any]) -> bool:
+        """判断是否为踢出群聊消息"""
+        if data.get("TypeName") != "AddMsg":
+            return False
+
+        if "Data" not in data:
+            return False
+
+        # 系统消息类型为10000
+        if data["Data"].get("MsgType") != 10000:
+            return False
+
+        content = data["Data"].get("Content", {}).get("string", "")
+        return "将" in content and "移出了群聊" in content
+
+    async def handle(self, data: Dict[str, Any]) -> Optional[BaseMessage]:
+        """处理踢出群聊消息"""
+        try:
+            message = GroupKickMessage.from_dict(data)
+            return message
+        except Exception as e:
+            return None
+
+
+class GroupDismissMessageHandler(BaseHandler):
+    """解散群聊消息处理器"""
+
+    async def can_handle(self, data: Dict[str, Any]) -> bool:
+        """判断是否为解散群聊消息"""
+        if data.get("TypeName") != "AddMsg":
+            return False
+
+        if "Data" not in data:
+            return False
+
+        # 系统消息类型为10000
+        if data["Data"].get("MsgType") != 10000:
+            return False
+
+        content = data["Data"].get("Content", {}).get("string", "")
+        return "群主已解散群聊" in content
+
+    async def handle(self, data: Dict[str, Any]) -> Optional[BaseMessage]:
+        """处理解散群聊消息"""
+        try:
+            message = GroupDismissMessage.from_dict(data)
+            return message
+        except Exception as e:
+            return None

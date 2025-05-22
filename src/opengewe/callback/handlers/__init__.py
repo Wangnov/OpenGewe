@@ -50,6 +50,9 @@ from opengewe.callback.handlers.group import (
     GroupInvitedMessageHandler,
     GroupInfoUpdateHandler,
     GroupTodoHandler,
+    GroupRemovedMessageHandler,
+    GroupKickMessageHandler,
+    GroupDismissMessageHandler,
 )
 
 # 导入系统消息处理器
@@ -86,6 +89,9 @@ DEFAULT_HANDLERS = [
     GroupInvitedMessageHandler,
     GroupInfoUpdateHandler,
     GroupTodoHandler,
+    GroupRemovedMessageHandler,
+    GroupKickMessageHandler,
+    GroupDismissMessageHandler,
     SysmsgHandler,
     OfflineHandler,
     TransferHandler,
