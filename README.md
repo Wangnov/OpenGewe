@@ -50,8 +50,8 @@ pip install opengewe
 ### 从源码安装
 
 ```bash
-git clone https://github.com/yourusername/opengewe.git
-cd opengewe
+git clone https://github.com/Wangnov/OpenGewe.git
+cd OpenGewe
 pip install -e .
 ```
 
@@ -66,16 +66,13 @@ from opengewe import GeweClient
 async def main():
     # 创建客户端实例
     client = GeweClient(
-        base_url="http://www.geweapi.com/gewe/v2/api",  # GeWeAPI服务的基础URL
-        download_url="",  # 使用付费版无需填写
-        callback_url="http://your_callback_server/callback",  # 回调服务器URL
-        app_id="your_app_id",  # 登录成功后返回的app_id
-        token="your_token",  # 登录成功后返回的token
+        base_url="http://www.geweapi.com/gewe/v2/api",  # GeWeAPI服务的基础URL，GeWe服务器只要没有问题就不会变化。极少数情况下可能会变化，可在GeWeAPI管理后台查看最新的base_url
+        download_url="",  # 使用GeWeAPI无需填写
+        callback_url="",  # 在GeWeAPI设置回调服务器URL，此处无需设置
+        app_id="your_app_id",  # 在GeWeAPI登录成功后返回的app_id
+        token="your_token",  # 在GeWeAPI创建的token
         is_gewe=True,  # 使用付费版GeWeAPI
     )
-    
-    # 执行登录流程（首次登录）
-    await client.start_login()
     
     # 发送文本消息
     await client.send_text("filehelper", "你好，这是一条测试消息")
@@ -136,14 +133,15 @@ opengewe client --config main_config.toml --device 1
 
 1. 在 `plugins` 目录下创建插件文件夹
 2. 编写插件主类，继承 `PluginBase`
-3. 使用装饰器注册消息处理和定时任务
+3. 可以使用装饰器注册消息处理和定时任务，也可以直接引入opengewe的handler模块来注册消息处理
 4. 在配置文件中启用插件
+5. 可以以兼容XYBot和XXXBot的插件格式来编写
 
 示例插件：
 
 ```python
-from opengewe.utils.plugin_base import PluginBase
-from opengewe.utils.decorators import on_text_message, schedule
+from utils.plugin_base import PluginBase
+from utils.decorators import on_text_message, schedule
 
 class MyPlugin(PluginBase):
     """自定义插件示例"""
@@ -184,7 +182,7 @@ OpenGewe包含以下核心模块：
 
 ## 贡献指南
 
-由于项目暂停维护，我们目前不接受新的贡献请求。但您可以Fork本项目进行个人修改和改进。
+可以Fork本项目进行修改和改进
 
 ## 致谢
 
