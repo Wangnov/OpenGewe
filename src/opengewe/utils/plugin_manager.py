@@ -9,7 +9,11 @@ import importlib
 import inspect
 import os
 import sys
-import tomllib
+# 根据Python版本导入不同的TOML解析库
+try:
+    import tomllib
+except ImportError:
+    import tomli as tomllib
 import traceback
 from typing import Dict, List, Type, Union, Tuple, Optional, Any, TYPE_CHECKING
 
