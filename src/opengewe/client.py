@@ -63,7 +63,7 @@ class GeweClient:
         self.login_url: Optional[str] = None
         self.captch_code: Optional[str] = None
         # 判断是否为付费版gewe
-        self.is_gewe = is_gewe or base_url == "http://api.geweapi.com/gewe/v2/api"
+        self.is_gewe = is_gewe or base_url == "http://www.geweapi.com/gewe/v2/api"
 
         # 创建HTTP会话
         self._session: Optional[aiohttp.ClientSession] = None
