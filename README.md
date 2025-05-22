@@ -1,6 +1,6 @@
 # OpenGewe
 
-![版本](https://img.shields.io/badge/版本-0.0.2-blue)
+![版本](https://img.shields.io/badge/版本-0.0.3-blue)
 ![Python](https://img.shields.io/badge/Python-3.8+-brightgreen)
 ![协议](https://img.shields.io/badge/协议-MIT-green)
 
