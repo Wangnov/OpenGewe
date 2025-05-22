@@ -24,11 +24,22 @@ class FinderModule:
         #     return False
         return True
 
-    async def follow(self, finder_username: str) -> Dict[str, Any]:
+    async def follow(
+        self,
+        my_username: str,
+        my_role_type: int,
+        to_username: str,
+        op_type: int = 1,
+        search_info: Dict[str, str] = None
+    ) -> Dict[str, Any]:
         """关注视频号
 
         Args:
-            finder_username: 视频号用户名
+            my_username (str): 自己的username
+            my_role_type (int): 自己的roletype
+            to_username (str): 对方的username
+            op_type (int, optional): 操作类型，1表示关注，2表示取消关注. Defaults to 1.
+            search_info (Dict[str, str], optional): 如果是通过搜索渠道关注，则需要传入搜索接口返回的cookies、searchId、docId. Defaults to None.
 
         Returns:
             Dict[str, Any]: 接口返回结果
@@ -36,7 +47,18 @@ class FinderModule:
         if not self._check_is_gewe():
             return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
 
-        data = {"appId": self.client.app_id, "finderUsername": finder_username}
+        data = {
+            "appId": self.client.app_id,
+            "myUserName": my_username,
+            "myRoleType": my_role_type,
+            "toUserName": to_username,
+            "opType": op_type
+        }
+        
+        # 如果提供了搜索信息，添加到请求数据中
+        if search_info:
+            data["searchInfo"] = search_info
+            
         return await self.client.request("/finder/follow", data)
 
     async def comment(self, vid: str, content: str) -> Dict[str, Any]:
