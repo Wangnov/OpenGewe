@@ -332,26 +332,26 @@ class BatchingSink:
         flush_interval: float = 1.0,
     ):
         self.sink = sink
-        self.batch_size = batch_size
-        self.flush_interval = flush_interval
+        self.batch_size = max(1, batch_size)  # 确保批处理大小至少为1
+        self.flush_interval = max(0.1, flush_interval)  # 确保刷新间隔至少为0.1秒
         self.buffer: List[str] = []
-        self.lock = threading.Lock()
+        self.lock = threading.RLock()  # 使用可重入锁
         self.last_flush_time = time.time()
+        self._shutdown = False
+        self._flush_thread = None
 
         # 启动定时刷新线程
         if flush_interval > 0:
-            self.flush_thread = threading.Thread(
+            self._flush_thread = threading.Thread(
                 target=self._timed_flush_worker,
                 daemon=True,
+                name=f"BatchingSink-{id(self)}",
             )
-            self.flush_thread.start()
-        else:
-            self.flush_thread = None
+            self._flush_thread.start()
 
         # 注册程序退出时的刷新
         import atexit
-
-        atexit.register(self.flush)
+        atexit.register(self._shutdown_handler)
 
     def __call__(self, message: str) -> None:
         """接收日志消息
@@ -359,48 +359,126 @@ class BatchingSink:
         Args:
             message: 日志消息
         """
-        with self.lock:
-            self.buffer.append(message)
+        if self._shutdown:
+            # 如果已关闭，直接写入以避免丢失消息
+            self._direct_write(message)
+            return
 
-            # 如果达到批处理大小，执行刷新
-            if len(self.buffer) >= self.batch_size:
-                self._flush()
+        try:
+            with self.lock:
+                if not self._shutdown:  # 双重检查
+                    self.buffer.append(message)
+
+                    # 如果达到批处理大小，执行刷新
+                    if len(self.buffer) >= self.batch_size:
+                        self._flush()
+        except Exception as e:
+            # 如果批处理失败，尝试直接写入
+            try:
+                self._direct_write(message)
+            except Exception:
+                # 最后的fallback - 记录到stderr
+                import sys
+                sys.stderr.write(f"BatchingSink error: {e}\nOriginal message: {message}\n")
+
+    def _direct_write(self, message: str) -> None:
+        """直接写入单个消息，不使用缓冲"""
+        try:
+            if callable(self.sink):
+                self.sink(message)
+            elif hasattr(self.sink, "write"):
+                self.sink.write(message)
+                if hasattr(self.sink, "flush"):
+                    self.sink.flush()
+        except Exception:
+            pass  # 静默失败，避免死循环
 
     def _flush(self) -> None:
         """内部刷新方法，必须在获取锁的情况下调用"""
-        if not self.buffer:
+        if not self.buffer or self._shutdown:
             return
 
-        # 如果接收器是可调用对象，则逐条传递消息
-        if callable(self.sink):
-            for message in self.buffer:
-                self.sink(message)
-        # 如果是文件类对象，则一次性写入所有消息
-        elif hasattr(self.sink, "write"):
-            for message in self.buffer:
-                self.sink.write(message)
-            if hasattr(self.sink, "flush"):
-                self.sink.flush()
+        try:
+            messages_to_flush = self.buffer.copy()
+            self.buffer.clear()
+            self.last_flush_time = time.time()
 
-        # 清空缓冲区
-        self.buffer.clear()
-        self.last_flush_time = time.time()
+            # 在锁外执行实际的写入操作以减少锁定时间
+            with self.lock:
+                pass  # 释放锁
+
+            # 执行写入
+            if callable(self.sink):
+                for message in messages_to_flush:
+                    try:
+                        self.sink(message)
+                    except Exception:
+                        continue  # 继续处理其他消息
+            elif hasattr(self.sink, "write"):
+                try:
+                    for message in messages_to_flush:
+                        self.sink.write(message)
+                    if hasattr(self.sink, "flush"):
+                        self.sink.flush()
+                except Exception:
+                    pass  # 静默失败
+
+        except Exception:
+            # 如果刷新失败，尝试恢复缓冲区
+            with self.lock:
+                if not self._shutdown:
+                    # 将未处理的消息重新添加到缓冲区前面
+                    self.buffer = messages_to_flush + self.buffer
 
     def flush(self) -> None:
         """手动刷新缓冲区"""
+        if self._shutdown:
+            return
+
         with self.lock:
             self._flush()
 
     def _timed_flush_worker(self) -> None:
         """定时刷新工作线程"""
-        while True:
-            time.sleep(
-                min(0.1, self.flush_interval)
-            )  # 每0.1秒检查一次，最多不超过刷新间隔
+        while not self._shutdown:
+            try:
+                time.sleep(min(0.1, self.flush_interval / 10))  # 更频繁的检查
 
-            current_time = time.time()
-            if current_time - self.last_flush_time >= self.flush_interval:
-                self.flush()
+                current_time = time.time()
+                if (
+                    current_time - self.last_flush_time >= self.flush_interval
+                    and not self._shutdown
+                ):
+                    self.flush()
+            except Exception:
+                if not self._shutdown:
+                    time.sleep(0.1)  # 发生错误时短暂休息
+                continue
+
+    def _shutdown_handler(self) -> None:
+        """关闭处理器，确保所有消息都被刷新"""
+        if self._shutdown:
+            return
+
+        self._shutdown = True
+
+        # 等待刷新线程结束
+        if self._flush_thread and self._flush_thread.is_alive():
+            self._flush_thread.join(timeout=1.0)
+
+        # 最终刷新
+        try:
+            with self.lock:
+                self._flush()
+        except Exception:
+            pass
+
+    def __del__(self):
+        """析构函数，确保资源清理"""
+        try:
+            self._shutdown_handler()
+        except Exception:
+            pass
 
 
 def traced_function(name: Optional[str] = None, logger=None, level="INFO"):
@@ -750,7 +828,13 @@ def intercept_plugin_loguru():
 
     # 如果无法获取原始对象，无法进行拦截
     if not _original_loguru or not _original_logger:
-        print("警告: 无法获取原始loguru模块或logger对象，插件日志拦截将不会生效")
+        # 尝试获取已配置的logger来记录警告，如果失败则使用标准输出
+        try:
+            from loguru import logger as fallback_logger
+            fallback_logger.warning("无法获取原始loguru模块或logger对象，插件日志拦截将不会生效")
+        except Exception:
+            # 如果连fallback都不行，才使用print
+            print("警告: 无法获取原始loguru模块或logger对象，插件日志拦截将不会生效")
         return
 
     # 创建一个新的loguru模块，包装原始logger

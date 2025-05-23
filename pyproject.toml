@@ -1,6 +1,6 @@
 [project]
 name = "opengewe"
-version = "0.1.0"
+version = "0.1.1"
 description = "基于Gewe和Gewechat的开源微信机器人异步框架，提供高性能的微信自动化解决方案"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -27,8 +27,21 @@ dependencies = [
     "pytz>=2024.1",
     "apscheduler>=3.10.0",
     "loguru>=0.6.0",
-    "celery>=5.3.0",
     "tomli>=2.0.0; python_version < '3.11'",
+]
+
+[project.optional-dependencies]
+# 高级消息队列功能（基于Celery）
+advanced = [
+    "celery>=5.3.0",
+    "redis>=6.1.0",
+    "amqp>=5.3.1",
+    "joblib>=1.5.0",
+    "lz4>=4.4.4",
+]
+# 完整功能（包含所有可选依赖）
+full = [
+    "celery>=5.3.0",
     "redis>=6.1.0",
     "amqp>=5.3.1",
     "joblib>=1.5.0",

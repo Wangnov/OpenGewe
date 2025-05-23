@@ -1,6 +1,6 @@
 # OpenGewe
 
-![版本](https://img.shields.io/badge/版本-0.1.0-blue)
+![版本](https://img.shields.io/badge/版本-0.1.1-blue)
 ![Python](https://img.shields.io/badge/Python-3.9+-brightgreen)
 ![协议](https://img.shields.io/badge/协议-MIT-green)
 
@@ -22,6 +22,7 @@ OpenGewe 是一个基于 [GeWeAPI](https://geweapi.com) 的微信机器人框架
 - 📊 **消息队列** - 支持简单队列和高级队列（Celery）两种消息处理模式
 - 📱 **朋友圈操作** - 支持发布朋友圈内容、浏览朋友圈等
 - 🎵 **视频号交互** - 支持视频号相关的操作
+- 📦 **轻量化安装** - 支持基础和完整两种安装方式，按需选择功能
 
 ## 兼容性说明
 
@@ -41,19 +42,92 @@ OpenGewe 是一个基于 [GeWeAPI](https://geweapi.com) 的微信机器人框架
 
 ## 安装
 
-### 从PyPI安装
+OpenGewe 提供两种安装方式，您可以根据自己的需求选择：
+
+### 🔸 基础安装（推荐给大多数用户）
+
+适合只需要基础功能的用户，安装包更小，依赖更少：
 
 ```bash
+# 使用 pip 安装基础版本
 pip install opengewe
-```
 
-### 从源码安装
-
-```bash
+# 或从源码安装基础功能
 git clone https://github.com/Wangnov/OpenGewe.git
 cd OpenGewe
+pip install -r requirements.txt
 pip install -e .
 ```
+
+**基础版本包含的功能：**
+- ✅ 完整的微信机器人功能
+- ✅ 简单消息队列 (SimpleMessageQueue)
+- ✅ 插件系统
+- ✅ 日志系统
+- ✅ 任务调度器
+- ✅ 所有API模块（登录、消息、群聊等）
+
+**基础版本不包含：**
+- ❌ 高级消息队列 (AdvancedMessageQueue)
+- ❌ Celery 分布式任务处理
+- ❌ Redis/RabbitMQ 支持
+
+### 🔸 完整安装（需要高级功能的用户）
+
+适合需要分布式处理、高并发场景的用户：
+
+```bash
+# 使用 pip 安装完整版本（推荐）
+pip install opengewe[advanced]
+
+# 或使用完整依赖文件
+git clone https://github.com/Wangnov/OpenGewe.git
+cd OpenGewe
+pip install -r requirements-advanced.txt
+pip install -e .
+
+# 或手动安装依赖
+pip install opengewe
+pip install celery redis amqp joblib lz4
+```
+
+**完整版本额外包含：**
+- ✅ 高级消息队列 (AdvancedMessageQueue)
+- ✅ Celery 分布式任务处理
+- ✅ Redis/RabbitMQ 消息代理支持
+- ✅ 高性能序列化 (joblib + lz4)
+
+### 📋 依赖对比
+
+| 依赖包 | 基础安装 | 完整安装 | 用途 |
+|--------|----------|----------|------|
+| qrcode | ✅ | ✅ | 二维码生成 |
+| aiohttp | ✅ | ✅ | 异步HTTP客户端 |
+| pytz | ✅ | ✅ | 时区处理 |
+| apscheduler | ✅ | ✅ | 任务调度 |
+| loguru | ✅ | ✅ | 日志记录 |
+| tomli | ✅ | ✅ | TOML配置解析 |
+| celery | ❌ | ✅ | 分布式任务队列 |
+| redis | ❌ | ✅ | Redis客户端 |
+| amqp | ❌ | ✅ | AMQP协议支持 |
+| joblib | ❌ | ✅ | 高效序列化 |
+| lz4 | ❌ | ✅ | 快速压缩 |
+
+### 🤔 如何选择？
+
+**选择基础安装，如果您：**
+- 是新用户，想快速体验
+- 项目规模较小
+- 单机部署
+- 消息量不大
+- 不需要分布式处理
+
+**选择完整安装，如果您：**
+- 需要生产环境部署
+- 需要分布式处理
+- 高并发场景
+- 需要消息持久化
+- 多worker协作
 
 ## 快速开始
 
@@ -72,10 +146,11 @@ async def main():
         app_id="your_app_id",  # 在GeWeAPI登录成功后返回的app_id
         token="your_token",  # 在GeWeAPI创建的token
         is_gewe=True,  # 使用付费版GeWeAPI
+        queue_type="simple",  # 消息队列类型：simple（基础安装）或 advanced（完整安装）
     )
     
     # 发送文本消息
-    await client.send_text("filehelper", "你好，这是一条测试消息")
+    await client.send_text_message("filehelper", "你好，这是一条测试消息")
     
     # 获取通讯录列表
     contacts = await client.contact.get_contact_list()
@@ -85,6 +160,73 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+```
+
+### 消息队列使用
+
+OpenGewe 支持两种消息队列模式，根据您的安装方式自动选择：
+
+#### 简单队列模式（基础安装）
+```python
+from opengewe import GeweClient
+
+# 创建使用简单队列的客户端
+client = GeweClient(
+    base_url="your_base_url",
+    token="your_token",
+    app_id="your_app_id",
+    queue_type="simple",  # 使用简单队列
+    delay=1.0,  # 消息发送间隔（秒）
+)
+```
+
+#### 高级队列模式（完整安装）
+```python
+from opengewe import GeweClient
+
+# 创建使用高级队列的客户端（需要 pip install opengewe[advanced]）
+client = GeweClient(
+    base_url="your_base_url", 
+    token="your_token",
+    app_id="your_app_id",
+    queue_type="advanced",  # 使用高级队列
+    broker="redis://localhost:6379/0",  # Redis/RabbitMQ 地址
+    backend="redis://localhost:6379/0",  # 结果存储地址
+    queue_name="opengewe_messages",  # 队列名称
+)
+```
+
+#### 队列功能对比
+
+| 功能特性 | 简单队列 | 高级队列 |
+|----------|----------|----------|
+| 安装要求 | 基础安装 | 完整安装 |
+| 部署复杂度 | 简单 | 需要 Redis/RabbitMQ |
+| 分布式支持 | ❌ | ✅ |
+| 消息持久化 | ❌ | ✅ |
+| 多 Worker | ❌ | ✅ |
+| 高并发 | 适中 | 高性能 |
+| 适用场景 | 小型项目、单机 | 生产环境、分布式 |
+
+#### 错误处理示例
+```python
+try:
+    # 尝试创建高级队列
+    client = GeweClient(
+        base_url="your_base_url",
+        token="your_token", 
+        app_id="your_app_id",
+        queue_type="advanced"
+    )
+except ImportError as e:
+    print("高级队列功能不可用，请安装: pip install opengewe[advanced]")
+    # 降级到简单队列
+    client = GeweClient(
+        base_url="your_base_url",
+        token="your_token",
+        app_id="your_app_id", 
+        queue_type="simple"
+    )
 ```
 
 ### 配置文件
@@ -107,6 +249,13 @@ enabled_plugins = ["ExamplePlugin"]
 
 [queue]
 queue_type = "simple"  # 可选 "simple" 或 "advanced"
+# 简单队列配置
+delay = 1.0
+
+# 高级队列配置（仅当 queue_type = "advanced" 时需要）
+# broker = "redis://localhost:6379/0"
+# backend = "redis://localhost:6379/0" 
+# queue_name = "opengewe_messages"
 
 [logging]
 level = "INFO"

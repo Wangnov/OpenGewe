@@ -206,7 +206,8 @@ def configure_from_dict(config: Dict[str, Any]) -> None:
     # 根据format_type选择格式
     if format_type == "json":
         structured = True
-        console_format = lambda record: format_structured_record(record, DEFAULT_JSON_FORMAT)
+        def console_format(record):
+            return format_structured_record(record, DEFAULT_JSON_FORMAT)
     elif format_type == "simple":
         structured = False
         console_format = SIMPLE_CONSOLE_FORMAT

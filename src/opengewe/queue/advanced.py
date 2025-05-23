@@ -5,12 +5,58 @@ import tempfile
 from asyncio import Future
 from typing import Any, Awaitable, Callable, Dict, Optional
 
-from celery import Celery
-from celery.result import AsyncResult
-from loguru import logger
-import joblib
-
+from opengewe.logger import get_logger
 from .base import BaseMessageQueue, QueueError, WorkerNotFoundError
+
+logger = get_logger("Queue.Advanced")
+# 可选依赖导入
+try:
+    from celery import Celery
+    from celery.result import AsyncResult
+    CELERY_AVAILABLE = True
+except ImportError:
+    logger.warning(
+        "Celery未安装，高级队列功能将不可用。\n"
+        "请运行以下命令安装: pip install opengewe[advanced]\n"
+        "或者单独安装: pip install celery"
+    )
+    Celery = None
+    AsyncResult = None
+    CELERY_AVAILABLE = False
+
+try:
+    import joblib
+    JOBLIB_AVAILABLE = True
+except ImportError:
+    logger.warning(
+        "joblib未安装，某些序列化功能将受限。\n"
+        "请运行以下命令安装: pip install opengewe[advanced]\n"
+        "或者单独安装: pip install joblib"
+    )
+    joblib = None
+    JOBLIB_AVAILABLE = False
+
+try:
+    import redis
+    REDIS_AVAILABLE = True
+except ImportError:
+    logger.debug(
+        "redis未安装，如使用Redis作为broker可能出现问题。\n"
+        "请运行以下命令安装: pip install opengewe[advanced]\n"
+        "或者单独安装: pip install redis"
+    )
+    REDIS_AVAILABLE = False
+
+try:
+    import lz4
+    LZ4_AVAILABLE = True
+except ImportError:
+    logger.debug(
+        "lz4未安装，压缩功能将受限。\n"
+        "请运行以下命令安装: pip install opengewe[advanced]\n"
+        "或者单独安装: pip install lz4"
+    )
+    LZ4_AVAILABLE = False
 
 # 默认配置，可通过环境变量覆盖
 DEFAULT_BROKER = "redis://localhost:6379/0"
@@ -20,114 +66,134 @@ DEFAULT_QUEUE_NAME = "opengewe_messages"
 
 # 创建Celery应用工厂函数
 def create_celery_app(
-    broker: Optional[str] = None,
-    backend: Optional[str] = None,
-    queue_name: Optional[str] = None,
-) -> Celery:
+    broker: str = DEFAULT_BROKER,
+    backend: str = DEFAULT_BACKEND,
+    queue_name: str = DEFAULT_QUEUE_NAME,
+):
     """创建Celery应用实例
 
     Args:
-        broker: 消息代理的URI，例如 'redis://localhost:6379/0' 或 'amqp://guest:guest@localhost:5672//'
-        backend: 结果存储的URI，例如 'redis://localhost:6379/0'
+        broker: 消息代理URL
+        backend: 结果后端URL
         queue_name: 队列名称
 
     Returns:
-        Celery: Celery应用实例
+        Celery应用实例
+
+    Raises:
+        ImportError: 如果Celery未安装
     """
-    # 从环境变量或参数中获取配置
-    broker = broker or os.environ.get("OPENGEWE_BROKER_URL", DEFAULT_BROKER)
-    backend = backend or os.environ.get("OPENGEWE_RESULT_BACKEND", DEFAULT_BACKEND)
-    queue_name = queue_name or os.environ.get("OPENGEWE_QUEUE_NAME", DEFAULT_QUEUE_NAME)
-
-    # 创建Celery应用
-    app = Celery(
-        "opengewe_message_queue",
-        broker=broker,
-        backend=backend,
-    )
-
-    # 配置Celery
+    if not CELERY_AVAILABLE:
+        raise ImportError(
+            "Celery未安装，无法创建高级消息队列。\n"
+            "请运行以下命令安装: pip install opengewe[advanced]\n"
+            "或者单独安装: pip install celery"
+        )
+    
+    app = Celery("opengewe_queue")
     app.conf.update(
+        broker_url=broker,
+        result_backend=backend,
         task_serializer="json",
         accept_content=["json"],
         result_serializer="json",
-        timezone="Asia/Shanghai",
+        timezone="UTC",
         enable_utc=True,
-        task_routes={"opengewe.queue.advanced.process_message": {"queue": queue_name}},
-        # 添加更多Celery配置
-        worker_prefetch_multiplier=1,
-        task_acks_late=True,
-        task_reject_on_worker_lost=True,
+        task_routes={
+            "opengewe.queue.advanced.process_message": {"queue": queue_name},
+        },
     )
-
     return app
 
 
-# 创建模块级别的Celery实例
-celery = create_celery_app()
-
-
-# 定义处理消息的Celery任务
-@celery.task(name="opengewe.queue.advanced.process_message", bind=True)
-def process_message(
-    self,
-    task_id: str,
-    serialized_func_data: str,
-    func_args: list,
-    func_kwargs: dict,
-) -> Any:
-    """处理消息的Celery任务
-
-    Args:
-        self: Celery任务实例（bind=True时自动传入）
-        task_id: 任务ID
-        serialized_func_data: 使用joblib序列化的函数数据
-        func_args: 函数的位置参数
-        func_kwargs: 函数的关键字参数
-
-    Returns:
-        Any: 函数执行的结果
-    """
+# 创建模块级别的Celery实例（仅在依赖可用时）
+celery = None
+if CELERY_AVAILABLE:
     try:
-        logger.info(f"开始处理消息任务: {task_id}")
+        celery = create_celery_app()
+        logger.debug("模块级别的Celery应用实例创建成功")
+    except Exception as e:
+        logger.warning(f"创建模块级别的Celery应用实例失败: {e}")
+        celery = None
 
-        # 使用joblib反序列化函数
+
+# 定义处理消息的Celery任务（仅在Celery可用时）
+if CELERY_AVAILABLE and celery is not None:
+    @celery.task(name="opengewe.queue.advanced.process_message", bind=True)
+    def process_message(
+        self,
+        task_id: str,
+        serialized_func_data: str,
+        func_args: list,
+        func_kwargs: dict,
+    ) -> Any:
+        """处理消息的Celery任务
+
+        Args:
+            self: Celery任务实例（bind=True时自动传入）
+            task_id: 任务ID
+            serialized_func_data: 使用joblib序列化的函数数据
+            func_args: 函数的位置参数
+            func_kwargs: 函数的关键字参数
+
+        Returns:
+            Any: 函数执行的结果
+        """
         try:
-            func_bytes = base64.b64decode(serialized_func_data)
+            logger.info(f"开始处理消息任务: {task_id}")
 
-            # 创建临时文件来存储序列化数据
-            with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-                temp_file.write(func_bytes)
-                temp_file_path = temp_file.name
+            # 检查joblib是否可用
+            if not JOBLIB_AVAILABLE:
+                raise ImportError(
+                    "joblib未安装，无法反序列化函数。\n"
+                    "请在worker环境中安装: pip install opengewe[advanced]\n"
+                    "或者单独安装: pip install joblib"
+                )
 
+            # 使用joblib反序列化函数
             try:
-                # 使用joblib加载函数
-                func = joblib.load(temp_file_path)
-            finally:
-                # 清理临时文件
-                os.unlink(temp_file_path)
+                func_bytes = base64.b64decode(serialized_func_data)
+
+                # 创建临时文件来存储序列化数据
+                with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+                    temp_file.write(func_bytes)
+                    temp_file_path = temp_file.name
+
+                try:
+                    # 使用joblib加载函数
+                    func = joblib.load(temp_file_path)
+                finally:
+                    # 清理临时文件
+                    os.unlink(temp_file_path)
+
+            except Exception as e:
+                raise ValueError(f"无法反序列化函数: {str(e)}")
+
+            # 检查函数是否为异步函数
+            if asyncio.iscoroutinefunction(func):
+                # 异步函数使用asyncio.run执行
+                result = asyncio.run(func(*func_args, **func_kwargs))
+            else:
+                # 同步函数直接调用
+                result = func(*func_args, **func_kwargs)
+
+            logger.info(f"任务 {task_id} 执行成功")
+            return {"status": "success", "data": result}
 
         except Exception as e:
-            raise ValueError(f"无法反序列化函数: {str(e)}")
+            logger.error(f"消息处理异常: {str(e)}")
+            # 记录更详细的错误信息
+            import traceback
 
-        # 检查函数是否为异步函数
-        if asyncio.iscoroutinefunction(func):
-            # 异步函数使用asyncio.run执行
-            result = asyncio.run(func(*func_args, **func_kwargs))
-        else:
-            # 同步函数直接调用
-            result = func(*func_args, **func_kwargs)
-
-        logger.info(f"任务 {task_id} 执行成功")
-        return {"status": "success", "data": result}
-
-    except Exception as e:
-        logger.error(f"消息处理异常: {str(e)}")
-        # 记录更详细的错误信息
-        import traceback
-
-        logger.error(f"错误堆栈: {traceback.format_exc()}")
-        return {"status": "error", "error": str(e), "traceback": traceback.format_exc()}
+            logger.error(f"错误堆栈: {traceback.format_exc()}")
+            return {"status": "error", "error": str(e), "traceback": traceback.format_exc()}
+else:
+    # 创建一个占位符函数
+    def process_message(*args, **kwargs):
+        raise ImportError(
+            "Celery未安装或不可用，无法处理消息任务。\n"
+            "请安装: pip install opengewe[advanced]"
+        )
 
 
 class AdvancedMessageQueue(BaseMessageQueue):
@@ -138,34 +204,32 @@ class AdvancedMessageQueue(BaseMessageQueue):
         broker: str = DEFAULT_BROKER,
         backend: str = DEFAULT_BACKEND,
         queue_name: str = DEFAULT_QUEUE_NAME,
-        celery_app: Optional[Celery] = None,
     ):
         """初始化高级消息队列
 
         Args:
-            broker: 消息代理的URI，例如 'redis://localhost:6379/0' 或 'amqp://guest:guest@localhost:5672//'
-            backend: 结果存储的URI，例如 'redis://localhost:6379/0'
+            broker: 消息代理URL，支持Redis和RabbitMQ
+            backend: 结果后端URL
             queue_name: 队列名称
-            celery_app: 可选的Celery应用实例，如果提供则使用该实例，否则使用默认实例
+
+        Raises:
+            ImportError: 如果Celery未安装
         """
+        if not CELERY_AVAILABLE:
+            raise ImportError(
+                "Celery未安装，无法使用高级消息队列。\n"
+                "请运行以下命令安装: pip install opengewe[advanced]\n"
+                "或者单独安装: pip install celery"
+            )
+        
+        self.broker = broker
+        self.backend = backend
+        self.queue_name = queue_name
+        self.celery_app = create_celery_app(broker, backend, queue_name)
+        self._task_futures = {}
         self._futures: Dict[str, Future] = {}
-        self._queue_name = queue_name
         self._processed_messages = 0
         self._is_processing = False
-
-        # 使用提供的Celery实例或模块级别的实例
-        if celery_app:
-            self.celery = celery_app
-        else:
-            # 如果broker或backend与默认值不同，创建新的Celery实例
-            if (
-                broker != DEFAULT_BROKER
-                or backend != DEFAULT_BACKEND
-                or queue_name != DEFAULT_QUEUE_NAME
-            ):
-                self.celery = create_celery_app(broker, backend, queue_name)
-            else:
-                self.celery = celery
 
     def _serialize_function(self, func: Callable) -> str:
         """序列化函数为base64字符串
@@ -175,15 +239,28 @@ class AdvancedMessageQueue(BaseMessageQueue):
 
         Returns:
             str: base64编码的序列化函数数据
+            
+        Raises:
+            ValueError: 如果序列化失败
+            ImportError: 如果joblib未安装
         """
+        if not JOBLIB_AVAILABLE:
+            raise ImportError(
+                "joblib未安装，无法序列化函数。\n"
+                "请运行以下命令安装: pip install opengewe[advanced]\n"
+                "或者单独安装: pip install joblib\n"
+                "joblib是高级消息队列序列化函数所必需的依赖。"
+            )
+        
         try:
             # 创建临时文件来存储序列化数据
             with tempfile.NamedTemporaryFile(delete=False) as temp_file:
                 temp_file_path = temp_file.name
 
             try:
-                # 使用joblib序列化函数，使用默认压缩提高性能
-                joblib.dump(func, temp_file_path, compress="lz4")
+                # 使用joblib序列化函数，使用lz4压缩（如果可用）
+                compression = "lz4" if LZ4_AVAILABLE else "gzip"
+                joblib.dump(func, temp_file_path, compress=compression)
 
                 # 读取序列化数据并编码为base64
                 with open(temp_file_path, "rb") as f:
@@ -209,7 +286,7 @@ class AdvancedMessageQueue(BaseMessageQueue):
         """
         try:
             # 使用ping检测worker
-            ping_result = self.celery.control.ping(timeout=timeout)
+            ping_result = self.celery_app.control.ping(timeout=timeout)
             if ping_result:
                 worker_count = len(ping_result)
                 logger.debug(f"检测到 {worker_count} 个活跃的Celery worker")
@@ -238,7 +315,7 @@ class AdvancedMessageQueue(BaseMessageQueue):
         """
         try:
             # 获取Celery inspect对象
-            inspect_obj = self.celery.control.inspect()
+            inspect_obj = self.celery_app.control.inspect()
 
             # 获取活跃任务
             active_tasks = inspect_obj.active() or {}
@@ -267,7 +344,7 @@ class AdvancedMessageQueue(BaseMessageQueue):
                 "scheduled_tasks": total_scheduled,
                 "reserved_tasks": total_reserved,
                 "pending_futures": len(self._futures),
-                "queue_name": self._queue_name,
+                "queue_name": self.queue_name,
                 "workers": list(worker_stats.keys()),
             }
         except Exception as e:
@@ -281,7 +358,7 @@ class AdvancedMessageQueue(BaseMessageQueue):
                 "scheduled_tasks": 0,
                 "reserved_tasks": 0,
                 "pending_futures": len(self._futures),
-                "queue_name": self._queue_name,
+                "queue_name": self.queue_name,
                 "workers": [],
                 "error": str(e),
             }
@@ -297,7 +374,7 @@ class AdvancedMessageQueue(BaseMessageQueue):
         """
         try:
             # 获取Celery inspect对象
-            inspect_obj = self.celery.control.inspect()
+            inspect_obj = self.celery_app.control.inspect()
 
             # 获取预约和保留的任务
             scheduled_tasks = inspect_obj.scheduled() or {}
@@ -309,7 +386,7 @@ class AdvancedMessageQueue(BaseMessageQueue):
             total_count = scheduled_count + reserved_count
 
             # 清空队列
-            self.celery.control.purge()
+            self.celery_app.control.purge()
 
             # 取消所有待处理的Future
             cancelled_futures = 0
@@ -356,7 +433,7 @@ class AdvancedMessageQueue(BaseMessageQueue):
                 f"  celery -A opengewe.queue.advanced inspect ping\n"
                 "\n"
                 "确保Redis服务正在运行：\n"
-                f"  {self.celery.conf.broker_url}\n"
+                f"  {self.celery_app.conf.broker_url}\n"
                 "\n"
                 "如果您想使用简单队列，请将queue_type设置为'simple'"
             )
@@ -384,7 +461,7 @@ class AdvancedMessageQueue(BaseMessageQueue):
             async_result = process_message.apply_async(
                 args=(task_id, serialized_func_data, list(args), kwargs),
                 task_id=task_id,
-                queue=self._queue_name,  # 明确指定队列
+                queue=self.queue_name,  # 明确指定队列
             )
 
             # 创建一个监听任务结果的异步任务
@@ -402,7 +479,7 @@ class AdvancedMessageQueue(BaseMessageQueue):
             raise QueueError(f"提交任务到队列失败: {str(e)}") from e
 
     async def _wait_for_result(
-        self, task_id: str, async_result: AsyncResult, timeout: float = 30.0
+        self, task_id: str, async_result: AsyncResult, timeout: float = 30.0 # type: ignore
     ) -> None:
         """等待Celery任务结果并设置到Future
 
@@ -472,7 +549,7 @@ class AdvancedMessageQueue(BaseMessageQueue):
             if not self._futures:
                 self._is_processing = False
 
-    async def _wait_for_task_completion(self, async_result: AsyncResult) -> None:
+    async def _wait_for_task_completion(self, async_result: AsyncResult) -> None: # type: ignore
         """等待任务完成的内部方法
 
         Args:
@@ -489,11 +566,11 @@ class AdvancedMessageQueue(BaseMessageQueue):
         此方法仅用于保持接口一致性
         """
         logger.info("Celery消息队列不需要手动启动处理，请确保Celery worker已运行")
-        logger.info(f"队列名称: {self._queue_name}")
+        logger.info(f"队列名称: {self.queue_name}")
 
         # 检查worker状态
         try:
-            inspect_obj = self.celery.control.inspect()
+            inspect_obj = self.celery_app.control.inspect()
             worker_stats = inspect_obj.stats() or {}
             if worker_stats:
                 logger.info(
