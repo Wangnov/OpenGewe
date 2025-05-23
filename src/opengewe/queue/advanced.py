@@ -1,17 +1,46 @@
 import asyncio
 import os
+import inspect
 from asyncio import Future
 from typing import Any, Awaitable, Callable, Dict, Optional
 
 from celery import Celery
+from celery.result import AsyncResult
 from loguru import logger
 
-from .base import BaseMessageQueue
+from .base import BaseMessageQueue, QueueError
 
 # 默认配置，可通过环境变量覆盖
 DEFAULT_BROKER = "redis://localhost:6379/0"
 DEFAULT_BACKEND = "redis://localhost:6379/0"
 DEFAULT_QUEUE_NAME = "opengewe_messages"
+
+# 全局函数注册表，用于在Celery任务中调用异步函数
+_FUNCTION_REGISTRY: Dict[str, Callable] = {}
+
+def register_function(func: Callable) -> str:
+    """注册函数到全局注册表
+    
+    Args:
+        func: 要注册的函数
+        
+    Returns:
+        str: 函数的注册键
+    """
+    func_key = f"{func.__module__}.{func.__qualname__}"
+    _FUNCTION_REGISTRY[func_key] = func
+    return func_key
+
+def get_registered_function(func_key: str) -> Optional[Callable]:
+    """从注册表获取函数
+    
+    Args:
+        func_key: 函数注册键
+        
+    Returns:
+        Optional[Callable]: 注册的函数，如果不存在则返回None
+    """
+    return _FUNCTION_REGISTRY.get(func_key)
 
 # 创建Celery应用工厂函数
 def create_celery_app(
@@ -51,6 +80,10 @@ def create_celery_app(
         task_routes={
             "process_message": {"queue": queue_name}
         },
+        # 添加更多Celery配置
+        worker_prefetch_multiplier=1,
+        task_acks_late=True,
+        task_reject_on_worker_lost=True,
     )
     
     return app
@@ -59,29 +92,59 @@ def create_celery_app(
 celery = create_celery_app()
 
 # 定义处理消息的Celery任务
-@celery.task(name="process_message")
-def process_message(task_id: str, func_name: str, *args: Any, **kwargs: Any) -> Any:
+@celery.task(name="process_message", bind=True)
+def process_message(self, task_id: str, func_key: str, func_args: list, func_kwargs: dict) -> Any:
     """处理消息的Celery任务
 
     Args:
+        self: Celery任务实例（bind=True时自动传入）
         task_id: 任务ID
-        func_name: 要调用的函数名
-        *args: 函数的位置参数
-        **kwargs: 函数的关键字参数
+        func_key: 函数注册键
+        func_args: 函数的位置参数
+        func_kwargs: 函数的关键字参数
 
     Returns:
         Any: 函数执行的结果
     """
     try:
-        logger.info(f"处理消息: {func_name}, 任务ID: {task_id}")
-        # 这里只是示例，实际实现需要根据func_name获取对应的函数并调用
-        # 由于Celery任务是同步的，而我们要调用的函数是异步的，这里需要一个运行时环境来执行异步函数
-        # 这里简化处理，实际实现可能更复杂
-        result = {"status": "success", "data": f"处理了 {func_name}"}
-        return result
+        logger.info(f"处理消息: {func_key}, 任务ID: {task_id}")
+        
+        # 从注册表获取函数
+        func = get_registered_function(func_key)
+        if func is None:
+            raise ValueError(f"未找到注册的函数: {func_key}")
+        
+        # 检查函数是否为异步函数
+        if inspect.iscoroutinefunction(func):
+            # 异步函数需要在事件循环中运行
+            try:
+                # 尝试获取当前事件循环
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                # 如果没有事件循环，创建一个新的
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            
+            try:
+                # 运行异步函数
+                result = loop.run_until_complete(func(*func_args, **func_kwargs))
+            finally:
+                # 如果是新创建的事件循环，关闭它
+                if loop.is_running() is False:
+                    loop.close()
+        else:
+            # 同步函数直接调用
+            result = func(*func_args, **func_kwargs)
+        
+        logger.debug(f"任务 {task_id} 执行成功")
+        return {"status": "success", "data": result}
+        
     except Exception as e:
         logger.error(f"消息处理异常: {str(e)}")
-        return {"status": "error", "error": str(e)}
+        # 记录更详细的错误信息
+        import traceback
+        logger.error(f"错误堆栈: {traceback.format_exc()}")
+        return {"status": "error", "error": str(e), "traceback": traceback.format_exc()}
 
 
 class AdvancedMessageQueue(BaseMessageQueue):
@@ -104,6 +167,8 @@ class AdvancedMessageQueue(BaseMessageQueue):
         """
         self._futures: Dict[str, Future] = {}
         self._queue_name = queue_name
+        self._processed_messages = 0
+        self._is_processing = False
 
         # 使用提供的Celery实例或模块级别的实例
         if celery_app:
@@ -119,6 +184,114 @@ class AdvancedMessageQueue(BaseMessageQueue):
         # 使用模块级别的任务
         self._process_message = process_message
 
+    @property
+    def is_processing(self) -> bool:
+        """返回当前是否正在处理消息
+
+        Returns:
+            bool: 如果处理器正在运行则返回True，否则返回False
+        """
+        return self._is_processing or len(self._futures) > 0
+
+    async def get_queue_status(self) -> Dict[str, Any]:
+        """获取队列状态信息
+
+        Returns:
+            Dict[str, Any]: 包含队列当前状态的字典
+        """
+        try:
+            # 获取Celery inspect对象
+            inspect_obj = self.celery.control.inspect()
+            
+            # 获取活跃任务
+            active_tasks = inspect_obj.active() or {}
+            
+            # 获取预约任务
+            scheduled_tasks = inspect_obj.scheduled() or {}
+            
+            # 获取保留任务
+            reserved_tasks = inspect_obj.reserved() or {}
+            
+            # 计算总任务数
+            total_active = sum(len(tasks) for tasks in active_tasks.values())
+            total_scheduled = sum(len(tasks) for tasks in scheduled_tasks.values())
+            total_reserved = sum(len(tasks) for tasks in reserved_tasks.values())
+            
+            # 获取worker状态
+            worker_stats = inspect_obj.stats() or {}
+            worker_count = len(worker_stats)
+            
+            return {
+                "queue_size": total_scheduled + total_reserved,
+                "processing": self.is_processing,
+                "worker_count": worker_count,
+                "processed_messages": self._processed_messages,
+                "active_tasks": total_active,
+                "scheduled_tasks": total_scheduled,
+                "reserved_tasks": total_reserved,
+                "pending_futures": len(self._futures),
+                "queue_name": self._queue_name,
+                "workers": list(worker_stats.keys()),
+            }
+        except Exception as e:
+            logger.warning(f"获取队列状态失败: {e}")
+            return {
+                "queue_size": 0,
+                "processing": self.is_processing,
+                "worker_count": 0,
+                "processed_messages": self._processed_messages,
+                "active_tasks": 0,
+                "scheduled_tasks": 0,
+                "reserved_tasks": 0,
+                "pending_futures": len(self._futures),
+                "queue_name": self._queue_name,
+                "workers": [],
+                "error": str(e),
+            }
+
+    async def clear_queue(self) -> int:
+        """清空当前队列中的所有待处理消息
+
+        Returns:
+            int: 被清除的消息数量
+
+        Raises:
+            QueueError: 清空队列失败时
+        """
+        try:
+            # 获取Celery inspect对象
+            inspect_obj = self.celery.control.inspect()
+            
+            # 获取预约和保留的任务
+            scheduled_tasks = inspect_obj.scheduled() or {}
+            reserved_tasks = inspect_obj.reserved() or {}
+            
+            # 计算待清除的任务数
+            scheduled_count = sum(len(tasks) for tasks in scheduled_tasks.values())
+            reserved_count = sum(len(tasks) for tasks in reserved_tasks.values())
+            total_count = scheduled_count + reserved_count
+            
+            # 清空队列
+            self.celery.control.purge()
+            
+            # 取消所有待处理的Future
+            cancelled_futures = 0
+            for future in list(self._futures.values()):
+                if not future.done():
+                    future.cancel()
+                    cancelled_futures += 1
+            
+            # 清空Future字典
+            self._futures.clear()
+            
+            logger.info(f"已清空队列，删除 {total_count} 个排队任务，取消 {cancelled_futures} 个Future")
+            return total_count + cancelled_futures
+            
+        except Exception as e:
+            error_msg = f"清空队列失败: {str(e)}"
+            logger.error(error_msg)
+            raise QueueError(error_msg) from e
+
     async def enqueue(self, func: Callable[..., Awaitable[Any]], *args: Any, **kwargs: Any) -> Any:
         """将消息添加到队列
 
@@ -130,32 +303,40 @@ class AdvancedMessageQueue(BaseMessageQueue):
         Returns:
             Any: 函数执行的结果
         """
+        # 注册函数到全局注册表
+        func_key = register_function(func)
+        
         # 创建一个Future对象用于异步等待结果
         future = Future()
         
-        # 获取函数名作为任务标识
-        func_name = func.__name__
-        
         # 生成唯一的任务ID
-        task_id = f"{func_name}_{id(future)}"
+        task_id = f"{func.__name__}_{id(future)}"
         
         # 存储Future以便后续设置结果
         self._futures[task_id] = future
         
-        # 提交任务到Celery
-        async_result = self._process_message.apply_async(
-            args=(task_id, func_name) + args,
-            kwargs=kwargs,
-            task_id=task_id,
-        )
-        
-        # 创建一个监听任务结果的异步任务
-        asyncio.create_task(self._wait_for_result(task_id, async_result))
-        
-        # 返回Future，等待结果
-        return await future
+        try:
+            # 提交任务到Celery
+            async_result = self._process_message.apply_async(
+                args=(task_id, func_key, list(args), kwargs),
+                task_id=task_id,
+            )
+            
+            # 创建一个监听任务结果的异步任务
+            asyncio.create_task(self._wait_for_result(task_id, async_result))
+            
+            # 标记开始处理
+            self._is_processing = True
+            
+            # 返回Future，等待结果
+            return await future
+            
+        except Exception as e:
+            # 清理Future
+            self._futures.pop(task_id, None)
+            raise QueueError(f"提交任务到队列失败: {str(e)}") from e
 
-    async def _wait_for_result(self, task_id: str, async_result: Any) -> None:
+    async def _wait_for_result(self, task_id: str, async_result: AsyncResult) -> None:
         """等待Celery任务结果并设置到Future
 
         Args:
@@ -163,18 +344,29 @@ class AdvancedMessageQueue(BaseMessageQueue):
             async_result: Celery的AsyncResult对象
         """
         try:
-            # 等待任务完成并获取结果
-            result = async_result.get(timeout=180)  # 设置适当的超时时间
+            # 使用非阻塞方式等待任务完成
+            while not async_result.ready():
+                await asyncio.sleep(0.1)  # 短暂休眠，避免CPU占用过高
+            
+            # 获取任务结果
+            result = async_result.result
             
             # 获取对应的Future
             future = self._futures.get(task_id)
             if future and not future.done():
                 if isinstance(result, dict) and result.get("status") == "error":
                     # 如果任务失败，设置异常
-                    future.set_exception(Exception(result.get("error", "Unknown error")))
+                    error_msg = result.get("error", "Unknown error")
+                    future.set_exception(Exception(error_msg))
                 else:
                     # 设置结果
-                    future.set_result(result)
+                    if isinstance(result, dict) and "data" in result:
+                        future.set_result(result["data"])
+                    else:
+                        future.set_result(result)
+                
+                # 增加处理计数
+                self._processed_messages += 1
             
         except Exception as e:
             logger.error(f"等待任务结果异常: {str(e)}")
@@ -185,6 +377,10 @@ class AdvancedMessageQueue(BaseMessageQueue):
         finally:
             # 移除Future
             self._futures.pop(task_id, None)
+            
+            # 如果没有待处理的Future，更新处理状态
+            if not self._futures:
+                self._is_processing = False
 
     async def start_processing(self) -> None:
         """开始处理队列中的消息
@@ -193,6 +389,18 @@ class AdvancedMessageQueue(BaseMessageQueue):
         此方法仅用于保持接口一致性
         """
         logger.info("Celery消息队列不需要手动启动处理，请确保Celery worker已运行")
+        logger.info(f"队列名称: {self._queue_name}")
+        
+        # 检查worker状态
+        try:
+            inspect_obj = self.celery.control.inspect()
+            worker_stats = inspect_obj.stats() or {}
+            if worker_stats:
+                logger.info(f"发现 {len(worker_stats)} 个活跃的Celery worker: {list(worker_stats.keys())}")
+            else:
+                logger.warning("未发现活跃的Celery worker，请启动worker: celery -A opengewe.queue.advanced worker")
+        except Exception as e:
+            logger.warning(f"无法检查Celery worker状态: {e}")
 
     async def stop_processing(self) -> None:
         """停止处理队列中的消息
@@ -200,4 +408,18 @@ class AdvancedMessageQueue(BaseMessageQueue):
         注意：在使用Celery的情况下，消息处理是由Celery worker负责的
         此方法仅用于保持接口一致性
         """
-        logger.info("Celery消息队列不需要手动停止处理") 
+        logger.info("Celery消息队列不需要手动停止处理")
+        
+        # 取消所有待处理的Future
+        cancelled_count = 0
+        for future in list(self._futures.values()):
+            if not future.done():
+                future.cancel()
+                cancelled_count += 1
+        
+        if cancelled_count > 0:
+            logger.info(f"已取消 {cancelled_count} 个待处理的Future")
+        
+        # 清空Future字典
+        self._futures.clear()
+        self._is_processing = False 
