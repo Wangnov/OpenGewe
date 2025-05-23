@@ -133,7 +133,7 @@ class GroupInfoUpdateHandler(BaseHandler):
     async def handle(self, data: Dict[str, Any]) -> Optional[BaseMessage]:
         """处理群信息变更通知"""
         # 直接使用GroupInfoUpdateMessage类处理消息
-        return GroupInfoUpdateMessage.from_dict(data)
+        return await GroupInfoUpdateMessage.from_dict(data)
 
 
 class GroupTodoHandler(BaseHandler):

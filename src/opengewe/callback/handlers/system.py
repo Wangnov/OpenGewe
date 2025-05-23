@@ -129,11 +129,11 @@ class SysmsgHandler(BaseHandler):
                 "<mmchatroombarannouncememt>" in content or "<announcement>" in content
             )
         ):
-            return GroupAnnouncementMessage.from_dict(data)
+            return await GroupAnnouncementMessage.from_dict(data)
 
         # 处理 MsgType=51 的同步消息
         if data["Data"].get("MsgType") == 51:
-            return SyncMessage.from_dict(data)
+            return await SyncMessage.from_dict(data)
 
         # 处理微信使用者自己触发的几个系统消息和别人触发的系统消息的区别
         if (
@@ -141,26 +141,26 @@ class SysmsgHandler(BaseHandler):
             and content.startswith("你被")
             and content.endswith("移出群聊")
         ):
-            return GroupRemovedMessage.from_dict(data)
+            return await GroupRemovedMessage.from_dict(data)
 
         if data["Data"].get("MsgType") == 10000 and content.endswith("成为新群主"):
-            return GroupOwnerChangeMessage.from_dict(data)
+            return await GroupOwnerChangeMessage.from_dict(data)
 
         if data["Data"].get("MsgType") == 10002 and "成为新群主" in content:
-            return GroupOwnerChangeMessage.from_dict(data)
+            return await GroupOwnerChangeMessage.from_dict(data)
 
         if data["Data"].get("MsgType") == 10000 and content.startswith("你修改群名为"):
-            return GroupRenameMessage.from_dict(data)
+            return await GroupRenameMessage.from_dict(data)
 
         # 处理群公告消息 - 合并判断逻辑并改进错误处理
         if data["Data"].get("MsgType") == 10002:
             # 先检查内容中是否包含关键字
             if "mmchatroombarannouncememt" in content:
-                return GroupAnnouncementMessage.from_dict(data)
+                return await GroupAnnouncementMessage.from_dict(data)
 
             # 冗余检查，确保不会遗漏群公告消息
             if "<sysmsg" in content and "<announcement_id>" in content:
-                return GroupAnnouncementMessage.from_dict(data)
+                return await GroupAnnouncementMessage.from_dict(data)
 
             # 如果关键字检查失败，尝试解析XML
             try:
@@ -175,20 +175,20 @@ class SysmsgHandler(BaseHandler):
                 if root.tag == "sysmsg":
                     sysmsg_type = root.get("type")
                     if sysmsg_type == "mmchatroombarannouncememt":
-                        return GroupAnnouncementMessage.from_dict(data)
+                        return await GroupAnnouncementMessage.from_dict(data)
             except Exception:
                 # 额外的检查，防止漏掉某些格式的群公告
                 if (
                     "<mmchatroombarannouncememt>" in content
                     and "<announcement_id>" in content
                 ):
-                    return GroupAnnouncementMessage.from_dict(data)
+                    return await GroupAnnouncementMessage.from_dict(data)
 
         # 处理 MsgType=49 的群公告消息
         if data["Data"].get("MsgType") == 49:
             content = data["Data"].get("Content", {}).get("string", "")
             if "<announcement>" in content and "<announcement_id>" in content:
-                return GroupAnnouncementMessage.from_dict(data)
+                return await GroupAnnouncementMessage.from_dict(data)
 
         try:
             # 处理可能包含非XML前缀的内容（如"chatroom:"）
@@ -205,13 +205,13 @@ class SysmsgHandler(BaseHandler):
             # 根据系统消息类型创建不同的消息对象
             if sysmsg_type == "pat":
                 # 拍一拍消息
-                return PatMessage.from_dict(data)
+                return await PatMessage.from_dict(data)
             elif sysmsg_type == "revokemsg":
                 # 撤回消息
-                return RevokeMessage.from_dict(data)
+                return await RevokeMessage.from_dict(data)
             elif sysmsg_type == "mmchatroombarannouncememt":
                 # 群公告
-                return GroupAnnouncementMessage.from_dict(data)
+                return await GroupAnnouncementMessage.from_dict(data)
             else:
                 # 处理 sysmsgtemplate 类型的系统消息
                 if sysmsg_type == "sysmsgtemplate":
@@ -221,15 +221,15 @@ class SysmsgHandler(BaseHandler):
 
                         # 判断是哪种类型的系统模板消息
                         if "已成为新群主" in template_text:
-                            return GroupOwnerChangeMessage.from_dict(data)
+                            return await GroupOwnerChangeMessage.from_dict(data)
                         elif "已解散该群聊" in template_text:
-                            return GroupDismissMessage.from_dict(data)
+                            return await GroupDismissMessage.from_dict(data)
                         elif "移出了群聊" in template_text:
-                            return GroupKickMessage.from_dict(data)
+                            return await GroupKickMessage.from_dict(data)
                         elif "修改群名为" in template_text:
-                            return GroupRenameMessage.from_dict(data)
+                            return await GroupRenameMessage.from_dict(data)
                         elif "邀请你加入了群聊" in template_text:
-                            return GroupInvitedMessage.from_dict(data)
+                            return await GroupInvitedMessage.from_dict(data)
 
                 # 默认处理为未知系统消息
                 return BaseMessage(
@@ -286,4 +286,4 @@ class SyncHandler(BaseHandler):
     async def handle(self, data: Dict[str, Any]) -> Optional[BaseMessage]:
         """处理同步消息"""
         # 直接使用SyncMessage类处理消息
-        return SyncMessage.from_dict(data)
+        return await SyncMessage.from_dict(data)

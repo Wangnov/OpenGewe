@@ -20,78 +20,45 @@ class LinkMessage(BaseMessage):
     thumb_url: str = ""  # 缩略图URL
     source_username: str = ""  # 来源用户名
     source_displayname: str = ""  # 来源显示名称
+    
+    # 设置消息类型类变量
+    message_type = MessageType.LINK
+    
+    async def _process_specific_data(self, data: Dict[str, Any], client: Optional["GeweClient"] = None) -> None:
+        """处理链接消息特有数据"""
+        # 解析XML获取链接信息
+        try:
+            root = ET.fromstring(self.content)
+            appmsg = root.find("appmsg")
+            if appmsg is not None:
+                # 获取链接类型，确保是链接消息(type=5)
+                link_type = appmsg.find("type")
+                if link_type is not None and link_type.text == "5":
+                    title = appmsg.find("title")
+                    if title is not None:
+                        self.title = title.text or ""
 
-    @classmethod
-    def from_dict(
-        cls, data: Dict[str, Any], client: Optional["GeweClient"] = None
-    ) -> "LinkMessage":
-        """从字典创建链接消息对象
+                    desc = appmsg.find("des")
+                    if desc is not None:
+                        self.description = desc.text or ""
 
-        Args:
-            data: 原始数据
-            client: GeweClient实例
-        """
-        msg = cls(
-            type=MessageType.LINK,
-            app_id=data.get("Appid", ""),
-            wxid=data.get("Wxid", ""),
-            typename=data.get("TypeName", ""),
-            raw_data=data,
-        )
+                    url = appmsg.find("url")
+                    if url is not None:
+                        self.url = url.text or ""
 
-        if "Data" in data:
-            msg_data = data["Data"]
-            msg.msg_id = str(msg_data.get("MsgId", ""))
-            msg.new_msg_id = str(msg_data.get("NewMsgId", ""))
-            msg.create_time = msg_data.get("CreateTime", 0)
+                    thumb_url = appmsg.find("thumburl")
+                    if thumb_url is not None:
+                        self.thumb_url = thumb_url.text or ""
 
-            if "FromUserName" in msg_data and "string" in msg_data["FromUserName"]:
-                msg.from_wxid = msg_data["FromUserName"]["string"]
+                    source_username = appmsg.find("sourceusername")
+                    if source_username is not None:
+                        self.source_username = source_username.text or ""
 
-            if "ToUserName" in msg_data and "string" in msg_data["ToUserName"]:
-                msg.to_wxid = msg_data["ToUserName"]["string"]
-
-            if "Content" in msg_data and "string" in msg_data["Content"]:
-                msg.content = msg_data["Content"]["string"]
-
-                # 处理群消息发送者
-                msg._process_group_message()
-
-                # 解析XML获取链接信息
-                try:
-                    root = ET.fromstring(msg.content)
-                    appmsg = root.find("appmsg")
-                    if appmsg is not None:
-                        # 获取链接类型，确保是链接消息(type=5)
-                        link_type = appmsg.find("type")
-                        if link_type is not None and link_type.text == "5":
-                            title = appmsg.find("title")
-                            if title is not None:
-                                msg.title = title.text or ""
-
-                            desc = appmsg.find("des")
-                            if desc is not None:
-                                msg.description = desc.text or ""
-
-                            url = appmsg.find("url")
-                            if url is not None:
-                                msg.url = url.text or ""
-
-                            thumb_url = appmsg.find("thumburl")
-                            if thumb_url is not None:
-                                msg.thumb_url = thumb_url.text or ""
-
-                            source_username = appmsg.find("sourceusername")
-                            if source_username is not None:
-                                msg.source_username = source_username.text or ""
-
-                            source_displayname = appmsg.find("sourcedisplayname")
-                            if source_displayname is not None:
-                                msg.source_displayname = source_displayname.text or ""
-                except Exception:
-                    pass
-
-        return msg
+                    source_displayname = appmsg.find("sourcedisplayname")
+                    if source_displayname is not None:
+                        self.source_displayname = source_displayname.text or ""
+        except Exception:
+            pass
 
 
 @dataclass
@@ -107,90 +74,56 @@ class MiniappMessage(BaseMessage):
     thumb_url: str = ""  # 缩略图URL
     icon_url: str = ""  # 小程序图标URL
     version: str = ""  # 小程序版本
-
-    @classmethod
-    def from_dict(
-        cls, data: Dict[str, Any], client: Optional["GeweClient"] = None
-    ) -> "MiniappMessage":
-        """从字典创建小程序消息对象
-
-        Args:
-            data: 原始数据
-            client: GeweClient实例
-        """
-        msg = cls(
-            type=MessageType.MINIAPP,
-            app_id=data.get("Appid", ""),
-            wxid=data.get("Wxid", ""),
-            typename=data.get("TypeName", ""),
-            raw_data=data,
-        )
-
-        if "Data" in data:
-            msg_data = data["Data"]
-            msg.msg_id = str(msg_data.get("MsgId", ""))
-            msg.new_msg_id = str(msg_data.get("NewMsgId", ""))
-            msg.create_time = msg_data.get("CreateTime", 0)
-
-            if "FromUserName" in msg_data and "string" in msg_data["FromUserName"]:
-                msg.from_wxid = msg_data["FromUserName"]["string"]
-
-            if "ToUserName" in msg_data and "string" in msg_data["ToUserName"]:
-                msg.to_wxid = msg_data["ToUserName"]["string"]
-
-            if "Content" in msg_data and "string" in msg_data["Content"]:
-                msg.content = msg_data["Content"]["string"]
-
-                # 处理群消息发送者
-                msg._process_group_message()
-
-                # 解析XML获取小程序信息
-                try:
-                    root = ET.fromstring(msg.content)
-                    appmsg = root.find("appmsg")
-                    if appmsg is not None:
-                        # 获取小程序类型，确保是小程序消息(type=33)
-                        app_type = appmsg.find("type")
-                        if app_type is not None and app_type.text == "33":
-                            title = appmsg.find("title")
-                            if title is not None:
-                                msg.title = title.text or ""
-
-                            desc = appmsg.find("des")
-                            if desc is not None:
-                                msg.description = desc.text or ""
-
-                            url = appmsg.find("url")
-                            if url is not None:
-                                msg.url = url.text or ""
-
-                            # 获取小程序信息
-                            weappinfo = appmsg.find("weappinfo")
-                            if weappinfo is not None:
-                                app_id_node = weappinfo.find("appid")
-                                if app_id_node is not None:
-                                    msg.app_id = app_id_node.text or ""
-
-                                username_node = weappinfo.find("username")
-                                if username_node is not None:
-                                    msg.username = username_node.text or ""
-
-                                pagepath_node = weappinfo.find("pagepath")
-                                if pagepath_node is not None:
-                                    msg.pagepath = pagepath_node.text or ""
-
-                                version_node = weappinfo.find("version")
-                                if version_node is not None:
-                                    msg.version = version_node.text or ""
-
-                                icon_url_node = weappinfo.find("weappiconurl")
-                                if icon_url_node is not None:
-                                    msg.icon_url = icon_url_node.text or ""
-                except Exception:
-                    pass
-
-        return msg 
     
+    # 设置消息类型类变量
+    message_type = MessageType.MINIAPP
+    
+    async def _process_specific_data(self, data: Dict[str, Any], client: Optional["GeweClient"] = None) -> None:
+        """处理小程序消息特有数据"""
+        # 解析XML获取小程序信息
+        try:
+            root = ET.fromstring(self.content)
+            appmsg = root.find("appmsg")
+            if appmsg is not None:
+                # 获取小程序类型，确保是小程序消息(type=33)
+                app_type = appmsg.find("type")
+                if app_type is not None and app_type.text == "33":
+                    title = appmsg.find("title")
+                    if title is not None:
+                        self.title = title.text or ""
+
+                    desc = appmsg.find("des")
+                    if desc is not None:
+                        self.description = desc.text or ""
+
+                    url = appmsg.find("url")
+                    if url is not None:
+                        self.url = url.text or ""
+
+                    # 获取小程序信息
+                    weappinfo = appmsg.find("weappinfo")
+                    if weappinfo is not None:
+                        app_id_node = weappinfo.find("appid")
+                        if app_id_node is not None:
+                            self.app_id = app_id_node.text or ""
+
+                        username_node = weappinfo.find("username")
+                        if username_node is not None:
+                            self.username = username_node.text or ""
+
+                        pagepath_node = weappinfo.find("pagepath")
+                        if pagepath_node is not None:
+                            self.pagepath = pagepath_node.text or ""
+
+                        version_node = weappinfo.find("version")
+                        if version_node is not None:
+                            self.version = version_node.text or ""
+
+                        icon_url_node = weappinfo.find("weappiconurl")
+                        if icon_url_node is not None:
+                            self.icon_url = icon_url_node.text or ""
+        except Exception:
+            pass
 
 
 @dataclass
@@ -206,58 +139,32 @@ class FinderMessage(BaseMessage):
     object_desc: str = ""  # 内容描述
     cover_url: str = ""  # 封面URL
     url: str = ""  # 分享链接URL
+    
+    # 设置消息类型类变量
+    message_type = MessageType.FINDER
+    
+    async def _process_specific_data(self, data: Dict[str, Any], client: Optional["GeweClient"] = None) -> None:
+        """处理视频号消息特有数据"""
+        # 解析XML获取视频号信息
+        try:
+            root = ET.fromstring(self.content)
+            appmsg = root.find("appmsg")
+            if appmsg is not None:
+                # 获取视频号ID
+                finder_info = appmsg.find("finderFeed")
+                if finder_info is not None:
+                    self.finder_id = finder_info.get("id", "")
+                    self.finder_username = finder_info.get("username", "")
+                    self.finder_nickname = finder_info.get("nickname", "")
+                    self.object_id = finder_info.get("objectId", "")
+                    self.object_type = finder_info.get("objectType", "")
+                    self.object_title = finder_info.get("title", "")
+                    self.object_desc = finder_info.get("desc", "")
+                    self.cover_url = finder_info.get("coverUrl", "")
 
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "FinderMessage":
-        """从字典创建视频号消息对象"""
-        msg = cls(
-            type=MessageType.FINDER,
-            app_id=data.get("Appid", ""),
-            wxid=data.get("Wxid", ""),
-            typename=data.get("TypeName", ""),
-            raw_data=data,
-        )
-
-        if "Data" in data:
-            msg_data = data["Data"]
-            msg.msg_id = str(msg_data.get("MsgId", ""))
-            msg.new_msg_id = str(msg_data.get("NewMsgId", ""))
-            msg.create_time = msg_data.get("CreateTime", 0)
-
-            if "FromUserName" in msg_data and "string" in msg_data["FromUserName"]:
-                msg.from_wxid = msg_data["FromUserName"]["string"]
-
-            if "ToUserName" in msg_data and "string" in msg_data["ToUserName"]:
-                msg.to_wxid = msg_data["ToUserName"]["string"]
-
-            if "Content" in msg_data and "string" in msg_data["Content"]:
-                msg.content = msg_data["Content"]["string"]
-
-                # 处理群消息发送者
-                msg._process_group_message()
-
-                # 解析XML获取视频号信息
-                try:
-                    root = ET.fromstring(msg.content)
-                    appmsg = root.find("appmsg")
-                    if appmsg is not None:
-                        # 获取视频号ID
-                        finder_info = appmsg.find("finderFeed")
-                        if finder_info is not None:
-                            msg.finder_id = finder_info.get("id", "")
-                            msg.finder_username = finder_info.get("username", "")
-                            msg.finder_nickname = finder_info.get("nickname", "")
-                            msg.object_id = finder_info.get("objectId", "")
-                            msg.object_type = finder_info.get("objectType", "")
-                            msg.object_title = finder_info.get("title", "")
-                            msg.object_desc = finder_info.get("desc", "")
-                            msg.cover_url = finder_info.get("coverUrl", "")
-
-                        # 获取URL
-                        url_node = appmsg.find("url")
-                        if url_node is not None and url_node.text:
-                            msg.url = url_node.text
-                except Exception:
-                    pass
-
-        return msg
+                # 获取URL
+                url_node = appmsg.find("url")
+                if url_node is not None and url_node.text:
+                    self.url = url_node.text
+        except Exception:
+            pass
