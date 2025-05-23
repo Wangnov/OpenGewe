@@ -1,0 +1,874 @@
+[
+  {
+    "type": "文本消息",
+    "data": {
+      "TypeName": "AddMsg",
+      "Appid": "wx_wR_U4zPj2M_OTS3BCyoE4",
+      "Wxid": "wxid_phyyedw9xap22",
+      "Data": {
+        "MsgId": 1040356095,
+        "FromUserName": {
+          "string": "wxid_phyyedw9xap22"
+        },
+        "ToUserName": {
+          "string": "wxid_0xsqb3o0tsvz22"
+        },
+        "MsgType": 1,
+        "Content": {
+          "string": ""
+        },
+        "Status": 3,
+        "ImgStatus": 1,
+        "ImgBuf": {
+          "iLen": 0
+        },
+        "CreateTime": 1705043418,
+        "MsgSource": "<msgsource>\\n\\t<alnode>\\n\\t\\t<fr>1</fr>\\n\\t</alnode>\\n\\t<signature>v1_volHXhv4</signature>\\n\\t<tmp_node>\\n\\t\\t<publisher-id></publisher-id>\\n\\t</tmp_node>\\n</msgsource>\\n",
+        "NewMsgId": 7773749793478223190,
+        "MsgSeq": 640356095,
+        "PushContent": "朝夕。 : 123"
+      }
+    }
+  },
+  {
+    "type": "图片消息",
+    "data": {
+      "TypeName": "AddMsg",
+      "Appid": "wx_wR_U4zPj2M_OTS3BCyoE4",
+      "Wxid": "wxid_phyyedw9xap22",
+      "Data": {
+        "MsgId": 1040356099,
+        "FromUserName": {
+          "string": "wxid_phyyedw9xap22"
+        },
+        "ToUserName": {
+          "string": "wxid_0xsqb3o0tsvz22"
+        },
+        "MsgType": 3,
+        "Content": {
+          "string": ""
+        },
+        "Status": 3,
+        "ImgStatus": 2,
+        "ImgBuf": {
+          "iLen": 2146,
+          "buffer": "/9j/4AAQSkZJRgABAQAASABIAAD/4QBM..."
+        },
+        "CreateTime": 1705043678,
+        "MsgSource": "<msgsource>\\n\\t<alnode>\\n\\t\\t<cf>2</cf>\\n\\t</alnode>\\n\\t<sec_msg_node>\\n\\t\\t<uuid>5b04ea0181f86c7f3d126e9a7fe5038b_</uuid>\\n\\t</sec_msg_node>\\n\\t<signature>v1_5WGxwSEj</signature>\\n\\t<tmp_node>\\n\\t\\t<publisher-id></publisher-id>\\n\\t</tmp_node>\\n</msgsource>\\n",
+        "NewMsgId": 6906713067183447582,
+        "MsgSeq": 640356099,
+        "PushContent": "朝夕。 : [图片]"
+      }
+    }
+  },
+  {
+    "type": "语音消息",
+    "data": {
+      "TypeName": "AddMsg",
+      "Appid": "wx_wR_U4zPj2M_OTS3BCyoE4",
+      "Wxid": "wxid_phyyedw9xap22",
+      "Data": {
+        "MsgId": 1040356100,
+        "FromUserName": {
+          "string": "wxid_phyyedw9xap22"
+        },
+        "ToUserName": {
+          "string": "wxid_0xsqb3o0tsvz22"
+        },
+        "MsgType": 34,
+        "Content": {
+          "string": ""
+        },
+        "Status": 3,
+        "ImgStatus": 1,
+        "ImgBuf": {
+          "iLen": 3600,
+          "buffer": "AiMhU0lMS19WMxMApzi9JA+qToPB..."
+        },
+        "CreateTime": 1705043782,
+        "MsgSource": "<msgsource>\\n\\t<signature>v1_j+rf/Jnp</signature>\\n\\t<tmp_node>\\n\\t\\t<publisher-id></publisher-id>\\n\\t</tmp_node>\\n</msgsource>\\n",
+        "NewMsgId": 1428830975092239121,
+        "MsgSeq": 640356100,
+        "PushContent": "朝夕。 : [语音]"
+      }
+    }
+  },
+  {
+    "type": "视频消息",
+    "data": {
+      "TypeName": "AddMsg",
+      "Appid": "wx_wR_U4zPj2M_OTS3BCyoE4",
+      "Wxid": "wxid_phyyedw9xap22",
+      "Data": {
+        "MsgId": 1040356101,
+        "FromUserName": {
+          "string": "wxid_phyyedw9xap22"
+        },
+        "ToUserName": {
+          "string": "wxid_0xsqb3o0tsvz22"
+        },
+        "MsgType": 43,
+        "Content": {
+          "string": ""
+        },
+        "Status": 3,
+        "ImgStatus": 1,
+        "ImgBuf": {
+          "iLen": 0
+        },
+        "CreateTime": 1705043879,
+        "MsgSource": "<msgsource>\\n\\t<bizflag>0</bizflag>\\n\\t<sec_msg_node>\\n\\t\\t<uuid>ce3ebc6d2893c7a2669ac5d2eaa4aadf_</uuid>\\n\\t</sec_msg_node>\\n\\t<signature>v1_kk/psF9W</signature>\\n\\t<tmp_node>\\n\\t\\t<publisher-id></publisher-id>\\n\\t</tmp_node>\\n</msgsource>\\n",
+        "NewMsgId": 6628526085342711793,
+        "MsgSeq": 640356101,
+        "PushContent": "朝夕。 : [视频]"
+      }
+    }
+  },
+  {
+    "type": "emoji表情",
+    "data": {
+      "TypeName": "AddMsg",
+      "Appid": "wx_wR_U4zPj2M_OTS3BCyoE4",
+      "Wxid": "wxid_phyyedw9xap22",
+      "Data": {
+        "MsgId": 1040356102,
+        "FromUserName": {
+          "string": "wxid_phyyedw9xap22"
+        },
+        "ToUserName": {
+          "string": "wxid_0xsqb3o0tsvz22"
+        },
+        "MsgType": 47,
+        "Content": {
+          "string": ""
+        },
+        "Status": 3,
+        "ImgStatus": 2,
+        "ImgBuf": {
+          "iLen": 0
+        },
+        "CreateTime": 1705043947,
+        "MsgSource": "<msgsource>\\n\\t<signature>v1_vy/xC7WS</signature>\\n\\t<tmp_node>\\n\\t\\t<publisher-id></publisher-id>\\n\\t</tmp_node>\\n</msgsource>\\n",
+        "NewMsgId": 6674256223577965652,
+        "MsgSeq": 640356102,
+        "PushContent": "朝夕。 : [动画表情]"
+      }
+    }
+  },
+  {
+    "type": "公众号链接",
+    "data": {
+      "TypeName": "AddMsg",
+      "Appid": "wx_wR_U4zPj2M_OTS3BCyoE4",
+      "Wxid": "wxid_phyyedw9xap22",
+      "Data": {
+        "MsgId": 1040356105,
+        "FromUserName": {
+          "string": "wxid_phyyedw9xap22"
+        },
+        "ToUserName": {
+          "string": "wxid_0xsqb3o0tsvz22"
+        },
+        "MsgType": 49,
+        "Content": {
+          "string": ""
+        },
+        "Status": 3,
+        "ImgStatus": 2,
+        "ImgBuf": {
+          "iLen": 0
+        },
+        "CreateTime": 1705044033,
+        "MsgSource": "<msgsource>\\n\\t<tmp_node>\\n\\t\\t<publisher-id></publisher-id>\\n\\t</tmp_node>\\n\\t<alnode>\\n\\t\\t<fr>4</fr>\\n\\t</alnode>\\n\\t<sec_msg_node>\\n\\t\\t<uuid>ba15c632e8fa89ed84bd027f09495591_</uuid>\\n\\t</sec_msg_node>\\n\\t<signature>v1_ptaEL1bv</signature>\\n</msgsource>\\n",
+        "NewMsgId": 1623411326098221490,
+        "MsgSeq": 640356105,
+        "PushContent": "朝夕。 : [链接]尔滨，又有好消息！"
+      }
+    }
+  },
+  {
+    "type": "文件消息（发送文件的通知）",
+    "data": {
+      "TypeName": "AddMsg",
+      "Appid": "wx_wR_U4zPj2M_OTS3BCyoE4",
+      "Wxid": "wxid_phyyedw9xap22",
+      "Data": {
+        "MsgId": 1040356106,
+        "FromUserName": {
+          "string": "wxid_phyyedw9xap22"
+        },
+        "ToUserName": {
+          "string": "wxid_0xsqb3o0tsvz22"
+        },
+        "MsgType": 49,
+        "Content": {
+          "string": "<msg>\\n        <appmsg appid=\\\"\\\" sdkver=\\\"0\\\">\\n                <title><![CDATA[hhh.xlsx]]></title>\\n                <type>74</type>\\n                <showtype>0</showtype>\\n                <appattach>\\n                        <totallen>8939</totallen>\\n                        <fileext><![CDATA[xlsx]]></fileext>\\n                        <fileuploadtoken>v1_paVQtd+CWGr2I3eOg71E6KBpQf0yY9RFQkqDPwT4yMnnbawqveao1vAE0qCOhWcIPkMGZavimUTDFcImr+SaManD8pKVQbBPTUvSmA6UsXgZWqQDOT00VLx7U/hoP3/CwveN2Lk56nxcef/XJiGKrOpAHKHcZvccaGk9/68wsBCOyanya/9xgdHTYxyQp4IadiSe</fileuploadtoken>\\n                        <status>0</status>\\n                </appattach>\\n                <md5><![CDATA[84c6737fe9549270c9b3ca4f6fc88f6f]]></md5>\\n                <laninfo><![CDATA[]]></laninfo>\\n        </appmsg>\\n        <fromusername>wxid_phyyedw9xap22</fromusername>\\n</msg>"
+        },
+        "Status": 3,
+        "ImgStatus": 1,
+        "ImgBuf": {
+          "iLen": 0
+        },
+        "CreateTime": 1705044119,
+        "MsgSource": "<msgsource>\\n\\t<signature>v1_WyLyIcy+</signature>\\n\\t<tmp_node>\\n\\t\\t<publisher-id></publisher-id>\\n\\t</tmp_node>\\n</msgsource>\\n",
+        "NewMsgId": 1789783684714859663,
+        "MsgSeq": 640356106,
+        "PushContent": "朝夕。 : [文件]hhh.xlsx"
+      }
+    }
+  },
+  {
+    "type": "文件消息（文件发送完成）",
+    "data": {
+      "TypeName": "AddMsg",
+      "Appid": "wx_wR_U4zPj2M_OTS3BCyoE4",
+      "Wxid": "wxid_phyyedw9xap22",
+      "Data": {
+        "MsgId": 1040356107,
+        "FromUserName": {
+          "string": "wxid_phyyedw9xap22"
+        },
+        "ToUserName": {
+          "string": "wxid_0xsqb3o0tsvz22"
+        },
+        "MsgType": 49,
+        "Content": {
+          "string": "<?xml version=\\\"1.0\\\"?>\\n<msg>\\n\\t<appmsg appid=\\\"\\\" sdkver=\\\"0\\\">\\n\\t\\t<title>hhh.xlsx</title>\\n\\t\\t<des />\\n\\t\\t<action />\\n\\t\\t<type>6</type>\\n\\t\\t<showtype>0</showtype>\\n\\t\\t<soundtype>0</soundtype>\\n\\t\\t<mediatagname />\\n\\t\\t<messageext />\\n\\t\\t<messageaction />\\n\\t\\t<content />\\n\\t\\t<contentattr>0</contentattr>\\n\\t\\t<url />\\n\\t\\t<lowurl />\\n\\t\\t<dataurl />\\n\\t\\t<lowdataurl />\\n\\t\\t<appattach>\\n\\t\\t\\t<totallen>8939</totallen>\\n\\t\\t\\t<attachid>@cdn_3057020100044b304902010002043904752002032f7e350204aa0dd83a020465a0e897042430373538386564322d353866642d343234342d386563652d6236353536306438623936610204011800050201000405004c56f900_3f28b0cbd65a86c3a980f3e22808c0fe_1</attachid>\\n\\t\\t\\t<emoticonmd5 />\\n\\t\\t\\t<fileext>xlsx</fileext>\\n\\t\\t\\t<cdnattachurl>3057020100044b304902010002043904752002032f7e350204aa0dd83a020465a0e897042430373538386564322d353866642d343234342d386563652d6236353536306438623936610204011800050201000405004c56f900</cdnattachurl>\\n\\t\\t\\t<aeskey>3f28b0cbd65a86c3a980f3e22808c0fe</aeskey>\\n\\t\\t\\t<encryver>0</encryver>\\n\\t\\t\\t<overwrite_newmsgid>1789783684714859663</overwrite_newmsgid>\\n\\t\\t\\t<fileuploadtoken>v1_paVQtd+CWGr2I3eOg71E6KBpQf0yY9RFQkqDPwT4yMnnbawqveao1vAE0qCOhWcIPkMGZavimUTDFcImr+SaManD8pKVQbBPTUvSmA6UsXgZWqQDOT00VLx7U/hoP3/CwveN2Lk56nxcef/XJiGKrOpAHKHcZvccaGk9/68wsBCOyanya/9xgdHTYxyQp4IadiSe</fileuploadtoken>\\n\\t\\t</appattach>\\n\\t\\t<extinfo />\\n\\t\\t<sourceusername />\\n\\t\\t<sourcedisplayname />\\n\\t\\t<thumburl />\\n\\t\\t<md5>84c6737fe9549270c9b3ca4f6fc88f6f</md5>\\n\\t\\t<statextstr />\\n\\t</appmsg>\\n\\t<fromusername>wxid_phyyedw9xap22</fromusername>\\n\\t<scene>0</scene>\\n\\t<appinfo>\\n\\t\\t<version>1</version>\\n\\t\\t<appname></appname>\\n\\t</appinfo>\\n\\t<commenturl></commenturl>\\n</msg>\\n"
+        },
+        "Status": 3,
+        "ImgStatus": 1,
+        "ImgBuf": {
+          "iLen": 0
+        },
+        "CreateTime": 1705044119,
+        "MsgSource": "<msgsource>\\n\\t<alnode>\\n\\t\\t<cf>3</cf>\\n\\t</alnode>\\n\\t<sec_msg_node>\\n\\t\\t<uuid>896374a2b5979141804d509256c22f0b_</uuid>\\n\\t</sec_msg_node>\\n\\t<signature>v1_n7kZ01bp</signature>\\n\\t<tmp_node>\\n\\t\\t<publisher-id></publisher-id>\\n\\t</tmp_node>\\n</msgsource>\\n",
+        "NewMsgId": 3617029648443513152,
+        "MsgSeq": 640356107,
+        "PushContent": "朝夕。 : [文件]hhh.xlsx"
+      }
+    }
+  },
+  {
+    "type": "名片消息",
+    "data": {
+      "TypeName": "AddMsg",
+      "Appid": "wx_wR_U4zPj2M_OTS3BCyoE4",
+      "Wxid": "wxid_phyyedw9xap22",
+      "Data": {
+        "MsgId": 1040356108,
+        "FromUserName": {
+          "string": "wxid_phyyedw9xap22"
+        },
+        "ToUserName": {
+          "string": "wxid_0xsqb3o0tsvz22"
+        },
+        "MsgType": 42,
+        "Content": {
+          "string": ""
+        },
+        "Status": 3,
+        "ImgStatus": 1,
+        "ImgBuf": {
+          "iLen": 0
+        },
+        "CreateTime": 1705044829,
+        "MsgSource": "<msgsource>\\n\\t<bizflag>0</bizflag>\\n\\t<alnode>\\n\\t\\t<fr>2</fr>\\n\\t</alnode>\\n\\t<signature>v1_bawbB33Z</signature>\\n\\t<tmp_node>\\n\\t\\t<publisher-id></publisher-id>\\n\\t</tmp_node>\\n</msgsource>\\n",
+        "NewMsgId": 766322251431765776,
+        "MsgSeq": 640356108,
+        "PushContent": "朝夕。 : [名片]Ashley"
+      }
+    }
+  },
+  {
+    "type": "好友添加请求通知",
+    "data": {
+      "TypeName": "AddMsg",
+      "Appid": "wx_wR_U4zPj2M_OTS3BCyoE4",
+      "Wxid": "wxid_phyyedw9xap22",
+      "Data": {
+        "MsgId": 1040356166,
+        "FromUserName": {
+          "string": "fmessage"
+        },
+        "ToUserName": {
+          "string": "wxid_0xsqb3o0tsvz22"
+        },
+        "MsgType": 37,
+        "Content": {
+          "string": ""
+        },
+        "Status": 3,
+        "ImgStatus": 1,
+        "ImgBuf": {
+          "iLen": 0
+        },
+        "CreateTime": 1705045979,
+        "MsgSource": "<msgsource>\\n\\t<signature>v1_GOrHWRNL</signature>\\n\\t<tmp_node>\\n\\t\\t<publisher-id></publisher-id>\\n\\t</tmp_node>\\n</msgsource>\\n",
+        "NewMsgId": 1109510141823131559,
+        "MsgSeq": 640356166
+      }
+    }
+  },
+  {
+    "type": "好友通过验证及好友资料变更的通知消息",
+    "data": {
+      "TypeName": "ModContacts",
+      "Appid": "wx_wR_U4zPj2M_OTS3BCyoE4",
+      "Data": {
+        "UserName": {
+          "string": "wxid_0xsqb3o0tsvz22"
+        },
+        "NickName": {
+          "string": "chaoxi。"
+        },
+        "Sex": 1,
+        "ImgBuf": {
+          "iLen": 0
+        }
+      }
+    }
+  },
+  {
+    "type": "小程序消息",
+    "data": {
+      "TypeName": "AddMsg",
+      "Appid": "wx_wR_U4zPj2M_OTS3BCyoE4",
+      "Wxid": "wxid_phyyedw9xap22",
+      "Data": {
+        "MsgId": 1040356109,
+        "FromUserName": {
+          "string": "wxid_phyyedw9xap22"
+        },
+        "ToUserName": {
+          "string": "wxid_0xsqb3o0tsvz22"
+        },
+        "MsgType": 49,
+        "Content": {
+          "string": "<?xml version=\\\"1.0\\\"?>\\n<msg>\\n\\t<appmsg appid=\\\"\\\" sdkver=\\\"0\\\">\\n\\t\\t<title>腾讯云助手</title>\\n\\t\\t<des>腾讯云助手</des>\\n\\t\\t<type>33</type>\\n\\t\\t<url>https://mp.weixin.qq.com/mp/waerrpage?appid=wxe2039b83454e49ed&amp;type=upgrade&amp;upgradetype=3#wechat_redirect</url>\\n\\t\\t<appattach>\\n\\t\\t\\t<cdnthumburl>3057020100044b304902010002048399cc8402032df731020414e461b4020465a0eb8f042463626430353633382d376263632d346161642d396234372d3435613131336339326231640204051808030201000405004c550500</cdnthumburl>\\n\\t\\t\\t<cdnthumbmd5>e1284d4ae13ebd9bb2cde5251cdd05e4</cdnthumbmd5>\\n\\t\\t\\t<cdnthumblength>52357</cdnthumblength>\\n\\t\\t\\t<cdnthumbwidth>720</cdnthumbwidth>\\n\\t\\t\\t<cdnthumbheight>576</cdnthumbheight>\\n\\t\\t\\t<cdnthumbaeskey>d4142726bc730088f0fa44c9161a0992</cdnthumbaeskey>\\n\\t\\t\\t<aeskey>d4142726bc730088f0fa44c9161a0992</aeskey>\\n\\t\\t\\t<encryver>0</encryver>\\n\\t\\t\\t<filekey>wxid_0xsqb3o0tsvz22_38_1705044879</filekey>\\n\\t\\t</appattach>\\n\\t\\t<sourceusername>gh_44fc2ced7f87@app</sourceusername>\\n\\t\\t<sourcedisplayname>腾讯云助手</sourcedisplayname>\\n\\t\\t<md5>e1284d4ae13ebd9bb2cde5251cdd05e4</md5>\\n\\t\\t<weappinfo>\\n\\t\\t\\t<username><![CDATA[gh_44fc2ced7f87@app]]></username>\\n\\t\\t\\t<appid><![CDATA[wxe2039b83454e49ed]]></appid>\\n\\t\\t\\t<type>2</type>\\n\\t\\t\\t<version>594</version>\\n\\t\\t\\t<weappiconurl><![CDATA[http://mmbiz.qpic.cn/mmbiz_png/ibdJpKHJ0IksRJXo4ib9nia65YNcIEibhQUONorXibKBoLBX7zqw3eVM6KibrCVPhgV8AeP9BTfSfiaM3s1c0ThQ0jbxA/640?wx_fmt=png&wxfrom=200]]></weappiconurl>\\n\\t\\t\\t<pagepath><![CDATA[pages/home-tabs/home-page/home-page.html?sampshare=%7B%22i%22%3A%22100022507185%22%2C%22p%22%3A%22pages%2Fhome-tabs%2Fhome-page%2Fhome-page%22%2C%22d%22%3A0%2C%22m%22%3A%22%E8%BD%AC%E5%8F%91%E6%B6%88%E6%81%AF%E5%8D%A1%E7%89%87%22%7D]]></pagepath>\\n\\t\\t\\t<shareId><![CDATA[0_wxe2039b83454e49ed_704fc54cfed53ed6c8e85a2cf504a0f5_1705044877_0]]></shareId>\\n\\t\\t\\t<appservicetype>0</appservicetype>\\n\\t\\t\\t<brandofficialflag>0</brandofficialflag>\\n\\t\\t\\t<showRelievedBuyFlag>538</showRelievedBuyFlag>\\n\\t\\t\\t<hasRelievedBuyPlugin>0</hasRelievedBuyPlugin>\\n\\t\\t\\t<flagshipflag>0</flagshipflag>\\n\\t\\t\\t<subType>0</subType>\\n\\t\\t\\t<isprivatemessage>0</isprivatemessage>\\n\\t\\t</weappinfo>\\n\\t</appmsg>\\n\\t<fromusername>wxid_phyyedw9xap22</fromusername>\\n\\t<scene>0</scene>\\n\\t<appinfo>\\n\\t\\t<version>1</version>\\n\\t\\t<appname></appname>\\n\\t</appinfo>\\n\\t<commenturl></commenturl>\\n</msg>\\n"
+        },
+        "Status": 3,
+        "ImgStatus": 2,
+        "ImgBuf": {
+          "iLen": 0
+        },
+        "CreateTime": 1705044879,
+        "MsgSource": "<msgsource>\\n\\t<bizflag>0</bizflag>\\n\\t<alnode>\\n\\t\\t<fr>2</fr>\\n\\t</alnode>\\n\\t<sec_msg_node>\\n\\t\\t<uuid>db46d46fe0a926c4b571dfe9d8096bfa_</uuid>\\n\\t</sec_msg_node>\\n\\t<signature>v1_DkelOoZN</signature>\\n\\t<tmp_node>\\n\\t\\t<publisher-id></publisher-id>\\n\\t</tmp_node>\\n</msgsource>\\n",
+        "NewMsgId": 572974861799389774,
+        "MsgSeq": 640356109,
+        "PushContent": "朝夕。 : [小程序]腾讯云助手"
+      }
+    }
+  },
+  {
+    "type": "引用消息",
+    "data": {
+      "TypeName": "AddMsg",
+      "Appid": "wx_wR_U4zPj2M_OTS3BCyoE4",
+      "Wxid": "wxid_phyyedw9xap22",
+      "Data": {
+        "MsgId": 1040356110,
+        "FromUserName": {
+          "string": "wxid_phyyedw9xap22"
+        },
+        "ToUserName": {
+          "string": "wxid_0xsqb3o0tsvz22"
+        },
+        "MsgType": 49,
+        "Content": {
+          "string": "<?xml version=\\\"1.0\\\"?>\\n<msg>\\n\\t<appmsg appid=\\\"\\\" sdkver=\\\"0\\\">\\n\\t\\t<title>看看这个</title>\\n\\t\\t<des />\\n\\t\\t<action />\\n\\t\\t<type>57</type>\\n\\t\\t<showtype>0</showtype>\\n\\t\\t<soundtype>0</soundtype>\\n\\t\\t<mediatagname />\\n\\t\\t<messageext />\\n\\t\\t<messageaction />\\n\\t\\t<content />\\n\\t\\t<contentattr>0</contentattr>\\n\\t\\t<url />\\n\\t\\t<lowurl />\\n\\t\\t<dataurl />\\n\\t\\t<lowdataurl />\\n\\t\\t<appattach>\\n\\t\\t\\t<totallen>0</totallen>\\n\\t\\t\\t<attachid />\\n\\t\\t\\t<emoticonmd5 />\\n\\t\\t\\t<fileext />\\n\\t\\t\\t<aeskey />\\n\\t\\t</appattach>\\n\\t\\t<extinfo />\\n\\t\\t<sourceusername />\\n\\t\\t<sourcedisplayname />\\n\\t\\t<thumburl />\\n\\t\\t<md5 />\\n\\t\\t<statextstr />\\n\\t\\t<refermsg>\\n\\t\\t\\t<type>49</type>\\n\\t\\t\\t<svrid>3617029648443513152</svrid>\\n\\t\\t\\t<fromusr>wxid_phyyedw9xap22</fromusr>\\n\\t\\t\\t<chatusr>wxid_phyyedw9xap22</chatusr>\\n\\t\\t\\t<displayname>朝夕。</displayname>\\n\\t\\t\\t<content>&lt;msg&gt;&lt;appmsg appid=\\\"\\\"  sdkver=\\\"0\\\"&gt;&lt;title&gt;hhh.xlsx&lt;/title&gt;&lt;des&gt;&lt;/des&gt;&lt;action&gt;&lt;/action&gt;&lt;type&gt;6&lt;/type&gt;&lt;showtype&gt;0&lt;/showtype&gt;&lt;soundtype&gt;0&lt;/soundtype&gt;&lt;mediatagname&gt;&lt;/mediatagname&gt;&lt;messageext&gt;&lt;/messageext&gt;&lt;messageaction&gt;&lt;/messageaction&gt;&lt;content&gt;&lt;/content&gt;&lt;contentattr&gt;0&lt;/contentattr&gt;&lt;url&gt;&lt;/url&gt;&lt;lowurl&gt;&lt;/lowurl&gt;&lt;dataurl&gt;&lt;/dataurl&gt;&lt;lowdataurl&gt;&lt;/lowdataurl&gt;&lt;appattach&gt;&lt;totallen&gt;8939&lt;/totallen&gt;&lt;attachid&gt;@cdn_3057020100044b304902010002043904752002032f7e350204aa0dd83a020465a0e897042430373538386564322d353866642d343234342d386563652d6236353536306438623936610204011800050201000405004c56f900_3f28b0cbd65a86c3a980f3e22808c0fe_1&lt;/attachid&gt;&lt;emoticonmd5&gt;&lt;/emoticonmd5&gt;&lt;fileext&gt;xlsx&lt;/fileext&gt;&lt;cdnattachurl&gt;3057020100044b304902010002043904752002032f7e350204aa0dd83a020465a0e897042430373538386564322d353866642d343234342d386563652d6236353536306438623936610204011800050201000405004c56f900&lt;/cdnattachurl&gt;&lt;aeskey&gt;3f28b0cbd65a86c3a980f3e22808c0fe&lt;/aeskey&gt;&lt;encryver&gt;0&lt;/encryver&gt;&lt;overwrite_newmsgid&gt;1789783684714859663&lt;/overwrite_newmsgid&gt;&lt;fileuploadtoken&gt;v1_paVQtd+CWGr2I3eOg71E6KBpQf0yY9RFQkqDPwT4yMnnbawqveao1vAE0qCOhWcIPkMGZavimUTDFcImr+SaManD8pKVQbBPTUvSmA6UsXgZWqQDOT00VLx7U/hoP3/CwveN2Lk56nxcef/XJiGKrOpAHKHcZvccaGk9/68wsBCOyanya/9xgdHTYxyQp4IadiSe&lt;/fileuploadtoken&gt;&lt;/appattach&gt;&lt;extinfo&gt;&lt;/extinfo&gt;&lt;sourceusername&gt;&lt;/sourceusername&gt;&lt;sourcedisplayname&gt;&lt;/sourcedisplayname&gt;&lt;thumburl&gt;&lt;/thumburl&gt;&lt;md5&gt;84c6737fe9549270c9b3ca4f6fc88f6f&lt;/md5&gt;&lt;statextstr&gt;&lt;/statextstr&gt;&lt;/appmsg&gt;&lt;fromusername&gt;&lt;/fromusername&gt;&lt;appinfo&gt;&lt;version&gt;0&lt;/version&gt;&lt;appname&gt;&lt;/appname&gt;&lt;isforceupdate&gt;1&lt;/isforceupdate&gt;&lt;/appinfo&gt;&lt;/msg&gt;</content>\\n\\t\\t\\t<msgsource>&lt;msgsource&gt;\\n\\t&lt;alnode&gt;\\n\\t\\t&lt;cf&gt;3&lt;/cf&gt;\\n\\t&lt;/alnode&gt;\\n\\t&lt;sec_msg_node&gt;\\n\\t\\t&lt;uuid&gt;896374a2b5979141804d509256c22f0b_&lt;/uuid&gt;\\n\\t&lt;/sec_msg_node&gt;\\n&lt;/msgsource&gt;\\n</msgsource>\\n\\t\\t</refermsg>\\n\\t</appmsg>\\n\\t<fromusername>wxid_phyyedw9xap22</fromusername>\\n\\t<scene>0</scene>\\n\\t<appinfo>\\n\\t\\t<version>1</version>\\n\\t\\t<appname></appname>\\n\\t</appinfo>\\n\\t<commenturl></commenturl>\\n</msg>\\n"
+        },
+        "Status": 3,
+        "ImgStatus": 1,
+        "ImgBuf": {
+          "iLen": 0
+        },
+        "CreateTime": 1705044946,
+        "MsgSource": "<msgsource>\\n\\t<sec_msg_node>\\n\\t\\t<uuid>ea25ade83dc4b9ec91060ca3e1a0f5a2_</uuid>\\n\\t</sec_msg_node>\\n\\t<signature>v1_oTWRYdd1</signature>\\n\\t<tmp_node>\\n\\t\\t<publisher-id></publisher-id>\\n\\t</tmp_node>\\n</msgsource>\\n",
+        "NewMsgId": 4334300109515885085,
+        "MsgSeq": 640356110,
+        "PushContent": "看看这个"
+      }
+    }
+  },
+  {
+    "type": "转账消息",
+    "data": {
+      "TypeName": "AddMsg",
+      "Appid": "wx_wR_U4zPj2M_OTS3BCyoE4",
+      "Wxid": "wxid_phyyedw9xap22",
+      "Data": {
+        "MsgId": 1040356112,
+        "FromUserName": {
+          "string": "wxid_phyyedw9xap22"
+        },
+        "ToUserName": {
+          "string": "wxid_0xsqb3o0tsvz22"
+        },
+        "MsgType": 49,
+        "Content": {
+          "string": "<msg>\\n<appmsg appid=\\\"\\\" sdkver=\\\"\\\">\\n<title><![CDATA[微信转账]]></title>\\n<des><![CDATA[收到转账0.10元。如需收钱，请点此升级至最新版本]]></des>\\n<action></action>\\n<type>2000</type>\\n<content><![CDATA[]]></content>\\n<url><![CDATA[https://support.weixin.qq.com/cgi-bin/mmsupport-bin/readtemplate?t=page/common_page__upgrade&text=text001&btn_text=btn_text_0]]></url>\\n<thumburl><![CDATA[https://support.weixin.qq.com/cgi-bin/mmsupport-bin/readtemplate?t=page/common_page__upgrade&text=text001&btn_text=btn_text_0]]></thumburl>\\n<lowurl></lowurl>\\n<extinfo>\\n</extinfo>\\n<wcpayinfo>\\n<paysubtype>1</paysubtype>\\n<feedesc><![CDATA[￥0.10]]></feedesc>\\n<transcationid><![CDATA[53010000124165202401122702555054]]></transcationid>\\n<transferid><![CDATA[1000050001202401120020624149917]]></transferid>\\n<invalidtime><![CDATA[1705131384]]></invalidtime>\\n<begintransfertime><![CDATA[1705044984]]></begintransfertime>\\n<effectivedate><![CDATA[1]]></effectivedate>\\n<pay_memo><![CDATA[]]></pay_memo>\\n<receiver_username><![CDATA[wxid_0xsqb3o0tsvz22]]></receiver_username>\\n<payer_username><![CDATA[]]></payer_username>\\n\\n\\n</wcpayinfo>\\n</appmsg>\\n</msg>"
+        },
+        "Status": 3,
+        "ImgStatus": 1,
+        "ImgBuf": {
+          "iLen": 0
+        },
+        "CreateTime": 1705044984,
+        "MsgSource": "<msgsource>\\n\\t<signature>v1_eDcIna+F</signature>\\n\\t<tmp_node>\\n\\t\\t<publisher-id></publisher-id>\\n\\t</tmp_node>\\n</msgsource>\\n",
+        "NewMsgId": 7290406378327063279,
+        "MsgSeq": 640356112,
+        "PushContent": "朝夕。 : [转账]"
+      }
+    }
+  },
+  {
+    "type": "红包消息",
+    "data": {
+      "TypeName": "AddMsg",
+      "Appid": "wx_wR_U4zPj2M_OTS3BCyoE4",
+      "Wxid": "wxid_phyyedw9xap22",
+      "Data": {
+        "MsgId": 1040356113,
+        "FromUserName": {
+          "string": "wxid_phyyedw9xap22"
+        },
+        "ToUserName": {
+          "string": "wxid_0xsqb3o0tsvz22"
+        },
+        "MsgType": 49,
+        "Content": {
+          "string": "<msg>\\n\\t<appmsg appid=\\\"\\\" sdkver=\\\"\\\">\\n\\t\\t<des><![CDATA[我给你发了一个红包，赶紧去拆!]]></des>\\n\\t\\t<url><![CDATA[https://wxapp.tenpay.com/mmpayhb/wxhb_personalreceive?showwxpaytitle=1&msgtype=1&channelid=1&sendid=1000039901202401127291056629415&ver=6&sign=af71ceb7b4da8a553a4dc6a02f3fe570678a7d0c69e6c00751a2af91d87f6b2f15ecc91900a7c610a929ade80091ff26a043a46d78ef84f35ccff0bff3003268fc22b8be5cdfe325cd86f7b526154e2b]]></url>\\n\\t\\t<lowurl><![CDATA[]]></lowurl>\\n\\t\\t<type><![CDATA[2001]]></type>\\n\\t\\t<title><![CDATA[微信红包]]></title>\\n\\t\\t<thumburl><![CDATA[https://wx.gtimg.com/hongbao/1800/hb.png]]></thumburl>\\n\\t\\t<wcpayinfo>\\n\\t\\t\\t<templateid><![CDATA[7a2a165d31da7fce6dd77e05c300028a]]></templateid>\\n\\t\\t\\t<url><![CDATA[https://wxapp.tenpay.com/mmpayhb/wxhb_personalreceive?showwxpaytitle=1&msgtype=1&channelid=1&sendid=1000039901202401127291056629415&ver=6&sign=af71ceb7b4da8a553a4dc6a02f3fe570678a7d0c69e6c00751a2af91d87f6b2f15ecc91900a7c610a929ade80091ff26a043a46d78ef84f35ccff0bff3003268fc22b8be5cdfe325cd86f7b526154e2b]]></url>\\n\\t\\t\\t<iconurl><![CDATA[https://wx.gtimg.com/hongbao/1800/hb.png]]></iconurl>\\n\\t\\t\\t<receivertitle><![CDATA[恭喜发财，大吉大利]]></receivertitle>\\n\\t\\t\\t<sendertitle><![CDATA[恭喜发财，大吉大利]]></sendertitle>\\n\\t\\t\\t<scenetext><![CDATA[微信红包]]></scenetext>\\n\\t\\t\\t<senderdes><![CDATA[查看红包]]></senderdes>\\n\\t\\t\\t<receiverdes><![CDATA[领取红包]]></receiverdes>\\n\\t\\t\\t<nativeurl><![CDATA[wxpay://c2cbizmessagehandler/hongbao/receivehongbao?msgtype=1&channelid=1&sendid=1000039901202401127291056629415&sendusername=wxid_phyyedw9xap22&ver=6&sign=af71ceb7b4da8a553a4dc6a02f3fe570678a7d0c69e6c00751a2af91d87f6b2f15ecc91900a7c610a929ade80091ff26a043a46d78ef84f35ccff0bff3003268fc22b8be5cdfe325cd86f7b526154e2b&total_num=1]]></nativeurl>\\n\\t\\t\\t<sceneid><![CDATA[1002]]></sceneid>\\n\\t\\t\\t<innertype><![CDATA[0]]></innertype>\\n\\t\\t\\t<paymsgid><![CDATA[1000039901202401127291056629415]]></paymsgid>\\n\\t\\t\\t<scenetext>微信红包</scenetext>\\n\\t\\t\\t<locallogoicon><![CDATA[c2c_hongbao_icon_cn]]></locallogoicon>\\n\\t\\t\\t<invalidtime><![CDATA[1705131411]]></invalidtime>\\n\\t\\t\\t<broaden />\\n\\t\\t</wcpayinfo>\\n\\t</appmsg>\\n\\t<fromusername><![CDATA[wxid_phyyedw9xap22]]></fromusername>\\n</msg>\\n"
+        },
+        "Status": 3,
+        "ImgStatus": 1,
+        "ImgBuf": {
+          "iLen": 0
+        },
+        "CreateTime": 1705045011,
+        "MsgSource": "<msgsource>\\n\\t<pushkey />\\n\\t<ModifyMsgAction />\\n\\t<signature>v1_Js6wJde/</signature>\\n\\t<tmp_node>\\n\\t\\t<publisher-id></publisher-id>\\n\\t</tmp_node>\\n</msgsource>\\n",
+        "NewMsgId": 5517720959405775296,
+        "MsgSeq": 640356113,
+        "PushContent": "朝夕。 : [红包]恭喜发财，大吉大利"
+      }
+    }
+  },
+  {
+    "type": "视频号消息",
+    "data": {
+      "TypeName": "AddMsg",
+      "Appid": "wx_wR_U4zPj2M_OTS3BCyoE4",
+      "Wxid": "wxid_phyyedw9xap22",
+      "Data": {
+        "MsgId": 1040356115,
+        "FromUserName": {
+          "string": "wxid_phyyedw9xap22"
+        },
+        "ToUserName": {
+          "string": "wxid_0xsqb3o0tsvz22"
+        },
+        "MsgType": 49,
+        "Content": {
+          "string": "<?xml version=\\\"1.0\\\"?>\\n<msg>\\n\\t<appmsg appid=\\\"\\\" sdkver=\\\"0\\\">\\n\\t\\t<title>当前微信版本不支持展示该内容，请升级至最新版本。</title>\\n\\t\\t<des />\\n\\t\\t<action />\\n\\t\\t<type>51</type>\\n\\t\\t<showtype>0</showtype>\\n\\t\\t<soundtype>0</soundtype>\\n\\t\\t<mediatagname />\\n\\t\\t<messageext />\\n\\t\\t<messageaction />\\n\\t\\t<content />\\n\\t\\t<contentattr>0</contentattr>\\n\\t\\t<url>https://support.weixin.qq.com/update/</url>\\n\\t\\t<lowurl />\\n\\t\\t<dataurl />\\n\\t\\t<lowdataurl />\\n\\t\\t<appattach>\\n\\t\\t\\t<totallen>0</totallen>\\n\\t\\t\\t<attachid />\\n\\t\\t\\t<emoticonmd5 />\\n\\t\\t\\t<fileext />\\n\\t\\t\\t<aeskey />\\n\\t\\t</appattach>\\n\\t\\t<extinfo />\\n\\t\\t<sourceusername />\\n\\t\\t<sourcedisplayname />\\n\\t\\t<thumburl />\\n\\t\\t<md5 />\\n\\t\\t<statextstr />\\n\\t\\t<finderFeed>\\n\\t\\t\\t<objectId>14264358459626428566</objectId>\\n\\t\\t\\t<feedType>4</feedType>\\n\\t\\t\\t<nickname>国风锦鲤</nickname>\\n\\t\\t\\t<avatar>https://wx.qlogo.cn/finderhead/ver_1/x2LxetmLmgoo9jp69R3wcrtZ0LBLdjVv9vrK9HmPNGEdD1iawdrPffPvMmFUez8pWqRIfs7DtgPiaV5C7DZpibH8b3y0jG178aIict6uPf0Vht4/0</avatar>\\n\\t\\t\\t<desc>还招人么？我不要工资#逆水寒cos</desc>\\n\\t\\t\\t<mediaCount>1</mediaCount>\\n\\t\\t\\t<objectNonceId>8046877030770906689_0_0_0_0_0</objectNonceId>\\n\\t\\t\\t<liveId>0</liveId>\\n\\t\\t\\t<username>v2_060000231003b20faec8cae08b19c7d2c702e834b077fb74f482543ff67f0cc66363057a5443@finder</username>\\n\\t\\t\\t<webUrl />\\n\\t\\t\\t<authIconType>0</authIconType>\\n\\t\\t\\t<authIconUrl />\\n\\t\\t\\t<bizNickname />\\n\\t\\t\\t<bizAvatar />\\n\\t\\t\\t<bizUsernameV2 />\\n\\t\\t\\t<mediaList>\\n\\t\\t\\t\\t<media>\\n\\t\\t\\t\\t\\t<mediaType>4</mediaType>\\n\\t\\t\\t\\t\\t<url>http://wxapp.tc.qq.com/251/20302/stodownload?encfilekey=Cvvj5Ix3eez3Y79SxtvVL0L7CkPM6dFibFeI6caGYwFFDAZJzcvicKz3jic4UfNeiaWTwH9gTlYiafAxVkMZRXicBUBk2Ms7lauAj6SArUu0P9ddKiaa8IWZzYaaKLf1WddH4G8T0KicxQV3hQPH3pQgEMTscw&amp;a=1&amp;bizid=1023&amp;dotrans=0&amp;hy=SH&amp;idx=1&amp;m=4c4c7f3ed03a14a6b99d0d19176c12ac&amp;upid=290110</url>\\n\\t\\t\\t\\t\\t<thumbUrl>http://wxapp.tc.qq.com/251/20304/stodownload?encfilekey=oibeqyX228riaCwo9STVsGLPj9UYCicgttvO59vjtcQ7Jviaia0q4bnpVP2ia7ibqzacPo0z4nIRtWom80ZXwL64icZO2q6ibVBQLZQftMwU3SHj5uplsIFroHeF0QNcCkXX3RtibaWCHJQjfqZUk&amp;bizid=1023&amp;dotrans=0&amp;hy=SH&amp;idx=1&amp;m=7522250b4d15e5df866bf23da9f117d6&amp;token=oA9SZ4icv8IssuhLtacX13nAzXiaf8y52juKW4ibUDN7a2vn71bbrCR0LZiabddvTsLLMvnELnuAwNxViclRT7wT9IyibzFw1pq9wdichRYaEmb6Js&amp;ctsc=2-20</thumbUrl>\\n\\t\\t\\t\\t\\t<width>1080</width>\\n\\t\\t\\t\\t\\t<height>1920</height>\\n\\t\\t\\t\\t\\t<coverUrl>http://wxapp.tc.qq.com/251/20304/stodownload?encfilekey=oibeqyX228riaCwo9STVsGLPj9UYCicgttvO59vjtcQ7Jviaia0q4bnpVP2ia7ibqzacPo0z4nIRtWom80ZXwL64icZO2q6ibVBQLZQftMwU3SHj5uplsIFroHeF0QNcCkXX3RtibaWCHJQjfqZUk&amp;bizid=1023&amp;dotrans=0&amp;hy=SH&amp;idx=1&amp;m=7522250b4d15e5df866bf23da9f117d6&amp;token=oA9SZ4icv8IssuhLtacX13nAzXiaf8y52juKW4ibUDN7a2vn71bbrCR0LZiabddvTsLLMvnELnuAwNxViclRT7wT9IyibzFw1pq9wdichRYaEmb6Js&amp;ctsc=2-20</coverUrl>\\n\\t\\t\\t\\t\\t<fullCoverUrl>http://wxapp.tc.qq.com/251/20350/stodownload?encfilekey=oibeqyX228riaCwo9STVsGLPj9UYCicgttv1FCQXwResqN75zI4n65zY5tkAficEPWbbClq2VcicqMYaSLK7nrAVMasrIhvsCXJib5cOLib98JgWPr4SP92W6YEkVN5Uv0TKAdyRryQ3Qxk7jU&amp;bizid=1023&amp;dotrans=0&amp;hy=SH&amp;idx=1&amp;m=731b89683dd3cb866cdf96dab70ac183&amp;token=KkOFht0mCXlnmicFbJnvymIJOEfZgzia8PY0ZzOdaIYTJXwfblvK4U1ibntribm1beupHwictGWs9hpMiclyhfSb6766Lnb3ib0j14bENm6u1tHpeo&amp;ctsc=3-20</fullCoverUrl>\\n\\t\\t\\t\\t\\t<videoPlayDuration>10&gt;&gt;</videoPlayDuration>\\n\\t\\t\\t\\t</media>\\n\\t\\t\\t</mediaList>\\n\\t\\t</finderFeed>\\n\\t</appmsg>\\n\\t<fromusername>wxid_phyyedw9xap22</fromusername>\\n\\t<scene>0</scene>\\n\\t<appinfo>\\n\\t\\t<version>1</version>\\n\\t\\t<appname></appname>\\n\\t</appinfo>\\n\\t<commenturl></commenturl>\\n</msg>\\n"
+        },
+        "Status": 3,
+        "ImgStatus": 1,
+        "ImgBuf": {
+          "iLen": 0
+        },
+        "CreateTime": 1705045057,
+        "MsgSource": "<msgsource>\\n\\t<tmp_node>\\n\\t\\t<publisher-id></publisher-id>\\n\\t</tmp_node>\\n\\t<alnode>\\n\\t\\t<fr>4</fr>\\n\\t</alnode>\\n\\t<sec_msg_node>\\n\\t\\t<uuid>bb2cbd9d3290e7a3d35f183eaade2213_</uuid>\\n\\t</sec_msg_node>\\n\\t<signature>v1_+Tfo41HS</signature>\\n</msgsource>\\n",
+        "NewMsgId": 5576224237104747184,
+        "MsgSeq": 640356115,
+        "PushContent": "你收到了一条消息"
+      }
+    }
+  },
+  {
+    "type": "撤回消息",
+    "data": {
+      "TypeName": "AddMsg",
+      "Appid": "wx_wR_U4zPj2M_OTS3BCyoE4",
+      "Wxid": "wxid_phyyedw9xap22",
+      "Data": {
+        "MsgId": 1040356116,
+        "FromUserName": {
+          "string": "wxid_phyyedw9xap22"
+        },
+        "ToUserName": {
+          "string": "wxid_0xsqb3o0tsvz22"
+        },
+        "MsgType": 10002,
+        "Content": {
+          "string": "<sysmsg type=\\\"revokemsg\\\"><revokemsg><session>wxid_phyyedw9xap22</session><msgid>1040356115</msgid><newmsgid>5576224237104747184</newmsgid><replacemsg><![CDATA[\\\"朝夕。\\\" 撤回了一条消息]]></replacemsg></revokemsg></sysmsg>"
+        },
+        "Status": 3,
+        "ImgStatus": 1,
+        "ImgBuf": {
+          "iLen": 0
+        },
+        "CreateTime": 1705045083,
+        "MsgSource": "<msgsource>\\n\\t<tmp_node>\\n\\t\\t<publisher-id></publisher-id>\\n\\t</tmp_node>\\n</msgsource>\\n",
+        "NewMsgId": 1968256046,
+        "MsgSeq": 640356116
+      }
+    }
+  },
+  {
+    "type": "拍一拍消息",
+    "data": {
+      "TypeName": "AddMsg",
+      "Appid": "wx_wR_U4zPj2M_OTS3BCyoE4",
+      "Wxid": "wxid_phyyedw9xap22",
+      "Data": {
+        "MsgId": 1040356117,
+        "FromUserName": {
+          "string": "wxid_phyyedw9xap22"
+        },
+        "ToUserName": {
+          "string": "wxid_0xsqb3o0tsvz22"
+        },
+        "MsgType": 10002,
+        "Content": {
+          "string": "<sysmsg type=\\\"pat\\\">\\n<pat>\\n  <fromusername>wxid_phyyedw9xap22</fromusername>\\n  <chatusername>wxid_0xsqb3o0tsvz22</chatusername>\\n  <pattedusername>wxid_0xsqb3o0tsvz22</pattedusername>\\n  <patsuffix><![CDATA[]]></patsuffix>\\n  <patsuffixversion>0</patsuffixversion>\\n\\n\\n\\n\\n  <template><![CDATA[\\\"${wxid_phyyedw9xap22}\\\" 拍了拍我]]></template>\\n\\n\\n\\n\\n</pat>\\n</sysmsg>"
+        },
+        "Status": 3,
+        "ImgStatus": 1,
+        "ImgBuf": {
+          "iLen": 0
+        },
+        "CreateTime": 1705045115,
+        "MsgSource": "<msgsource>\\n\\t<tmp_node>\\n\\t\\t<publisher-id></publisher-id>\\n\\t</tmp_node>\\n</msgsource>\\n",
+        "NewMsgId": 5709690173850254331,
+        "MsgSeq": 640356117
+      }
+    }
+  },
+  {
+    "type": "地理位置",
+    "data": {
+      "TypeName": "AddMsg",
+      "Appid": "wx_wR_U4zPj2M_OTS3BCyoE4",
+      "Wxid": "wxid_phyyedw9xap22",
+      "Data": {
+        "MsgId": 1040356118,
+        "FromUserName": {
+          "string": "wxid_phyyedw9xap22"
+        },
+        "ToUserName": {
+          "string": "wxid_0xsqb3o0tsvz22"
+        },
+        "MsgType": 48,
+        "Content": {
+          "string": "<?xml version=\\\"1.0\\\"?>\\n<msg>\\n\\t<location x=\\\"39.903740\\\" y=\\\"116.397827\\\" scale=\\\"15\\\" label=\\\"北京市东城区东长安街\\\" maptype=\\\"roadmap\\\" poiname=\\\"北京天安门广场\\\" poiid=\\\"qqmap_8314157447236438749\\\" buildingId=\\\"\\\" floorName=\\\"\\\" poiCategoryTips=\\\"旅游景点:风景名胜\\\" poiBusinessHour=\\\"随升降国旗时间调整,可登陆天安门地区管委会官网查询升降旗时刻表,或官方电话咨询\\\" poiPhone=\\\"010-63095745;010-86409123\\\" poiPriceTips=\\\"\\\" isFromPoiList=\\\"true\\\" adcode=\\\"110101\\\" cityname=\\\"北京市\\\" />\\n</msg>\\n"
+        },
+        "Status": 3,
+        "ImgStatus": 1,
+        "ImgBuf": {
+          "iLen": 0
+        },
+        "CreateTime": 1705045153,
+        "MsgSource": "<msgsource>\\n\\t<bizflag>0</bizflag>\\n\\t<signature>v1_KgQA8C+H</signature>\\n\\t<tmp_node>\\n\\t\\t<publisher-id></publisher-id>\\n\\t</tmp_node>\\n</msgsource>\\n",
+        "NewMsgId": 2112726776406556053,
+        "MsgSeq": 640356118,
+        "PushContent": "朝夕。分享了一个地理位置"
+      }
+    }
+  },
+  {
+    "type": "群聊邀请",
+    "data": {
+      "TypeName": "AddMsg",
+      "Appid": "wx_wR_U4zPj2M_OTS3BCyoE4",
+      "Wxid": "wxid_phyyedw9xap22",
+      "Data": {
+        "MsgId": 1040356119,
+        "FromUserName": {
+          "string": "wxid_phyyedw9xap22"
+        },
+        "ToUserName": {
+          "string": "wxid_0xsqb3o0tsvz22"
+        },
+        "MsgType": 49,
+        "Content": {
+          "string": "<msg><appmsg appid=\\\"\\\" sdkver=\\\"\\\"><title><![CDATA[邀请你加入群聊]]></title><des><![CDATA[\\\"朝夕。\\\"邀请你加入群聊\\\"Dromara-SMS4J短信融合\\\"，进入可查看详情。]]></des><action>view</action><type>5</type><showtype>0</showtype><content></content><url><![CDATA[https://support.weixin.qq.com/cgi-bin/mmsupport-bin/addchatroombyinvite?ticket=AXsLYmiiEo2srduLzYSmog%3D%3D]]></url><thumburl><![CDATA[http://wx.qlogo.cn/mmcrhead/B2EfAOZfS1iaGsFHkJKrP2EN0RbrbBFnQLuqy6iaT8g50SWyibc3pPcrcBibfUbnPdArNdbY00hXGScb8iakSHicBJryzxW7GVCBkI/0]]></thumburl><lowurl></lowurl><appattach><totallen>0</totallen><attachid></attachid><fileext></fileext></appattach><extinfo></extinfo></appmsg><appinfo><version></version><appname></appname></appinfo></msg>"
+        },
+        "Status": 3,
+        "ImgStatus": 1,
+        "ImgBuf": {
+          "iLen": 0
+        },
+        "CreateTime": 1705045206,
+        "MsgSource": "<msgsource>\\n\\t<signature>v1_uHiWbihr</signature>\\n\\t<tmp_node>\\n\\t\\t<publisher-id></publisher-id>\\n\\t</tmp_node>\\n</msgsource>\\n",
+        "NewMsgId": 2331390497668538400,
+        "MsgSeq": 640356119
+      }
+    }
+  },
+  {
+    "type": "被移除群聊通知",
+    "data": {
+      "TypeName": "AddMsg",
+      "Appid": "wx_wR_U4zPj2M_OTS3BCyoE4",
+      "Wxid": "wxid_phyyedw9xap22",
+      "Data": {
+        "MsgId": 1040356153,
+        "FromUserName": {
+          "string": "39238473509@chatroom"
+        },
+        "ToUserName": {
+          "string": "wxid_0xsqb3o0tsvz22"
+        },
+        "MsgType": 10000,
+        "Content": {
+          "string": "你被\\\"朝夕。\\\"移出群聊"
+        },
+        "Status": 4,
+        "ImgStatus": 1,
+        "ImgBuf": {
+          "iLen": 0
+        },
+        "CreateTime": 1705045790,
+        "MsgSource": "<msgsource>\\n\\t<signature>v1_f7Xny9H/</signature>\\n\\t<tmp_node>\\n\\t\\t<publisher-id></publisher-id>\\n\\t</tmp_node>\\n</msgsource>\\n",
+        "NewMsgId": 5759605552965664254,
+        "MsgSeq": 640356153
+      }
+    }
+  },
+  {
+    "type": "踢出群聊通知",
+    "data": {
+      "TypeName": "AddMsg",
+      "Appid": "wx_wR_U4zPj2M_OTS3BCyoE4",
+      "Wxid": "wxid_phyyedw9xap22",
+      "Data": {
+        "MsgId": 1040356143,
+        "FromUserName": {
+          "string": "34757816141@chatroom"
+        },
+        "ToUserName": {
+          "string": "wxid_0xsqb3o0tsvz22"
+        },
+        "MsgType": 10002,
+        "Content": {
+          "string": "34757816141@chatroom:\\n<sysmsg type=\\\"sysmsgtemplate\\\">\\n\\t<sysmsgtemplate>\\n\\t\\t<content_template type=\\\"tmpl_type_profile\\\">\\n\\t\\t\\t<plain><![CDATA[]]></plain>\\n\\t\\t\\t<template><![CDATA[你将\\\"$kickoutname$\\\"移出了群聊]]></template>\\n\\t\\t\\t<link_list>\\n\\t\\t\\t\\t<link name=\\\"kickoutname\\\" type=\\\"link_profile\\\">\\n\\t\\t\\t\\t\\t<memberlist>\\n\\t\\t\\t\\t\\t\\t<member>\\n\\t\\t\\t\\t\\t\\t\\t<username><![CDATA[wxid_8pvka4jg6qzt22]]></username>\\n\\t\\t\\t\\t\\t\\t\\t<nickname><![CDATA[白开水加糖]]></nickname>\\n\\t\\t\\t\\t\\t\\t</member>\\n\\t\\t\\t\\t\\t</memberlist>\\n\\t\\t\\t\\t</link>\\n\\t\\t\\t</link_list>\\n\\t\\t</content_template>\\n\\t</sysmsgtemplate>\\n</sysmsg>\\n"
+        },
+        "Status": 4,
+        "ImgStatus": 1,
+        "ImgBuf": {
+          "iLen": 0
+        },
+        "CreateTime": 1705045666,
+        "MsgSource": "<msgsource>\\n\\t<tmp_node>\\n\\t\\t<publisher-id></publisher-id>\\n\\t</tmp_node>\\n</msgsource>\\n",
+        "NewMsgId": 7100572668516374210,
+        "MsgSeq": 640356143
+      }
+    }
+  },
+  {
+    "type": "解散群聊通知",
+    "data": {
+      "TypeName": "AddMsg",
+      "Appid": "wx_wR_U4zPj2M_OTS3BCyoE4",
+      "Wxid": "wxid_phyyedw9xap22",
+      "Data": {
+        "MsgId": 1040356158,
+        "FromUserName": {
+          "string": "39238473509@chatroom"
+        },
+        "ToUserName": {
+          "string": "wxid_0xsqb3o0tsvz22"
+        },
+        "MsgType": 10002,
+        "Content": {
+          "string": "39238473509@chatroom:\\n<sysmsg type=\\\"sysmsgtemplate\\\">\\n    <sysmsgtemplate>\\n    <content_template type=\\\"new_tmpl_type_succeed_contact\\\">\\n        <plain><![CDATA[]]></plain>\\n        <template><![CDATA[群主\\\"$identity$\\\"已解散该群聊]]></template>\\n        <link_list>\\n        <link name=\\\"identity\\\" type=\\\"link_profile\\\">\\n                <memberlist>\\n                <member>\\n                    <username><![CDATA[wxid_phyyedw9xap22]]></username>\\n                    <nickname><![CDATA[朝夕。]]></nickname>\\n                </member>\\n                </memberlist>\\n        </link>\\n        </link_list>\\n    </content_template>\\n    </sysmsgtemplate>\\n</sysmsg>"
+        },
+        "Status": 4,
+        "ImgStatus": 1,
+        "ImgBuf": {
+          "iLen": 0
+        },
+        "CreateTime": 1705045834,
+        "MsgSource": "<msgsource>\\n\\t<tmp_node>\\n\\t\\t<publisher-id></publisher-id>\\n\\t</tmp_node>\\n</msgsource>\\n",
+        "NewMsgId": 6869316888754169027,
+        "MsgSeq": 640356158
+      }
+    }
+  },
+  {
+    "type": "修改群名称",
+    "data": {
+      "TypeName": "AddMsg",
+      "Appid": "wx_wR_U4zPj2M_OTS3BCyoE4",
+      "Wxid": "wxid_phyyedw9xap22",
+      "Data": {
+        "MsgId": 1040356129,
+        "FromUserName": {
+          "string": "34757816141@chatroom"
+        },
+        "ToUserName": {
+          "string": "wxid_0xsqb3o0tsvz22"
+        },
+        "MsgType": 10000,
+        "Content": {
+          "string": "你修改群名为“GeWe test1”"
+        },
+        "Status": 4,
+        "ImgStatus": 1,
+        "ImgBuf": {
+          "iLen": 0
+        },
+        "CreateTime": 1705045517,
+        "MsgSource": "<msgsource>\\n\\t<signature>v1_3uPmlxJG</signature>\\n\\t<tmp_node>\\n\\t\\t<publisher-id></publisher-id>\\n\\t</tmp_node>\\n</msgsource>\\n",
+        "NewMsgId": 6984814725261047392,
+        "MsgSeq": 640356129
+      }
+    }
+  },
+  {
+    "type": "更换群主通知",
+    "data": {
+      "TypeName": "AddMsg",
+      "Appid": "wx_wR_U4zPj2M_OTS3BCyoE4",
+      "Wxid": "wxid_phyyedw9xap22",
+      "Data": {
+        "MsgId": 1040356125,
+        "FromUserName": {
+          "string": "34757816141@chatroom"
+        },
+        "ToUserName": {
+          "string": "wxid_0xsqb3o0tsvz22"
+        },
+        "MsgType": 10000,
+        "Content": {
+          "string": "你已成为新群主"
+        },
+        "Status": 4,
+        "ImgStatus": 1,
+        "ImgBuf": {
+          "iLen": 0
+        },
+        "CreateTime": 1705045441,
+        "MsgSource": "<msgsource>\\n\\t<signature>v1_iqIx6JkV</signature>\\n\\t<tmp_node>\\n\\t\\t<publisher-id></publisher-id>\\n\\t</tmp_node>\\n</msgsource>\\n",
+        "NewMsgId": 7268255507978211143,
+        "MsgSeq": 640356125
+      }
+    }
+  },
+  {
+    "type": "群信息变更通知",
+    "data": {
+      "TypeName": "ModContacts",
+      "Appid": "wx_wR_U4zPj2M_OTS3BCyoE4",
+      "Data": {
+        "UserName": {
+          "string": "34757816141@chatroom"
+        },
+        "NickName": {
+          "string": "GeWe test"
+        },
+        "Sex": 0,
+        "ImgBuf": {
+          "iLen": 0
+        }
+      },
+      "Wxid": "wxid_phyyedw9xap22"
+    }
+  },
+  {
+    "type": "发布群公告",
+    "data": {
+      "TypeName": "AddMsg",
+      "Appid": "wx_wR_U4zPj2M_OTS3BCyoE4",
+      "Wxid": "wxid_phyyedw9xap22",
+      "Data": {
+        "MsgId": 1040356133,
+        "FromUserName": {
+          "string": "wxid_0xsqb3o0tsvz22"
+        },
+        "ToUserName": {
+          "string": "34757816141@chatroom"
+        },
+        "MsgType": 10002,
+        "Content": {
+          "string": "<sysmsg type=\\\"mmchatroombarannouncememt\\\">\\n    <mmchatroombarannouncememt>\\n        <content><![CDATA[群公告哈1]]></content>\\n        <xmlcontent><![CDATA[<group_notice_item type=\\\"18\\\">\\n\\t<edittime>1705045558</edittime>\\n\\t<ctrlflag>127</ctrlflag>\\n\\t<version>1</version>\\n\\t<source sourcetype=\\\"6\\\" sourceid=\\\"7c79fed82a0037648954bba6d5ca2025\\\">\\n\\t\\t<fromusr>wxid_0xsqb3o0tsvz22</fromusr>\\n\\t\\t<tousr>34757816141@chatroom</tousr>\\n\\t\\t<sourceid>7c79fed82a0037648954bba6d5ca2025</sourceid>\\n\\t</source>\\n\\t<datalist count=\\\"2\\\">\\n\\t\\t<dataitem datatype=\\\"8\\\" dataid=\\\"bf9b1a59a2589cfadbf44eafb7c67da2\\\" htmlid=\\\"WeNoteHtmlFile\\\">\\n\\t\\t\\t<datafmt>.htm</datafmt>\\n\\t\\t\\t<cdn_dataurl>http://wxapp.tc.qq.com/264/20303/stodownload?m=145a874d4eb1bb0b85af928331a168aa&amp;filekey=3033020101041f301d02020108040253480410145a874d4eb1bb0b85af928331a168aa020120040d00000004627466730000000132&amp;hy=SH&amp;storeid=265a0ee36000a9c94f3064bb50000010800004f4f534825960b01e676a0b3b&amp;bizid=1023</cdn_dataurl>\\n\\t\\t\\t<cdn_thumbkey>24808ae91ac7d636c99a1b340a1f9253</cdn_thumbkey>\\n\\t\\t\\t<cdn_datakey>8fac8374ded0d5e8d5038b1ec2b77a62</cdn_datakey>\\n\\t\\t\\t<fullmd5>ef033738f28bb3c80cd5e7290fdbfdcf</fullmd5>\\n\\t\\t\\t<head256md5>ef033738f28bb3c80cd5e7290fdbfdcf</head256md5>\\n\\t\\t\\t<fullsize>20</fullsize>\\n\\t\\t</dataitem>\\n\\t\\t<dataitem datatype=\\\"1\\\" dataid=\\\"eb7fad2f1c28512d1e6a8069c7b159b7\\\" htmlid=\\\"-1\\\">\\n\\t\\t\\t<datadesc>群公告哈1</datadesc>\\n\\t\\t\\t<dataitemsource sourcetype=\\\"6\\\" />\\n\\t\\t</dataitem>\\n\\t</datalist>\\n\\t<weburlitem>\\n\\t\\t<appmsgshareitem>\\n\\t\\t\\t<itemshowtype>-1</itemshowtype>\\n\\t\\t</appmsgshareitem>\\n\\t</weburlitem>\\n\\t<announcement_id>wxid_0xsqb3o0tsvz22_34757816141@chatroom_1705045558_2028281562</announcement_id>\\n</group_notice_item>\\n]]></xmlcontent>\\n        <announcement_id><![CDATA[wxid_0xsqb3o0tsvz22_34757816141@chatroom_1705045558_2028281562]]></announcement_id>\\n    </mmchatroombarannouncememt>\\n</sysmsg>"
+        },
+        "Status": 3,
+        "ImgStatus": 1,
+        "ImgBuf": {
+          "iLen": 0
+        },
+        "CreateTime": 1705045559,
+        "MsgSource": "<msgsource>\\n\\t<tmp_node>\\n\\t\\t<publisher-id></publisher-id>\\n\\t</tmp_node>\\n</msgsource>\\n",
+        "NewMsgId": 8056409355261218186,
+        "MsgSeq": 640356133
+      }
+    }
+  },
+  {
+    "type": "群待办",
+    "data": {
+      "TypeName": "AddMsg",
+      "Appid": "wx_wR_U4zPj2M_OTS3BCyoE4",
+      "Wxid": "wxid_phyyedw9xap22",
+      "Data": {
+        "MsgId": 1040356135,
+        "FromUserName": {
+          "string": "34757816141@chatroom"
+        },
+        "ToUserName": {
+          "string": "wxid_0xsqb3o0tsvz22"
+        },
+        "MsgType": 10002,
+        "Content": {
+          "string": "34757816141@chatroom:\\n<sysmsg type=\\\"roomtoolstips\\\">\\n<todo>\\n  <op>0</op>\\n\\n  <todoid><![CDATA[related_msgid_7881232272539128387]]></todoid>\\n  <username><![CDATA[roomannouncement@app.origin]]></username>\\n  <path><![CDATA[]]></path>\\n  <time>1705045591</time>\\n  <custominfo><![CDATA[]]></custominfo>\\n  <title><![CDATA[群公告]]></title>\\n  <creator><![CDATA[wxid_0xsqb3o0tsvz22]]></creator>\\n  <related_msgid><![CDATA[7881232272539128387]]></related_msgid>\\n  <manager><![CDATA[wxid_0xsqb3o0tsvz22]]></manager>\\n  <nreply>0</nreply>\\n  <scene><![CDATA[altertodo_set]]></scene>\\n  <oper><![CDATA[wxid_0xsqb3o0tsvz22]]></oper>\\n  <sharekey><![CDATA[]]></sharekey>\\n  <sharename><![CDATA[]]></sharename>\\n\\n\\n  \\n\\n\\n  \\n  \\n  \\n  <template><![CDATA[${wxid_0xsqb3o0tsvz22}将你的消息设置为群待办]]></template>\\n  \\n  \\n  \\n\\n  \\n\\n  \\n\\n</todo>\\n</sysmsg>"
+        },
+        "Status": 4,
+        "ImgStatus": 1,
+        "ImgBuf": {
+          "iLen": 0
+        },
+        "CreateTime": 1705045591,
+        "MsgSource": "<msgsource>\\n\\t<tmp_node>\\n\\t\\t<publisher-id></publisher-id>\\n\\t</tmp_node>\\n</msgsource>\\n",
+        "NewMsgId": 1765700414095721113,
+        "MsgSeq": 640356135
+      }
+    }
+  },
+  {
+    "type": "删除好友通知",
+    "data": {
+      "TypeName": "DelContacts",
+      "Appid": "wx_wR_U4zPj2M_OTS3BCyoE4",
+      "Wxid": "wxid_phyyedw9xap22",
+      "Data": {
+        "UserName": {
+          "string": "wxid_phyyedw9xap22"
+        },
+        "DeleteContactScen": 0
+      }
+    }
+  },
+  {
+    "type": "退出群聊",
+    "data": {
+      "TypeName": "DelContacts",
+      "Appid": "wx_wR_U4zPj2M_OTS3BCyoE4",
+      "Wxid": "wxid_phyyedw9xap22",
+      "Data": {
+        "UserName": {
+          "string": "34559815390@chatroom"
+        },
+        "DeleteContactScen": 0
+      }
+    }
+  },
+  {
+    "type": "掉线通知",
+    "data": {
+      "TypeName": "Offline",
+      "Appid": "wx_wR_U4zPj2M_OTS3BCyoE4",
+      "Wxid": "wxid_phyyedw9xap22"
+    }
+  }
+]
