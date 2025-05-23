@@ -30,7 +30,7 @@ class CardHandler(BaseHandler):
     async def handle(self, data: Dict[str, Any]) -> Optional[BaseMessage]:
         """处理名片消息"""
         # 直接使用CardMessage类处理消息
-        return CardMessage.from_dict(data)
+        return await CardMessage.from_dict(data)
 
 
 class FriendRequestHandler(BaseHandler):
@@ -122,7 +122,7 @@ class FriendRequestHandler(BaseHandler):
     async def handle(self, data: Dict[str, Any]) -> Optional[BaseMessage]:
         """处理好友添加请求"""
         # 直接使用FriendRequestMessage类处理消息
-        return FriendRequestMessage.from_dict(data)
+        return await FriendRequestMessage.from_dict(data)
 
 
 class ContactUpdateHandler(BaseHandler):
@@ -146,7 +146,8 @@ class ContactUpdateHandler(BaseHandler):
     async def handle(self, data: Dict[str, Any]) -> Optional[BaseMessage]:
         """处理好友通过验证或好友资料变更通知"""
         # 直接使用ContactUpdateMessage类处理消息
-        return ContactUpdateMessage.from_dict(data)
+        # 注意：需要使用await，因为from_dict是一个异步方法
+        return await ContactUpdateMessage.from_dict(data)
 
 
 class ContactDeletedHandler(BaseHandler):
@@ -166,4 +167,4 @@ class ContactDeletedHandler(BaseHandler):
     async def handle(self, data: Dict[str, Any]) -> Optional[BaseMessage]:
         """处理删除好友或退出群聊通知"""
         # 直接使用ContactDeletedMessage类处理消息
-        return ContactDeletedMessage.from_dict(data)
+        return await ContactDeletedMessage.from_dict(data)
