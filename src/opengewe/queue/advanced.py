@@ -1,15 +1,16 @@
 import asyncio
 import os
-import inspect
 import base64
+import tempfile
 from asyncio import Future
 from typing import Any, Awaitable, Callable, Dict, Optional
 
 from celery import Celery
 from celery.result import AsyncResult
 from loguru import logger
+import joblib
 
-from .base import BaseMessageQueue, QueueError
+from .base import BaseMessageQueue, QueueError, WorkerNotFoundError
 
 # 默认配置，可通过环境变量覆盖
 DEFAULT_BROKER = "redis://localhost:6379/0"
@@ -71,8 +72,7 @@ celery = create_celery_app()
 def process_message(
     self,
     task_id: str,
-    execution_type: str,
-    execution_data: Dict[str, Any],
+    serialized_func_data: str,
     func_args: list,
     func_kwargs: dict,
 ) -> Any:
@@ -81,8 +81,7 @@ def process_message(
     Args:
         self: Celery任务实例（bind=True时自动传入）
         task_id: 任务ID
-        execution_type: 执行类型："function" 或 "code"
-        execution_data: 执行数据，包含函数对象或代码字符串
+        serialized_func_data: 使用joblib序列化的函数数据
         func_args: 函数的位置参数
         func_kwargs: 函数的关键字参数
 
@@ -90,51 +89,29 @@ def process_message(
         Any: 函数执行的结果
     """
     try:
-        logger.info(f"开始处理消息任务: {task_id}, 类型: {execution_type}")
+        logger.info(f"开始处理消息任务: {task_id}")
 
-        if execution_type == "function":
-            # 处理函数对象
+        # 使用joblib反序列化函数
+        try:
+            func_bytes = base64.b64decode(serialized_func_data)
+
+            # 创建临时文件来存储序列化数据
+            with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+                temp_file.write(func_bytes)
+                temp_file_path = temp_file.name
+
             try:
-                import pickle
+                # 使用joblib加载函数
+                func = joblib.load(temp_file_path)
+            finally:
+                # 清理临时文件
+                os.unlink(temp_file_path)
 
-                func_bytes = base64.b64decode(execution_data["func_data"])
-                func = pickle.loads(func_bytes)
-            except Exception as e:
-                raise ValueError(f"无法反序列化函数: {str(e)}")
-        elif execution_type == "code":
-            # 处理代码字符串
-            func_code = execution_data["code"]
-            func_name = execution_data["name"]
-
-            # 创建执行环境
-            local_vars = {}
-            global_vars = {
-                "asyncio": asyncio,
-                "__builtins__": __builtins__,
-                "print": print,
-                "str": str,
-                "int": int,
-                "float": float,
-                "len": len,
-                "range": range,
-                "list": list,
-                "dict": dict,
-                "tuple": tuple,
-                "set": set,
-            }
-
-            # 执行代码定义函数
-            exec(func_code, global_vars, local_vars)
-
-            # 获取函数
-            if func_name not in local_vars:
-                raise ValueError(f"代码中未找到函数: {func_name}")
-            func = local_vars[func_name]
-        else:
-            raise ValueError(f"不支持的执行类型: {execution_type}")
+        except Exception as e:
+            raise ValueError(f"无法反序列化函数: {str(e)}")
 
         # 检查函数是否为异步函数
-        if inspect.iscoroutinefunction(func):
+        if asyncio.iscoroutinefunction(func):
             # 异步函数使用asyncio.run执行
             result = asyncio.run(func(*func_args, **func_kwargs))
         else:
@@ -190,36 +167,59 @@ class AdvancedMessageQueue(BaseMessageQueue):
             else:
                 self.celery = celery
 
-    def _serialize_function(self, func: Callable) -> Dict[str, Any]:
-        """序列化函数为执行数据
+    def _serialize_function(self, func: Callable) -> str:
+        """序列化函数为base64字符串
 
         Args:
             func: 要序列化的函数
 
         Returns:
-            Dict[str, Any]: 执行数据，包含类型和相关信息
+            str: base64编码的序列化函数数据
         """
-        # 优先尝试使用代码字符串方式，这样更稳定
         try:
-            import inspect
+            # 创建临时文件来存储序列化数据
+            with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+                temp_file_path = temp_file.name
 
-            source_code = inspect.getsource(func)
-            return {
-                "type": "code",
-                "data": {"code": source_code, "name": func.__name__},
-            }
-        except Exception:
-            # 如果无法获取源代码，尝试pickle序列化
             try:
-                import pickle
+                # 使用joblib序列化函数，使用默认压缩提高性能
+                joblib.dump(func, temp_file_path, compress="lz4")
 
-                func_bytes = pickle.dumps(func)
-                func_data = base64.b64encode(func_bytes).decode("utf-8")
-                return {"type": "function", "data": {"func_data": func_data}}
-            except Exception as e:
-                raise ValueError(
-                    f"无法序列化函数 {func.__name__}: 既无法获取源代码也无法pickle: {str(e)}"
-                )
+                # 读取序列化数据并编码为base64
+                with open(temp_file_path, "rb") as f:
+                    func_bytes = f.read()
+
+                return base64.b64encode(func_bytes).decode("utf-8")
+
+            finally:
+                # 清理临时文件
+                os.unlink(temp_file_path)
+
+        except Exception as e:
+            raise ValueError(f"无法序列化函数 {func.__name__}: {str(e)}")
+
+    async def _check_workers_available(self, timeout: float = 1.0) -> tuple[bool, int]:
+        """检查是否有可用的Celery worker
+
+        Args:
+            timeout: 检测超时时间，默认1秒
+
+        Returns:
+            tuple[bool, int]: (是否有可用worker, worker数量)
+        """
+        try:
+            # 使用ping检测worker
+            ping_result = self.celery.control.ping(timeout=timeout)
+            if ping_result:
+                worker_count = len(ping_result)
+                logger.debug(f"检测到 {worker_count} 个活跃的Celery worker")
+                return True, worker_count
+            else:
+                logger.warning("未检测到活跃的Celery worker")
+                return False, 0
+        except Exception as e:
+            logger.error(f"检测Celery worker失败: {e}")
+            return False, 0
 
     @property
     def is_processing(self) -> bool:
@@ -344,11 +344,29 @@ class AdvancedMessageQueue(BaseMessageQueue):
         Returns:
             Any: 函数执行的结果
         """
+        # 检查worker可用性
+        workers_available, worker_count = await self._check_workers_available()
+        if not workers_available:
+            error_msg = (
+                "没有检测到活跃的Celery worker！\n"
+                "请启动Celery worker：\n"
+                f"  celery -A opengewe.queue.advanced worker --loglevel=info\n"
+                "\n"
+                "或者检查worker状态：\n"
+                f"  celery -A opengewe.queue.advanced inspect ping\n"
+                "\n"
+                "确保Redis服务正在运行：\n"
+                f"  {self.celery.conf.broker_url}\n"
+                "\n"
+                "如果您想使用简单队列，请将queue_type设置为'simple'"
+            )
+            raise WorkerNotFoundError(error_msg)
+
+        logger.debug(f"检测到 {worker_count} 个可用worker，提交任务: {func.__name__}")
+
         # 序列化函数
         try:
-            serialization_data = self._serialize_function(func)
-            execution_type = serialization_data["type"]
-            execution_data = serialization_data["data"]
+            serialized_func_data = self._serialize_function(func)
         except Exception as e:
             raise QueueError(f"序列化函数失败: {str(e)}") from e
 
@@ -364,7 +382,7 @@ class AdvancedMessageQueue(BaseMessageQueue):
         try:
             # 提交任务到Celery
             async_result = process_message.apply_async(
-                args=(task_id, execution_type, execution_data, list(args), kwargs),
+                args=(task_id, serialized_func_data, list(args), kwargs),
                 task_id=task_id,
                 queue=self._queue_name,  # 明确指定队列
             )
@@ -383,17 +401,21 @@ class AdvancedMessageQueue(BaseMessageQueue):
             self._futures.pop(task_id, None)
             raise QueueError(f"提交任务到队列失败: {str(e)}") from e
 
-    async def _wait_for_result(self, task_id: str, async_result: AsyncResult) -> None:
+    async def _wait_for_result(
+        self, task_id: str, async_result: AsyncResult, timeout: float = 30.0
+    ) -> None:
         """等待Celery任务结果并设置到Future
 
         Args:
             task_id: 任务ID
             async_result: Celery的AsyncResult对象
+            timeout: 等待超时时间，默认30秒
         """
         try:
-            # 使用非阻塞方式等待任务完成
-            while not async_result.ready():
-                await asyncio.sleep(0.1)  # 短暂休眠，避免CPU占用过高
+            # 使用超时机制等待任务完成
+            await asyncio.wait_for(
+                self._wait_for_task_completion(async_result), timeout=timeout
+            )
 
             # 获取任务结果
             result = async_result.result
@@ -415,6 +437,27 @@ class AdvancedMessageQueue(BaseMessageQueue):
                 # 增加处理计数
                 self._processed_messages += 1
 
+        except asyncio.TimeoutError:
+            # 处理超时情况
+            logger.error(f"任务 {task_id} 等待超时({timeout}秒)")
+
+            # 获取对应的Future并设置超时异常
+            future = self._futures.get(task_id)
+            if future and not future.done():
+                timeout_msg = (
+                    f"任务等待超时({timeout}秒)！可能原因：\n"
+                    "1. Celery worker处理任务太慢\n"
+                    "2. Worker突然停止工作\n"
+                    "3. 网络连接问题\n"
+                    "\n"
+                    "请检查worker状态：\n"
+                    f"  celery -A opengewe.queue.advanced inspect active\n"
+                    f"  celery -A opengewe.queue.advanced inspect ping\n"
+                    "\n"
+                    f"任务ID: {task_id}"
+                )
+                future.set_exception(QueueError(timeout_msg))
+
         except Exception as e:
             logger.error(f"等待任务结果异常: {str(e)}")
             # 设置异常到Future
@@ -428,6 +471,16 @@ class AdvancedMessageQueue(BaseMessageQueue):
             # 如果没有待处理的Future，更新处理状态
             if not self._futures:
                 self._is_processing = False
+
+    async def _wait_for_task_completion(self, async_result: AsyncResult) -> None:
+        """等待任务完成的内部方法
+
+        Args:
+            async_result: Celery的AsyncResult对象
+        """
+        # 使用非阻塞方式等待任务完成
+        while not async_result.ready():
+            await asyncio.sleep(0.1)  # 短暂休眠，避免CPU占用过高
 
     async def start_processing(self) -> None:
         """开始处理队列中的消息

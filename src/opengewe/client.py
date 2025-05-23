@@ -43,8 +43,8 @@ class GeweClient:
     def __init__(
         self,
         base_url: str,
-        download_url: str,
-        callback_url: str,
+        download_url: str = "",
+        callback_url: str = "",
         app_id: str = "",
         token: str = "",
         debug: bool = False,
@@ -163,38 +163,26 @@ class GeweClient:
                     return {
                         "ret": response.status,
                         "msg": f"HTTP错误 {response.status}: {result.get('msg', '未知错误')}",
-                        "data": None
+                        "data": None,
                     }
 
                 return result
         except aiohttp.ClientConnectorError as e:
             logger.error(f"❌ 连接错误: {e}")
             return {
-                "ret": 500, 
+                "ret": 500,
                 "msg": f"无法连接到API服务器 {self.base_url}: {str(e)}",
-                "data": None
+                "data": None,
             }
         except aiohttp.ClientError as e:
             logger.error(f"❌ 请求网络错误: {e}")
-            return {
-                "ret": 500, 
-                "msg": f"网络请求异常: {str(e)}",
-                "data": None
-            }
+            return {"ret": 500, "msg": f"网络请求异常: {str(e)}", "data": None}
         except asyncio.TimeoutError:
             logger.error("❌ 请求超时")
-            return {
-                "ret": 500, 
-                "msg": f"请求超时: {url}",
-                "data": None
-            }
+            return {"ret": 500, "msg": f"请求超时: {url}", "data": None}
         except Exception as e:
             logger.error(f"❌ 未知请求错误: {e}")
-            return {
-                "ret": 500, 
-                "msg": f"请求异常: {str(e)}",
-                "data": None
-            }
+            return {"ret": 500, "msg": f"请求异常: {str(e)}", "data": None}
 
     async def close(self) -> None:
         """关闭客户端连接"""

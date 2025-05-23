@@ -5,6 +5,18 @@ from typing import Any, Callable, Awaitable, TypeVar, Dict
 T = TypeVar("T")
 
 
+class QueueError(Exception):
+    """队列操作异常"""
+
+    pass
+
+
+class WorkerNotFoundError(QueueError):
+    """没有可用的Celery worker异常"""
+
+    pass
+
+
 class BaseMessageQueue(ABC):
     """消息队列的基本接口
 
@@ -86,9 +98,3 @@ class BaseMessageQueue(ABC):
             QueueError: 清空队列失败时
         """
         pass
-
-
-class QueueError(Exception):
-    """消息队列操作异常基类"""
-
-    pass

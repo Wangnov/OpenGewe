@@ -9,10 +9,11 @@ from typing import Literal, Optional, Any
 
 from celery import Celery
 
-from .base import BaseMessageQueue, QueueError
+from .base import BaseMessageQueue, QueueError, WorkerNotFoundError
 from .simple import SimpleMessageQueue
 from .advanced import AdvancedMessageQueue, create_celery_app, celery
 from opengewe.logger import get_logger
+
 # 获取队列日志记录器
 logger = get_logger("opengewe.queue")
 
@@ -75,4 +76,5 @@ __all__ = [
     "create_celery_app",
     "celery",
     "QueueError",
+    "WorkerNotFoundError",
 ]
