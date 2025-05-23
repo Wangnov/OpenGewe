@@ -2,6 +2,7 @@
 
 import xml.etree.ElementTree as ET
 from typing import Dict, Any, Optional
+from dataclasses import dataclass
 
 from opengewe.callback.types import MessageType
 from opengewe.callback.models import (
@@ -16,8 +17,8 @@ from opengewe.callback.models import (
     GroupDismissMessage,
     GroupAnnouncementMessage,
     GroupInvitedMessage,
+    SyncMessage,
 )
-from opengewe.callback.models.system import SyncMessage
 from opengewe.callback.handlers.base import BaseHandler
 
 
@@ -266,3 +267,23 @@ class OfflineHandler(BaseHandler):
         """处理掉线通知"""
         # 直接使用OfflineMessage类处理消息
         return OfflineMessage.from_dict(data)
+
+
+class SyncHandler(BaseHandler):
+    """同步消息处理器"""
+
+    async def can_handle(self, data: Dict[str, Any]) -> bool:
+        """判断是否为同步消息"""
+        if data.get("TypeName") != "AddMsg":
+            return False
+
+        if "Data" not in data:
+            return False
+
+        # 同步消息的MsgType为51
+        return data["Data"].get("MsgType") == 51
+
+    async def handle(self, data: Dict[str, Any]) -> Optional[BaseMessage]:
+        """处理同步消息"""
+        # 直接使用SyncMessage类处理消息
+        return SyncMessage.from_dict(data)

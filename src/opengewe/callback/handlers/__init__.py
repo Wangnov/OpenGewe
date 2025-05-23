@@ -59,6 +59,7 @@ from opengewe.callback.handlers.group import (
 from opengewe.callback.handlers.system import (
     SysmsgHandler,
     OfflineHandler,
+    SyncHandler,
 )
 
 # 导入支付相关处理器
@@ -96,6 +97,7 @@ DEFAULT_HANDLERS = [
     OfflineHandler,
     TransferHandler,
     RedPacketHandler,
+    SyncHandler,
 ]
 
 __all__ = [
