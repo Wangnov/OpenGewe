@@ -42,7 +42,7 @@ Celery worker 启动脚本
 import argparse
 import os
 import sys
-from .advanced import create_celery_app
+from opengewe.logger import get_logger
 
 # 预设配置常量
 BROKER_PRESETS = {
@@ -158,56 +158,115 @@ def get_effective_config(args):
 
 
 def main():
-    """启动Celery worker的主函数"""
-    # 解析命令行参数
-    parser = create_argument_parser()
+    """主函数，解析命令行参数并启动Celery worker"""
+    logger = get_logger("CeleryWorker")
+
+    parser = argparse.ArgumentParser(description="启动OpenGewe Celery Worker")
+    parser.add_argument(
+        "type",
+        choices=["redis", "rabbitmq"],
+        help="消息代理类型",
+    )
+    parser.add_argument(
+        "--host",
+        default="localhost",
+        help="代理主机地址",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        help="代理端口",
+    )
+    parser.add_argument(
+        "--username",
+        help="代理用户名（仅RabbitMQ）",
+    )
+    parser.add_argument(
+        "--password",
+        help="代理密码（仅RabbitMQ）",
+    )
+    parser.add_argument(
+        "--database",
+        type=int,
+        default=0,
+        help="Redis数据库编号（仅Redis）",
+    )
+    parser.add_argument(
+        "--queue",
+        default="opengewe_messages",
+        help="队列名称",
+    )
+    parser.add_argument(
+        "--concurrency",
+        type=int,
+        default=4,
+        help="并发数",
+    )
+    parser.add_argument(
+        "--loglevel",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR"],
+        default="INFO",
+        help="日志级别",
+    )
+    parser.add_argument(
+        "--config",
+        help="自定义配置文件路径",
+    )
+
     args = parser.parse_args()
 
-    # 获取有效配置
+    # 根据类型设置默认端口
+    if args.port is None:
+        args.port = 6379 if args.type == "redis" else 5672
+
+    # 构建配置
     config = get_effective_config(args)
+    
+    logger.info("正在启动OpenGewe Celery Worker...")
+    logger.info(f"消息代理类型: {args.type}")
+    logger.info(f"Broker: {config['broker']}")
+    logger.info(f"Backend: {config['backend']}")
+    logger.info(f"队列名称: {config['queue_name']}")
+    logger.info(f"并发数: {config['concurrency']}")
+    logger.info(f"日志级别: {config['log_level']}")
+    logger.info("-" * 50)
 
-    # 显示启动信息
-    print("正在启动OpenGewe Celery Worker...")
-    print(f"消息代理类型: {args.type}")
-    print(f"Broker: {config['broker']}")
-    print(f"Backend: {config['backend']}")
-    print(f"队列名称: {config['queue_name']}")
-    print(f"并发数: {config['concurrency']}")
-    print(f"日志级别: {config['log_level']}")
-    print("-" * 50)
-
-    # 如果使用了自定义配置，需要重新创建celery应用
-    if (
-        config["broker"] != BROKER_PRESETS["redis"]
-        or config["backend"] != BACKEND_PRESETS["redis"]
-        or config["queue_name"] != "opengewe_messages"
-    ):
-        print("检测到自定义配置，重新创建Celery应用...")
-        global celery
-        celery = create_celery_app(
-            broker=config["broker"],
-            backend=config["backend"],
-            queue_name=config["queue_name"],
+    # 重新创建Celery应用（如果有自定义配置）
+    global celery_app
+    if args.config or any([args.username, args.password]):
+        logger.info("检测到自定义配置，重新创建Celery应用...")
+        
+        # 更新broker配置
+        broker_url = config["broker"]
+        backend_url = config["backend"]
+        
+        # 重新创建Celery应用
+        celery_app.conf.update(
+            broker_url=broker_url,
+            result_backend=backend_url,
+            task_routes={
+                "opengewe.queue.advanced.process_message": {"queue": config["queue_name"]},
+            },
         )
-        print("Celery应用重新创建完成")
+        logger.info("Celery应用重新创建完成")
 
-    # 准备Celery命令行参数
-    argv = [
-        "worker",
-        f"--concurrency={config['concurrency']}",
-        f"--loglevel={config['log_level']}",
-        f"--queues={config['queue_name']}",
-        "--pool=solo" if sys.platform == "win32" else "--pool=prefork",  # Windows兼容性
-    ]
-
-    # 启动Celery worker
     try:
-        print(f"启动Celery worker，参数: {' '.join(argv)}")
-        celery.worker_main(argv)
+        # 构建启动参数
+        argv = [
+            "worker",
+            "--app=opengewe.queue.celery_worker:celery_app",
+            f"--loglevel={config['log_level']}",
+            f"--concurrency={config['concurrency']}",
+            f"--queues={config['queue_name']}",
+        ]
+
+        # 启动worker
+        logger.info(f"启动Celery worker，参数: {' '.join(argv)}")
+        celery_app.worker_main(argv)
     except KeyboardInterrupt:
-        print("\n正在关闭Celery worker...")
+        logger.info("正在关闭Celery worker...")
     except Exception as e:
-        print(f"启动Celery worker时出错: {e}")
+        logger.error(f"启动Celery worker时出错: {e}")
         sys.exit(1)
 
 

@@ -4,12 +4,11 @@
 """
 
 import os
-import sys
 # 根据Python版本导入不同的TOML解析库
 try:
     import tomllib
 except ImportError:
-    import tomli as tomllib
+    import tomli as tomllib # type: ignore
 
 from opengewe.logger.config import (
     setup_logger, 
@@ -58,6 +57,8 @@ def init_default_logger(
     """
     # 尝试从配置文件加载设置
     config = {}
+    _temp_logger = None
+    
     try:
         if os.path.exists(config_file):
             with open(config_file, "rb") as f:
@@ -69,9 +70,12 @@ def init_default_logger(
                     intercept_logging()
                     intercept_plugin_loguru()
                     return
-    except Exception as e:
-        # 如果配置文件加载失败，使用默认设置
-        print(f"加载日志配置文件失败: {e}，将使用默认配置")
+    except (FileNotFoundError, OSError):
+        # 文件相关错误，延迟到logger配置后记录
+        pass
+    except Exception:
+        # 其他错误也延迟记录
+        pass
     
     # 如果没有配置文件或配置文件中没有日志配置，使用参数设置
     # 设置默认日志配置
@@ -89,6 +93,11 @@ def init_default_logger(
 
     # 拦截插件的loguru使用，添加Plugin源标识
     intercept_plugin_loguru()
+    
+    # 现在logger已配置，记录之前的错误（如果有）
+    if config == {} and os.path.exists(config_file):
+        _temp_logger = get_logger("Logger.Init")
+        _temp_logger.warning(f"日志配置文件 {config_file} 存在但加载失败，使用默认配置")
 
 
 __all__ = [

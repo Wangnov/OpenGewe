@@ -12,8 +12,31 @@ from types import ModuleType
 import importlib.util
 import inspect
 
+# 尝试导入opengewe的logger，如果失败则使用print fallback
+_logger = None
+try:
+    from opengewe.logger import get_logger
+    _logger = get_logger("Plugins.Utils.Proxy")
+except ImportError:
+    pass
+
+def _log_debug(message: str) -> None:
+    """调试日志记录"""
+    if _logger:
+        _logger.debug(message)
+    # 在DEBUG模式下才打印到控制台
+    elif os.environ.get("OPENGEWE_DEBUG", "").lower() in ("true", "1", "yes"):
+        print(f"[DEBUG] Plugins.Utils.Proxy: {message}")
+
+def _log_warning(message: str) -> None:
+    """警告日志记录"""
+    if _logger:
+        _logger.warning(message)
+    else:
+        print(f"[WARNING] Plugins.Utils.Proxy: {message}")
+
 # 启用更详细的调试
-DEBUG = False
+DEBUG = os.environ.get("OPENGEWE_DEBUG", "").lower() in ("true", "1", "yes")
 
 # 存储已导入的模块缓存
 _module_cache = {}
@@ -29,9 +52,8 @@ class UtilsModuleProxy(ModuleType):
         # 存储已导入的子模块
         self._loaded_submodules = {}
 
-        if DEBUG:
-            print(f"初始化utils模块代理，路径={self.__path__}")
-            print(f"当前sys.path={sys.path}")
+        _log_debug(f"初始化utils模块代理，路径={self.__path__}")
+        _log_debug(f"当前sys.path={sys.path[:3]}...")  # 只显示前3个路径避免日志过长
 
     def __getattr__(self, name):
         # 已加载的子模块直接返回
@@ -47,38 +69,31 @@ class UtilsModuleProxy(ModuleType):
 
         # 策略1: 直接从plugins.utils导入
         try:
-            if DEBUG:
-                print(f"尝试从plugins.utils导入{name}")
+            _log_debug(f"尝试从plugins.utils导入{name}")
             module = importlib.import_module(f"plugins.utils.{name}")
-            if DEBUG:
-                print(f"成功从plugins.utils导入{name}")
+            _log_debug(f"成功从plugins.utils导入{name}")
             self._loaded_submodules[name] = module
             return module
         except ImportError as e:
-            if DEBUG:
-                print(f"从plugins.utils导入{name}失败: {e}")
+            _log_debug(f"从plugins.utils导入{name}失败: {e}")
             pass
 
         # 策略2: 从opengewe.utils导入
         try:
-            if DEBUG:
-                print(f"尝试从opengewe.utils导入{name}")
+            _log_debug(f"尝试从opengewe.utils导入{name}")
             module = importlib.import_module(f"opengewe.utils.{name}")
-            if DEBUG:
-                print(f"成功从opengewe.utils导入{name}")
+            _log_debug(f"成功从opengewe.utils导入{name}")
             self._loaded_submodules[name] = module
             return module
         except ImportError as e:
-            if DEBUG:
-                print(f"从opengewe.utils导入{name}失败: {e}")
+            _log_debug(f"从opengewe.utils导入{name}失败: {e}")
             pass
 
         # 策略3: 直接加载插件目录下的模块文件
         try:
             module_path = os.path.join(self.__path__[0], f"{name}.py")
             if os.path.exists(module_path):
-                if DEBUG:
-                    print(f"尝试从文件{module_path}加载模块")
+                _log_debug(f"尝试从文件{module_path}加载模块")
 
                 spec = importlib.util.spec_from_file_location(
                     f"utils.{name}", module_path
@@ -91,14 +106,12 @@ class UtilsModuleProxy(ModuleType):
                 # 执行模块
                 spec.loader.exec_module(module)
 
-                if DEBUG:
-                    print(f"成功从文件{module_path}加载模块")
+                _log_debug(f"成功从文件{module_path}加载模块")
 
                 self._loaded_submodules[name] = module
                 return module
         except Exception as e:
-            if DEBUG:
-                print(f"从文件加载模块{name}失败: {e}")
+            _log_debug(f"从文件加载模块{name}失败: {e}")
             pass
 
         # 如果所有策略都失败，抛出AttributeError
@@ -110,6 +123,7 @@ def _import_all_from_opengewe():
     try:
         import opengewe.utils
 
+        loaded_count = 0
         for name in dir(opengewe.utils):
             # 排除特殊属性和方法
             if not name.startswith("_"):
@@ -120,10 +134,14 @@ def _import_all_from_opengewe():
                     module_name = f"utils.{name}"
                     if module_name not in sys.modules:
                         sys.modules[module_name] = attr
+                        loaded_count += 1
+        
+        if loaded_count > 0:
+            _log_debug(f"成功从opengewe.utils预加载了{loaded_count}个模块")
     except ImportError:
-        if DEBUG:
-            print("无法导入opengewe.utils")
-        pass
+        _log_warning("无法导入opengewe.utils，插件工具代理功能受限")
+    except Exception as e:
+        _log_warning(f"预加载opengewe.utils模块时出错: {e}")
 
 
 # 只创建一次utils模块代理

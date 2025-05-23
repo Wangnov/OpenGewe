@@ -8,10 +8,37 @@ import json
 from typing import Dict, Any
 import xml.dom.minidom as minidom
 from xml.parsers.expat import ExpatError
+from functools import lru_cache
 
 # 存储全局日志级别的变量，将由logger.config模块设置
 GLOBAL_LOG_LEVEL = "INFO"
 
+# 缓存正则表达式以提高性能
+_ANSI_COLOR_REGEX = re.compile(r"\x1b\[\d+m")
+_LOGURU_TAG_REGEX = re.compile(r"<[a-z]+>.*</[a-z]+>")
+
+@lru_cache(maxsize=1000)
+def _is_xml_content(message: str) -> bool:
+    """缓存的XML内容检测"""
+    if not isinstance(message, str) or len(message) < 3:
+        return False
+    stripped = message.strip()
+    return (stripped.startswith("<") and stripped.endswith(">")) or "<xml>" in message
+
+@lru_cache(maxsize=1000)
+def _is_json_content(message: str) -> bool:
+    """缓存的JSON内容检测"""
+    if not isinstance(message, str) or len(message) < 2:
+        return False
+    stripped = message.strip()
+    if not ((stripped.startswith("{") and stripped.endswith("}")) or 
+            (stripped.startswith("[") and stripped.endswith("]"))):
+        return False
+    try:
+        json.loads(message)
+        return True
+    except json.JSONDecodeError:
+        return False
 
 def should_escape_message(message: str) -> bool:
     """判断消息是否需要特殊处理
@@ -28,27 +55,19 @@ def should_escape_message(message: str) -> bool:
         return False
 
     # 检查是否可能包含XML内容
-    if (
-        message.strip().startswith("<") and message.strip().endswith(">")
-    ) or "<xml>" in message:
+    if _is_xml_content(message):
         return True
 
     # 检查是否可能包含JSON内容
-    if (message.strip().startswith("{") and message.strip().endswith("}")) or (
-        message.strip().startswith("[") and message.strip().endswith("]")
-    ):
-        try:
-            json.loads(message)
-            return True
-        except json.JSONDecodeError:
-            pass
+    if _is_json_content(message):
+        return True
 
     # 检查是否包含ANSI颜色代码（避免重复应用颜色）
-    if re.search(r"\x1b\[\d+m", message):
+    if _ANSI_COLOR_REGEX.search(message):
         return True
 
     # 检查是否包含loguru格式标记
-    if re.search(r"<[a-z]+>.*</[a-z]+>", message):
+    if _LOGURU_TAG_REGEX.search(message):
         return True
 
     # 检查是否是超长消息（超过500字符）
@@ -72,12 +91,10 @@ def format_console_message(record: Dict[str, Any]) -> str:
     message = record["message"]
 
     if not isinstance(message, str):
-        return message
+        return str(message)
 
     # 处理可能的XML内容
-    if (
-        message.strip().startswith("<") and message.strip().endswith(">")
-    ) or "<xml>" in message:
+    if _is_xml_content(message):
         try:
             # 尝试格式化XML
             dom = minidom.parseString(message)
@@ -86,10 +103,8 @@ def format_console_message(record: Dict[str, Any]) -> str:
         except ExpatError:
             pass
 
-    # 处理可能的JSON内容
-    if (message.strip().startswith("{") and message.strip().endswith("}")) or (
-        message.strip().startswith("[") and message.strip().endswith("]")
-    ):
+    # 处理可能的JSON内容  
+    if _is_json_content(message):
         try:
             # 尝试格式化JSON
             parsed = json.loads(message)
@@ -126,12 +141,10 @@ def format_file_message(record: Dict[str, Any]) -> str:
     message = record["message"]
 
     if not isinstance(message, str):
-        return message
+        return str(message)
 
     # 处理可能的XML内容
-    if (
-        message.strip().startswith("<") and message.strip().endswith(">")
-    ) or "<xml>" in message:
+    if _is_xml_content(message):
         try:
             # 尝试格式化XML
             dom = minidom.parseString(message)
@@ -141,9 +154,7 @@ def format_file_message(record: Dict[str, Any]) -> str:
             pass
 
     # 处理可能的JSON内容
-    if (message.strip().startswith("{") and message.strip().endswith("}")) or (
-        message.strip().startswith("[") and message.strip().endswith("]")
-    ):
+    if _is_json_content(message):
         try:
             # 尝试格式化JSON
             parsed = json.loads(message)
@@ -167,6 +178,7 @@ LEVEL_EMOJIS = {
 }
 
 
+@lru_cache(maxsize=10)
 def format_level(level_name: str) -> str:
     """格式化日志级别，添加emoji并居中显示
 
@@ -180,6 +192,7 @@ def format_level(level_name: str) -> str:
     return f"{level_name} {emoji}"
 
 
+@lru_cache(maxsize=10)
 def color_level(level: str) -> str:
     """根据日志级别返回彩色级别字符串
 

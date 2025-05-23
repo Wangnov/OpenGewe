@@ -1,10 +1,15 @@
-import asyncio
-from asyncio import Future, Queue, sleep
-from typing import Any, Awaitable, Callable, Dict
+"""简单消息队列实现"""
 
-from loguru import logger
+import asyncio
+import time
+from asyncio import Future, Queue, sleep
+from typing import Any, Awaitable, Callable, Dict, Optional
+
+from opengewe.logger import get_logger
 
 from .base import BaseMessageQueue, QueueError
+
+logger = get_logger("Queue.Simple")
 
 
 class SimpleMessageQueue(BaseMessageQueue):
