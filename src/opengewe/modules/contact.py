@@ -36,11 +36,15 @@ class ContactModule:
         """获取群/好友简要信息
 
         Args:
-            wxids (Union[List[str], str]): 好友的wxid列表或逗号分隔的字符串
+            wxids (Union[List[str], str]): 好友的wxid列表或逗号分隔的字符串，最多100个
 
         Returns:
             Dict[str, Any]: 接口返回结果
         """
+        if isinstance(wxids, str):
+            wxids = wxids.split(",")
+        if len(wxids) > 10:
+            raise ValueError("wxids最多100个")
         data = {"appId": self.client.app_id, "wxids": wxids}
         return await self.client.request("/contacts/getBriefInfo", data)
 
@@ -48,11 +52,15 @@ class ContactModule:
         """获取群/好友详细信息
 
         Args:
-            wxids (Union[List[str], str]): 好友的wxid列表或逗号分隔的字符串
+            wxids (Union[List[str], str]): 好友的wxid列表或逗号分隔的字符串，最多20个
 
         Returns:
             Dict[str, Any]: 接口返回结果
         """
+        if isinstance(wxids, str):
+            wxids = wxids.split(",")
+        if len(wxids) > 20:
+            raise ValueError("wxids最多20个")
         data = {"appId": self.client.app_id, "wxids": wxids}
         return await self.client.request("/contacts/getDetailInfo", data)
 
