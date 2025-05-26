@@ -53,3 +53,28 @@ retention = "10 days" # 日志保留时间
 compression = "zip"   # 日志压缩格式
 path = "./logs"       # 日志路径
 stdout = true         # 是否输出到控制台
+
+[webpanel]
+# WebPanel后台管理配置
+secret_key = "your-super-secret-key-change-this-in-production-environment-12345"
+debug = true
+host = "0.0.0.0"
+port = 5432
+
+# 数据库配置 - 仅支持MySQL（需要schema支持）
+[webpanel.database]
+type = "mysql"                 # 仅支持 mysql
+host = "localhost"             # 数据库主机
+port = 3306                    # 数据库端口
+username = "opengewe"          # 数据库用户名
+password = "opengewe123"       # 数据库密码
+database = "opengewe_webpanel" # 数据库名称
+echo_sql = false               # 是否在控制台打印SQL语句（调试用）
+
+# Redis配置
+[webpanel.redis]
+host = "localhost"
+port = 6379
+db = 0
+# 如果需要密码，取消注释下面一行
+# password = "your_redis_password"

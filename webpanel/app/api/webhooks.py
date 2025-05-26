@@ -11,6 +11,7 @@ from loguru import logger
 
 from ..core.database import get_admin_session, get_bot_session
 from ..core.security import verify_webhook_source
+from ..core.bot_manager import bot_manager
 from ..models.bot import BotInfo, RawCallbackLog
 from ..schemas.bot import WebhookPayload
 
@@ -93,7 +94,38 @@ async def receive_webhook(
             bot.is_online = True
         await session.commit()
 
-        return {"status": "ok", "message": "Webhook处理成功"}
+        # 处理消息并传递给插件系统
+        message_processed = False
+        try:
+            # 使用BotClientManager处理消息
+            message_processed = await bot_manager.process_webhook_message(
+                gewe_app_id, payload.model_dump()
+            )
+
+            if message_processed:
+                logger.debug(f"消息已传递给插件系统: gewe_app_id={gewe_app_id}")
+            else:
+                logger.warning(f"消息传递给插件系统失败: gewe_app_id={gewe_app_id}")
+
+        except Exception as e:
+            logger.error(f"插件系统处理消息时出错: {e}", exc_info=True)
+            # 插件处理失败不影响webhook响应
+
+        # 更新消息处理状态
+        try:
+            async with get_bot_session(gewe_app_id) as bot_session:
+                # 更新最新插入的消息状态
+                if raw_log.id:
+                    raw_log.processed = message_processed
+                    await bot_session.commit()
+        except Exception as e:
+            logger.error(f"更新消息处理状态失败: {e}")
+
+        return {
+            "status": "ok",
+            "message": "Webhook处理成功",
+            "plugin_processed": message_processed,
+        }
 
     except HTTPException:
         raise
@@ -209,12 +241,28 @@ async def manual_trigger_processing(
 
             for message in unprocessed_messages:
                 try:
-                    # 标记为已处理（实际处理逻辑需要与OpenGewe集成）
-                    message.processed = True
-                    processed_count += 1
+                    # 解析原始JSON数据并传递给插件系统
+                    import json
+
+                    payload_data = json.loads(message.raw_json_data)
+
+                    # 使用BotClientManager处理消息
+                    message_processed = await bot_manager.process_webhook_message(
+                        gewe_app_id, payload_data
+                    )
+
+                    # 标记为已处理
+                    message.processed = message_processed
+                    if message_processed:
+                        processed_count += 1
+                        logger.info(f"手动处理消息成功: {message.id}")
+                    else:
+                        logger.warning(f"手动处理消息失败: {message.id}")
 
                 except Exception as e:
                     logger.error(f"处理消息失败: {message.id}, error: {e}")
+                    # 即使处理失败，也标记为已处理，避免重复处理
+                    message.processed = True
 
             await bot_session.commit()
 
