@@ -8,6 +8,7 @@ uvicorn[standard]>=0.30.0
 sqlalchemy>=2.0.0
 aiosqlite>=0.20.0
 alembic>=1.13.0
+aiomysql>=0.2.0
 
 # 认证和安全
 python-jose[cryptography]>=3.3.0

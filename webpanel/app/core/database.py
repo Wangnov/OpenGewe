@@ -40,7 +40,7 @@ class DatabaseManager:
             self.settings.database_url,
             pool_size=self.settings.database_pool_size,
             max_overflow=self.settings.database_max_overflow,
-            echo=self.settings.debug,
+            echo=self.settings.database_echo_sql,
             future=True,
         )
 
@@ -70,7 +70,7 @@ class DatabaseManager:
             bot_db_url,
             pool_size=5,
             max_overflow=10,
-            echo=self.settings.debug,
+            echo=self.settings.database_echo_sql,
             future=True,
         )
 
