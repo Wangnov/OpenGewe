@@ -53,9 +53,11 @@ class DatabaseManager:
 
         logger.info("主数据库引擎已创建")
 
-    async def create_bot_engine(self, bot_wxid: str) -> AsyncEngine:
+    async def create_bot_engine(self, gewe_app_id: str) -> AsyncEngine:
         """为机器人创建专用数据库引擎"""
-        schema_name = f"bot_{bot_wxid.replace('@', '_').replace('.', '_')}"
+        schema_name = (
+            f"bot_{gewe_app_id.replace('@', '_').replace('.', '_').replace('-', '_')}"
+        )
 
         if schema_name in self._engines:
             return self._engines[schema_name]
@@ -79,12 +81,14 @@ class DatabaseManager:
         self._engines[schema_name] = engine
         self._session_makers[schema_name] = session_maker
 
-        logger.info(f"机器人 {bot_wxid} 的数据库引擎已创建: {schema_name}")
+        logger.info(f"机器人 {gewe_app_id} 的数据库引擎已创建: {schema_name}")
         return engine
 
-    async def create_bot_schema(self, bot_wxid: str) -> str:
+    async def create_bot_schema(self, gewe_app_id: str) -> str:
         """为机器人创建数据库Schema"""
-        schema_name = f"bot_{bot_wxid.replace('@', '_').replace('.', '_')}"
+        schema_name = (
+            f"bot_{gewe_app_id.replace('@', '_').replace('.', '_').replace('-', '_')}"
+        )
 
         # 使用主数据库连接创建新Schema
         async with self._session_makers["admin_data"]() as session:
@@ -98,7 +102,7 @@ class DatabaseManager:
                 logger.info(f"数据库Schema已创建: {schema_name}")
 
                 # 创建对应的引擎
-                await self.create_bot_engine(bot_wxid)
+                await self.create_bot_engine(gewe_app_id)
 
                 # 在新Schema中创建表结构
                 await self._create_bot_tables(schema_name)
@@ -117,10 +121,10 @@ class DatabaseManager:
 
         engine = self._engines[schema_name]
 
-        # 这里将导入并创建机器人相关的表结构
-        # 由于模型文件还未创建，这里先预留
-        async with engine.begin():
-            # await conn.run_sync(BotBase.metadata.create_all)
+        # 导入机器人相关的表结构并创建
+
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
             logger.info(f"机器人表结构已创建: {schema_name}")
 
     def get_session_maker(self, schema_name: str = "admin_data") -> async_sessionmaker:
@@ -165,13 +169,15 @@ async def get_admin_session() -> AsyncGenerator[AsyncSession, None]:
 
 
 @asynccontextmanager
-async def get_bot_session(bot_wxid: str) -> AsyncGenerator[AsyncSession, None]:
+async def get_bot_session(gewe_app_id: str) -> AsyncGenerator[AsyncSession, None]:
     """获取机器人数据库会话"""
-    schema_name = f"bot_{bot_wxid.replace('@', '_').replace('.', '_')}"
+    schema_name = (
+        f"bot_{gewe_app_id.replace('@', '_').replace('.', '_').replace('-', '_')}"
+    )
 
     # 确保机器人引擎存在
     if schema_name not in db_manager._session_makers:
-        await db_manager.create_bot_engine(bot_wxid)
+        await db_manager.create_bot_engine(gewe_app_id)
 
     async for session in get_db_session(schema_name):
         yield session
