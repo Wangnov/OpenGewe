@@ -12,7 +12,7 @@ from loguru import logger
 import traceback
 
 from app.core.config import get_settings
-from app.core.database import db_manager, Base
+from app.core.session_manager import session_manager
 from app.api import api_router
 from sqlalchemy import text
 
@@ -40,12 +40,26 @@ async def lifespan(app: FastAPI):
         # 初始化数据库表结构
         logger.info("初始化数据库表结构...")
 
+        # 初始化session管理器
+        await session_manager.initialize()
+
         # 创建管理员数据库的表结构
-        admin_engine = db_manager._engines["admin_data"]
+        from app.core.bases import AdminBase
+
+        admin_engine = session_manager._engines["admin_data"]
         async with admin_engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
+            await conn.run_sync(AdminBase.metadata.create_all)
 
         logger.info("数据库表结构初始化完成")
+
+        # 初始化机器人配置（从配置文件）
+        try:
+            from app.core.bot_initializer import initialize_bots_from_config
+
+            await initialize_bots_from_config()
+        except Exception as e:
+            logger.error(f"机器人配置初始化失败: {e}", exc_info=True)
+            # 机器人初始化失败不影响应用启动
 
         # TODO: 创建默认管理员账户（如果不存在）
         # await create_default_admin()
@@ -71,7 +85,7 @@ async def lifespan(app: FastAPI):
 
     try:
         # 关闭数据库连接
-        await db_manager.close_all()
+        await session_manager.close_all()
         logger.info("数据库连接已关闭")
 
         # TODO: 关闭Redis连接
@@ -169,7 +183,7 @@ def setup_health_check(app: FastAPI):
         """健康检查端点"""
         try:
             # 检查数据库连接
-            admin_engine = db_manager._engines.get("admin_data")
+            admin_engine = session_manager._engines.get("admin_data")
             if admin_engine:
                 async with admin_engine.begin() as conn:
                     await conn.execute(text("SELECT 1"))

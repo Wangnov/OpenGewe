@@ -16,7 +16,9 @@ from opengewe.client import GeweClient
 from opengewe.utils.plugin_base import PluginBase
 from ..models.admin import GlobalPlugin
 from ..models.bot import BotInfo, BotPlugin
-from ..core.database import get_admin_session
+from ..core.session_manager import admin_session
+from ..core.bot_profile_manager import BotProfileManager
+from ..core.session_manager import session_manager
 
 
 class BotClientManager:
@@ -38,36 +40,68 @@ class BotClientManager:
             BotClientManager._initialized = True
             logger.info("机器人客户端管理器初始化完成")
 
-    async def get_client(self, gewe_app_id: str) -> Optional[GeweClient]:
+    async def get_client(
+        self, gewe_app_id: str, session: Optional[AsyncSession] = None
+    ) -> Optional[GeweClient]:
         """获取或创建指定机器人的客户端实例"""
         if gewe_app_id in self._clients:
             return self._clients[gewe_app_id]
 
         # 从数据库获取机器人信息
-        async with get_admin_session() as session:
-            stmt = select(BotInfo).where(BotInfo.gewe_app_id == gewe_app_id)
-            result = await session.execute(stmt)
-            bot = result.scalar_one_or_none()
+        if session is not None:
+            # 使用提供的session
+            return await self._create_client_with_session(gewe_app_id, session)
+        else:
+            # 创建新的session
+            async with admin_session() as new_session:
+                return await self._create_client_with_session(gewe_app_id, new_session)
 
-            if not bot:
-                logger.warning(f"未找到机器人信息: gewe_app_id={gewe_app_id}")
-                return None
+    async def _create_client_with_session(
+        self, gewe_app_id: str, session: AsyncSession
+    ) -> Optional[GeweClient]:
+        """使用指定session创建客户端实例"""
+        stmt = select(BotInfo).where(BotInfo.gewe_app_id == gewe_app_id)
+        result = await session.execute(stmt)
+        bot = result.scalar_one_or_none()
 
-            # 创建GeweClient实例
-            client = GeweClient(
-                base_url="",  # webpanel环境下不需要API调用
-                app_id=gewe_app_id,
-                token=bot.gewe_token,
-                debug=False,
+        if not bot:
+            logger.warning(f"未找到机器人信息: gewe_app_id={gewe_app_id}")
+            return None
+
+        # 创建GeweClient实例
+        client = GeweClient(
+            base_url=bot.base_url,
+            app_id=gewe_app_id,
+            token=bot.gewe_token,
+            debug=False,
+        )
+
+        # 加载插件
+        await self._load_plugins_for_bot(client, bot, session)
+
+        self._clients[gewe_app_id] = client
+        logger.info(f"已创建机器人客户端: {gewe_app_id}")
+
+        # 检查并更新机器人个人资料
+        try:
+            should_update = await BotProfileManager.should_update_profile(
+                gewe_app_id, session=session
             )
+            if should_update:
+                logger.info(f"开始获取机器人个人资料: {gewe_app_id}")
+                await BotProfileManager.fetch_and_update_profile(
+                    client, gewe_app_id, session=session
+                )
+            else:
+                logger.debug(f"机器人个人资料无需更新: {gewe_app_id}")
+        except Exception as e:
+            logger.error(
+                f"更新机器人个人资料失败: gewe_app_id={gewe_app_id}, 错误: {e}",
+                exc_info=True,
+            )
+            # 个人资料更新失败不影响客户端创建
 
-            # 加载插件
-            await self._load_plugins_for_bot(client, bot, session)
-
-            self._clients[gewe_app_id] = client
-            logger.info(f"已创建机器人客户端: {gewe_app_id}")
-
-            return client
+        return client
 
     async def _load_available_plugins(self):
         """加载plugins目录中的所有可用插件"""
@@ -151,14 +185,18 @@ class BotClientManager:
             plugin.plugin_name: plugin for plugin in global_result.scalars().all()
         }
 
-        # 查询机器人启用的插件
-        bot_plugins_stmt = select(BotPlugin).where(
-            and_(BotPlugin.gewe_app_id == bot.gewe_app_id, BotPlugin.is_enabled is True)
-        )
-        bot_result = await session.execute(bot_plugins_stmt)
-        bot_plugins = {
-            plugin.plugin_name: plugin for plugin in bot_result.scalars().all()
-        }
+        # 查询机器人启用的插件 - 使用机器人专用会话
+        async with session_manager.get_bot_session(bot.gewe_app_id) as bot_session:
+            bot_plugins_stmt = select(BotPlugin).where(
+                and_(
+                    BotPlugin.gewe_app_id == bot.gewe_app_id,
+                    BotPlugin.is_enabled is True,
+                )
+            )
+            bot_result = await bot_session.execute(bot_plugins_stmt)
+            bot_plugins = {
+                plugin.plugin_name: plugin for plugin in bot_result.scalars().all()
+            }
 
         loaded_count = 0
 
@@ -185,11 +223,14 @@ class BotClientManager:
         )
 
     async def process_webhook_message(
-        self, gewe_app_id: str, payload_data: Dict[str, Any]
+        self,
+        gewe_app_id: str,
+        payload_data: Dict[str, Any],
+        session: Optional[AsyncSession] = None,
     ) -> bool:
         """处理webhook消息，传递给对应机器人的插件"""
         try:
-            client = await self.get_client(gewe_app_id)
+            client = await self.get_client(gewe_app_id, session)
             if not client:
                 logger.error(f"无法获取机器人客户端: {gewe_app_id}")
                 return False
@@ -198,7 +239,7 @@ class BotClientManager:
             message = await client.message_factory.process(payload_data)
 
             if message:
-                logger.info(
+                logger.debug(
                     f"消息处理成功: gewe_app_id={gewe_app_id}, "
                     f"message_type={message.type.name}, "
                     f"from_wxid={getattr(message, 'from_wxid', 'N/A')}"
@@ -225,7 +266,7 @@ class BotClientManager:
                 await client.plugin_manager.stop_all_plugins()
 
                 # 重新加载
-                async with get_admin_session() as session:
+                async with admin_session() as session:
                     stmt = select(BotInfo).where(BotInfo.gewe_app_id == gewe_app_id)
                     result = await session.execute(stmt)
                     bot = result.scalar_one_or_none()
@@ -239,7 +280,7 @@ class BotClientManager:
             # 重新初始化所有客户端的插件
             for gewe_app_id, client in self._clients.items():
                 await client.plugin_manager.stop_all_plugins()
-                async with get_admin_session() as session:
+                async with admin_session() as session:
                     stmt = select(BotInfo).where(BotInfo.gewe_app_id == gewe_app_id)
                     result = await session.execute(stmt)
                     bot = result.scalar_one_or_none()

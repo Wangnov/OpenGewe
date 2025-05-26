@@ -9,11 +9,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
 from loguru import logger
 
-from ..core.database import get_admin_session, get_bot_session
+from ..core.session_manager import get_admin_session, bot_session
 from ..core.security import verify_webhook_source
 from ..core.bot_manager import bot_manager
 from ..models.bot import BotInfo, RawCallbackLog
 from ..schemas.bot import WebhookPayload
+from ..core.timezone_utils import to_app_timezone
 
 
 router = APIRouter()
@@ -28,12 +29,31 @@ async def receive_webhook(
     """
     接收来自GeWeAPI的Webhook回调
 
-    - **payload**: Webhook负载数据，包含Appid字段用于标识机器人
+    - **payload**: Webhook负载数据，包含Appid字段用于标识机器人，或testMsg字段用于测试连接
     """
     # 验证Webhook来源
     await verify_webhook_source(request)
 
     try:
+        # 检查是否为测试消息
+        if payload.is_test_message():
+            logger.info(
+                f"收到GeWeAPI测试消息: {payload.testMsg}, token: {payload.token}"
+            )
+            return {
+                "status": "ok",
+                "message": "回调地址连接成功",
+                "testMsg": payload.testMsg,
+                "token": payload.token,
+            }
+
+        # 检查是否为正常消息
+        if not payload.is_normal_message():
+            logger.warning("Webhook payload格式无效，既不是测试消息也不是正常消息")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="无效的Webhook负载格式"
+            )
+
         # 从payload中提取gewe_app_id
         gewe_app_id = payload.Appid
 
@@ -68,9 +88,9 @@ async def receive_webhook(
         )
 
         # 使用机器人专用数据库存储原始回调数据
-        async with get_bot_session(gewe_app_id) as bot_session:
+        raw_log_id = None
+        async with bot_session(gewe_app_id) as bot_session_obj:
             raw_log = RawCallbackLog(
-                bot_wxid=bot.bot_wxid,
                 gewe_appid=payload.Appid,
                 type_name=payload.TypeName,
                 msg_id=str(msg_id) if msg_id else None,
@@ -81,15 +101,18 @@ async def receive_webhook(
                 processed=False,
             )
 
-            bot_session.add(raw_log)
-            await bot_session.commit()
+            bot_session_obj.add(raw_log)
+            await bot_session_obj.commit()
 
-            logger.info(
-                f"Webhook消息已存储: gewe_app_id={gewe_app_id}, bot_wxid={bot.bot_wxid}, type={payload.TypeName}, msg_id={msg_id}"
+            # 保存ID以便后续使用
+            raw_log_id = raw_log.id
+
+            logger.debug(
+                f"Webhook消息已存储: gewe_app_id={gewe_app_id}, type={payload.TypeName}, msg_id={msg_id}"
             )
 
         # 更新机器人最后在线时间
-        bot.last_seen_at = datetime.now(timezone.utc)
+        bot.last_seen_at = to_app_timezone(datetime.now(timezone.utc))
         if not bot.is_online:
             bot.is_online = True
         await session.commit()
@@ -97,9 +120,9 @@ async def receive_webhook(
         # 处理消息并传递给插件系统
         message_processed = False
         try:
-            # 使用BotClientManager处理消息
+            # 使用BotClientManager处理消息，传递当前session
             message_processed = await bot_manager.process_webhook_message(
-                gewe_app_id, payload.model_dump()
+                gewe_app_id, payload.model_dump(), session
             )
 
             if message_processed:
@@ -113,11 +136,16 @@ async def receive_webhook(
 
         # 更新消息处理状态
         try:
-            async with get_bot_session(gewe_app_id) as bot_session:
-                # 更新最新插入的消息状态
-                if raw_log.id:
-                    raw_log.processed = message_processed
-                    await bot_session.commit()
+            async with bot_session(gewe_app_id) as bot_session_obj:
+                # 重新查询raw_log对象以便在新session中使用
+                if raw_log_id:
+                    stmt = select(RawCallbackLog).where(RawCallbackLog.id == raw_log_id)
+                    result = await bot_session_obj.execute(stmt)
+                    raw_log = result.scalar_one_or_none()
+
+                    if raw_log:
+                        raw_log.processed = message_processed
+                        await bot_session_obj.commit()
         except Exception as e:
             logger.error(f"更新消息处理状态失败: {e}")
 
@@ -158,21 +186,20 @@ async def test_webhook(
 
     try:
         # 检查最近的Webhook消息
-        async with get_bot_session(gewe_app_id) as bot_session:
+        async with bot_session(gewe_app_id) as bot_session_obj:
             # 查询最近5条消息
             stmt = (
                 select(RawCallbackLog)
-                .where(RawCallbackLog.bot_wxid == bot.bot_wxid)
+                .where(RawCallbackLog.gewe_appid == gewe_app_id)
                 .order_by(RawCallbackLog.received_at.desc())
                 .limit(5)
             )
 
-            result = await bot_session.execute(stmt)
+            result = await bot_session_obj.execute(stmt)
             recent_messages = result.scalars().all()
 
             webhook_status = {
                 "gewe_app_id": gewe_app_id,
-                "bot_wxid": bot.bot_wxid,
                 "is_online": bot.is_online,
                 "last_seen_at": bot.last_seen_at.isoformat()
                 if bot.last_seen_at
@@ -222,13 +249,13 @@ async def manual_trigger_processing(
     try:
         processed_count = 0
 
-        async with get_bot_session(gewe_app_id) as bot_session:
+        async with bot_session(gewe_app_id) as bot_session_obj:
             # 查询未处理的消息
             stmt = (
                 select(RawCallbackLog)
                 .where(
                     and_(
-                        RawCallbackLog.bot_wxid == bot.bot_wxid,
+                        RawCallbackLog.gewe_appid == gewe_app_id,
                         RawCallbackLog.processed is False,
                     )
                 )
@@ -236,7 +263,7 @@ async def manual_trigger_processing(
                 .limit(limit)
             )
 
-            result = await bot_session.execute(stmt)
+            result = await bot_session_obj.execute(stmt)
             unprocessed_messages = result.scalars().all()
 
             for message in unprocessed_messages:
@@ -264,7 +291,7 @@ async def manual_trigger_processing(
                     # 即使处理失败，也标记为已处理，避免重复处理
                     message.processed = True
 
-            await bot_session.commit()
+            await bot_session_obj.commit()
 
             return {
                 "message": f"成功处理 {processed_count} 条消息",

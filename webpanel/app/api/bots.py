@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_, or_
 from loguru import logger
 
-from ..core.database import get_admin_session, get_bot_session, db_manager
+from ..core.session_manager import get_admin_session, bot_session, session_manager
 from ..core.security import get_current_active_user, require_superadmin
 from ..models.bot import BotInfo, Contact, ContactType
 from ..schemas.bot import (
@@ -49,7 +49,6 @@ async def get_bots(
         conditions.append(
             or_(
                 BotInfo.nickname.ilike(search_pattern),
-                BotInfo.bot_wxid.ilike(search_pattern),
                 BotInfo.gewe_app_id.ilike(search_pattern),
             )
         )
@@ -58,7 +57,7 @@ async def get_bots(
         conditions.append(BotInfo.is_online == is_online)
 
     # 查询总数
-    count_stmt = select(func.count(BotInfo.bot_wxid))
+    count_stmt = select(func.count(BotInfo.gewe_app_id))
     if conditions:
         count_stmt = count_stmt.where(and_(*conditions))
 
@@ -110,13 +109,11 @@ async def create_bot(
 
     try:
         # 临时使用虚拟数据，等集成OpenGewe后替换
-        bot_wxid = f"bot_{bot_data.gewe_app_id}"
         nickname = f"机器人_{bot_data.gewe_app_id}"
         avatar_url = None
 
         # 创建机器人记录
         bot = BotInfo(
-            bot_wxid=bot_wxid,
             gewe_app_id=bot_data.gewe_app_id,
             gewe_token=bot_data.gewe_token,
             nickname=nickname,
@@ -131,7 +128,7 @@ async def create_bot(
 
         # 创建机器人专用数据库Schema
         try:
-            schema_name = await db_manager.create_bot_schema(bot_data.gewe_app_id)
+            schema_name = await session_manager.create_bot_schema(bot_data.gewe_app_id)
             logger.info(f"机器人Schema创建成功: {schema_name}")
 
         except Exception as e:
@@ -144,7 +141,9 @@ async def create_bot(
                 detail="创建机器人数据库失败",
             )
 
-        logger.info(f"机器人创建成功: {bot_wxid} by {current_user['username']}")
+        logger.info(
+            f"机器人创建成功: {bot_data.gewe_app_id} by {current_user['username']}"
+        )
 
         return BotResponse.model_validate(bot)
 
@@ -158,14 +157,14 @@ async def create_bot(
         )
 
 
-@router.get("/{bot_wxid}", response_model=BotResponse, summary="获取机器人详情")
+@router.get("/{gewe_app_id}", response_model=BotResponse, summary="获取机器人详情")
 async def get_bot(
-    bot_wxid: str,
+    gewe_app_id: str,
     current_user: dict = Depends(get_current_active_user),
     session: AsyncSession = Depends(get_admin_session),
 ):
     """获取指定机器人的详细信息"""
-    stmt = select(BotInfo).where(BotInfo.bot_wxid == bot_wxid)
+    stmt = select(BotInfo).where(BotInfo.gewe_app_id == gewe_app_id)
     result = await session.execute(stmt)
     bot = result.scalar_one_or_none()
 
@@ -177,15 +176,15 @@ async def get_bot(
     return BotResponse.model_validate(bot)
 
 
-@router.put("/{bot_wxid}", response_model=BotResponse, summary="更新机器人")
+@router.put("/{gewe_app_id}", response_model=BotResponse, summary="更新机器人")
 async def update_bot(
-    bot_wxid: str,
+    gewe_app_id: str,
     bot_data: BotUpdateRequest,
     current_user: dict = Depends(require_superadmin),
     session: AsyncSession = Depends(get_admin_session),
 ):
     """更新机器人配置"""
-    stmt = select(BotInfo).where(BotInfo.bot_wxid == bot_wxid)
+    stmt = select(BotInfo).where(BotInfo.gewe_app_id == gewe_app_id)
     result = await session.execute(stmt)
     bot = result.scalar_one_or_none()
 
@@ -202,19 +201,19 @@ async def update_bot(
     await session.commit()
     await session.refresh(bot)
 
-    logger.info(f"机器人更新成功: {bot_wxid} by {current_user['username']}")
+    logger.info(f"机器人更新成功: {gewe_app_id} by {current_user['username']}")
 
     return BotResponse.model_validate(bot)
 
 
-@router.delete("/{bot_wxid}", summary="删除机器人")
+@router.delete("/{gewe_app_id}", summary="删除机器人")
 async def delete_bot(
-    bot_wxid: str,
+    gewe_app_id: str,
     current_user: dict = Depends(require_superadmin),
     session: AsyncSession = Depends(get_admin_session),
 ):
     """删除机器人实例"""
-    stmt = select(BotInfo).where(BotInfo.bot_wxid == bot_wxid)
+    stmt = select(BotInfo).where(BotInfo.gewe_app_id == gewe_app_id)
     result = await session.execute(stmt)
     bot = result.scalar_one_or_none()
 
@@ -228,7 +227,7 @@ async def delete_bot(
         await session.delete(bot)
         await session.commit()
 
-        logger.info(f"机器人删除成功: {bot_wxid} by {current_user['username']}")
+        logger.info(f"机器人删除成功: {gewe_app_id} by {current_user['username']}")
 
         return {"message": "机器人删除成功"}
 
@@ -241,16 +240,16 @@ async def delete_bot(
 
 
 @router.get(
-    "/{bot_wxid}/status", response_model=BotStatusResponse, summary="获取机器人状态"
+    "/{gewe_app_id}/status", response_model=BotStatusResponse, summary="获取机器人状态"
 )
 async def get_bot_status(
-    bot_wxid: str,
+    gewe_app_id: str,
     current_user: dict = Depends(get_current_active_user),
     session: AsyncSession = Depends(get_admin_session),
 ):
     """获取机器人实时状态信息"""
     # 获取机器人基本信息
-    stmt = select(BotInfo).where(BotInfo.bot_wxid == bot_wxid)
+    stmt = select(BotInfo).where(BotInfo.gewe_app_id == gewe_app_id)
     result = await session.execute(stmt)
     bot = result.scalar_one_or_none()
 
@@ -266,23 +265,23 @@ async def get_bot_status(
 
     # 使用机器人专用数据库连接
     try:
-        async with get_bot_session(bot.gewe_app_id) as bot_session:
+        async with bot_session(bot.gewe_app_id) as bot_session_obj:
             # 统计联系人数量
             contact_stmt = select(func.count(Contact.id)).where(
-                and_(Contact.bot_wxid == bot_wxid, Contact.is_deleted is False)
+                and_(Contact.gewe_app_id == gewe_app_id, Contact.is_deleted is False)
             )
-            contact_result = await bot_session.execute(contact_stmt)
+            contact_result = await bot_session_obj.execute(contact_stmt)
             contact_count = contact_result.scalar() or 0
 
             # 统计群聊数量
             group_stmt = select(func.count(Contact.id)).where(
                 and_(
-                    Contact.bot_wxid == bot_wxid,
+                    Contact.gewe_app_id == gewe_app_id,
                     Contact.contact_type == ContactType.GROUP,
                     Contact.is_deleted is False,
                 )
             )
-            group_result = await bot_session.execute(group_stmt)
+            group_result = await bot_session_obj.execute(group_stmt)
             group_count = group_result.scalar() or 0
 
     except Exception as e:
@@ -290,7 +289,7 @@ async def get_bot_status(
         # 如果机器人数据库不存在，使用默认值
 
     return BotStatusResponse(
-        bot_wxid=bot_wxid,
+        gewe_app_id=gewe_app_id,
         is_online=bot.is_online,
         last_seen_at=bot.last_seen_at,
         message_count_24h=message_count_24h,
@@ -300,12 +299,12 @@ async def get_bot_status(
 
 
 @router.get(
-    "/{bot_wxid}/contacts",
+    "/{gewe_app_id}/contacts",
     response_model=List[ContactResponse],
     summary="获取机器人联系人",
 )
 async def get_bot_contacts(
-    bot_wxid: str,
+    gewe_app_id: str,
     contact_type: Optional[ContactType] = Query(None, description="联系人类型过滤"),
     search: Optional[str] = Query(None, description="搜索关键词"),
     page: int = Query(1, ge=1, description="页码"),
@@ -315,7 +314,7 @@ async def get_bot_contacts(
 ):
     """获取机器人的联系人列表"""
     # 先验证机器人是否存在
-    stmt = select(BotInfo).where(BotInfo.bot_wxid == bot_wxid)
+    stmt = select(BotInfo).where(BotInfo.gewe_app_id == gewe_app_id)
     result = await session.execute(stmt)
     bot = result.scalar_one_or_none()
 
@@ -325,9 +324,12 @@ async def get_bot_contacts(
         )
 
     try:
-        async with get_bot_session(bot.gewe_app_id) as bot_session:
+        async with bot_session(bot.gewe_app_id) as bot_session_obj:
             # 构建查询条件
-            conditions = [Contact.bot_wxid == bot_wxid, Contact.is_deleted is False]
+            conditions = [
+                Contact.gewe_app_id == gewe_app_id,
+                Contact.is_deleted is False,
+            ]
 
             if contact_type:
                 conditions.append(Contact.contact_type == contact_type)
@@ -353,7 +355,7 @@ async def get_bot_contacts(
             offset = (page - 1) * page_size
             stmt = stmt.offset(offset).limit(page_size)
 
-            result = await bot_session.execute(stmt)
+            result = await bot_session_obj.execute(stmt)
             contacts = result.scalars().all()
 
             return [ContactResponse.model_validate(contact) for contact in contacts]
