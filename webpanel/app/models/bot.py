@@ -42,7 +42,8 @@ class BotInfo(Base):
     gewe_token: Mapped[str] = mapped_column(String(255), nullable=False)
     nickname: Mapped[Optional[str]] = mapped_column(String(100))
     avatar_url: Mapped[Optional[str]] = mapped_column(Text)
-    qr_code_url: Mapped[Optional[str]] = mapped_column(Text)
+    big_head_img_url: Mapped[Optional[str]] = mapped_column(Text)
+    small_head_img_url: Mapped[Optional[str]] = mapped_column(Text)
     is_online: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     last_seen_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
     callback_url_override: Mapped[Optional[str]] = mapped_column(String(500))
@@ -56,7 +57,7 @@ class BotInfo(Base):
     )
 
     def __repr__(self) -> str:
-        return f"<BotInfo(bot_wxid='{self.bot_wxid}', nickname='{self.nickname}')>"
+        return f"<BotInfo(bot_wxid='{self.bot_wxid}', nickname='{self.nickname}', gewe_app_id='{self.gewe_app_id}', gewe_token='{self.gewe_token}')>"
 
 
 class RawCallbackLog(Base):
@@ -79,7 +80,7 @@ class RawCallbackLog(Base):
     processed: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
 
     def __repr__(self) -> str:
-        return f"<RawCallbackLog(id={self.id}, type='{self.type_name}')>"
+        return f"<RawCallbackLog(bot_wxid='{self.bot_wxid}', type='{self.type_name}', raw_json_data='{self.raw_json_data}')>"
 
 
 class Contact(Base):
@@ -89,6 +90,7 @@ class Contact(Base):
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     bot_wxid: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    gewe_app_id: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     contact_wxid: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     contact_type: Mapped[ContactType] = mapped_column(
         Enum(ContactType), nullable=False, index=True
@@ -114,7 +116,7 @@ class Contact(Base):
     )
 
     def __repr__(self) -> str:
-        return f"<Contact(id={self.id}, nickname='{self.nickname}', type={self.contact_type})>"
+        return f"<Contact(bot_wxid='{self.bot_wxid}', gewe_app_id='{self.gewe_app_id}', contact_wxid='{self.contact_wxid}', contact_type='{self.contact_type}', nickname='{self.nickname}')>"
 
 
 class GroupMember(Base):
@@ -124,10 +126,13 @@ class GroupMember(Base):
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     bot_wxid: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    gewe_app_id: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     group_wxid: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     member_wxid: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     nickname: Mapped[Optional[str]] = mapped_column(String(200))
     display_name: Mapped[Optional[str]] = mapped_column(String(200))
+    big_head_img_url: Mapped[Optional[str]] = mapped_column(Text)
+    small_head_img_url: Mapped[Optional[str]] = mapped_column(Text)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     is_owner: Mapped[bool] = mapped_column(Boolean, default=False)
     join_time: Mapped[Optional[datetime]] = mapped_column(DateTime)
@@ -139,7 +144,7 @@ class GroupMember(Base):
     )
 
     def __repr__(self) -> str:
-        return f"<GroupMember(id={self.id}, group='{self.group_wxid}', member='{self.member_wxid}')>"
+        return f"<GroupMember(bot_wxid='{self.bot_wxid}', gewe_app_id='{self.gewe_app_id}', group_wxid='{self.group_wxid}', member_wxid='{self.member_wxid}', nickname='{self.nickname}')>"
 
 
 class BotPlugin(Base):
@@ -149,6 +154,7 @@ class BotPlugin(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     bot_wxid: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    gewe_app_id: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     plugin_name: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     is_enabled: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
     config_json: Mapped[Optional[str]] = mapped_column(Text)  # JSON配置
@@ -162,7 +168,7 @@ class BotPlugin(Base):
     )
 
     def __repr__(self) -> str:
-        return f"<BotPlugin(id={self.id}, bot='{self.bot_wxid}', plugin='{self.plugin_name}')>"
+        return f"<BotPlugin(bot_wxid='{self.bot_wxid}', gewe_app_id='{self.gewe_app_id}', plugin_name='{self.plugin_name}')>"
 
 
 class SnsPost(Base):
@@ -172,6 +178,7 @@ class SnsPost(Base):
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     bot_wxid: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    gewe_app_id: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     sns_id: Mapped[int] = mapped_column(BigInteger, nullable=False, index=True)
     author_wxid: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     content: Mapped[Optional[str]] = mapped_column(Text)
@@ -186,4 +193,4 @@ class SnsPost(Base):
     raw_data: Mapped[Optional[str]] = mapped_column(Text)  # 原始JSON数据
 
     def __repr__(self) -> str:
-        return f"<SnsPost(id={self.id}, sns_id={self.sns_id}, author='{self.author_wxid}')>"
+        return f"<SnsPost(bot_wxid='{self.bot_wxid}', gewe_app_id='{self.gewe_app_id}', sns_id={self.sns_id}, author='{self.author_wxid}')>"
