@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from loguru import logger
 
-from ..core.database import get_admin_session
+from ..core.session_manager import get_admin_session
 from ..core.security import (
     security_manager,
     rate_limiter,

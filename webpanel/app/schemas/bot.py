@@ -56,7 +56,6 @@ class BotUpdateRequest(BaseModel):
 class BotResponse(BaseModel):
     """机器人响应"""
 
-    bot_wxid: str = Field(..., description="机器人微信ID")
     gewe_app_id: str = Field(..., description="GeWe应用ID")
     nickname: Optional[str] = Field(None, description="昵称")
     avatar_url: Optional[str] = Field(None, description="头像URL")
@@ -84,7 +83,7 @@ class BotListResponse(BaseModel):
 class BotStatusResponse(BaseModel):
     """机器人状态响应"""
 
-    bot_wxid: str = Field(..., description="机器人微信ID")
+    gewe_app_id: str = Field(..., description="GeWe应用ID")
     is_online: bool = Field(..., description="是否在线")
     last_seen_at: Optional[datetime] = Field(None, description="最后在线时间")
     message_count_24h: int = Field(0, description="24小时消息数量")
@@ -96,7 +95,6 @@ class ContactResponse(BaseModel):
     """联系人响应"""
 
     id: int = Field(..., description="联系人ID")
-    bot_wxid: str = Field(..., description="机器人微信ID")
     gewe_app_id: str = Field(..., description="GeWe应用ID")
     contact_wxid: str = Field(..., description="联系人微信ID")
     contact_type: str = Field(..., description="联系人类型")
@@ -122,7 +120,6 @@ class GroupMemberResponse(BaseModel):
     """群成员响应"""
 
     id: int = Field(..., description="群成员ID")
-    bot_wxid: str = Field(..., description="机器人微信ID")
     gewe_app_id: str = Field(..., description="GeWe应用ID")
     group_wxid: str = Field(..., description="群聊微信ID")
     member_wxid: str = Field(..., description="成员微信ID")
@@ -144,7 +141,6 @@ class BotPluginResponse(BaseModel):
     """机器人插件响应"""
 
     id: int = Field(..., description="插件配置ID")
-    bot_wxid: str = Field(..., description="机器人微信ID")
     gewe_app_id: str = Field(..., description="GeWe应用ID")
     plugin_name: str = Field(..., description="插件名称")
     is_enabled: bool = Field(..., description="是否启用")
@@ -160,7 +156,6 @@ class SnsPostResponse(BaseModel):
     """朋友圈响应"""
 
     id: int = Field(..., description="朋友圈ID")
-    bot_wxid: str = Field(..., description="机器人微信ID")
     gewe_app_id: str = Field(..., description="GeWe应用ID")
     sns_id: int = Field(..., description="朋友圈消息ID")
     author_wxid: str = Field(..., description="作者微信ID")
@@ -180,18 +175,35 @@ class SnsPostResponse(BaseModel):
 class WebhookPayload(BaseModel):
     """Webhook负载模型"""
 
-    Appid: str = Field(..., min_length=1, description="应用ID")
-    TypeName: str = Field(..., min_length=1, description="类型名称")
-    Data: dict = Field(..., description="数据内容")
+    Appid: Optional[str] = Field(None, min_length=1, description="应用ID")
+    TypeName: Optional[str] = Field(None, min_length=1, description="类型名称")
+    Data: Optional[dict] = Field(None, description="数据内容")
+
+    # GeWeAPI测试消息字段
+    testMsg: Optional[str] = Field(None, description="测试消息内容")
+    token: Optional[str] = Field(None, description="测试消息token")
 
     @field_validator("Appid")
     @classmethod
     def validate_appid(cls, v):
         """验证应用ID格式"""
-        v = v.strip() if v else ""
-        if not v:
-            raise ValueError("应用ID不能为空")
+        if v is not None:
+            v = v.strip() if v else ""
+            if not v:
+                raise ValueError("应用ID不能为空")
         return v
+
+    def is_test_message(self) -> bool:
+        """判断是否为测试消息"""
+        return self.testMsg is not None and self.token is not None
+
+    def is_normal_message(self) -> bool:
+        """判断是否为正常消息"""
+        return (
+            self.Appid is not None
+            and self.TypeName is not None
+            and self.Data is not None
+        )
 
 
 class RawCallbackLogResponse(BaseModel):
@@ -199,7 +211,6 @@ class RawCallbackLogResponse(BaseModel):
 
     id: int = Field(..., description="消息ID")
     received_at: datetime = Field(..., description="接收时间")
-    bot_wxid: Optional[str] = Field(None, description="机器人微信ID")
     gewe_appid: str = Field(..., description="GeWe应用ID")
     type_name: str = Field(..., description="消息类型")
     msg_id: Optional[str] = Field(None, description="消息ID")

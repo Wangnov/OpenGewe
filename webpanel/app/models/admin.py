@@ -8,7 +8,8 @@ from sqlalchemy import String, Boolean, Text, DateTime, Integer, Enum
 from sqlalchemy.orm import Mapped, mapped_column
 import enum
 
-from ..core.database import Base
+from ..core.bases import AdminBase
+from ..core.timezone_utils import to_app_timezone
 
 
 class LoginStatus(enum.Enum):
@@ -18,7 +19,7 @@ class LoginStatus(enum.Enum):
     FAILED = "failed"
 
 
-class Admin(Base):
+class Admin(AdminBase):
     """管理员表"""
 
     __tablename__ = "admins"
@@ -32,12 +33,12 @@ class Admin(Base):
     is_superadmin: Mapped[bool] = mapped_column(Boolean, default=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=lambda: datetime.now(timezone.utc)
+        DateTime, default=lambda: to_app_timezone(datetime.now(timezone.utc))
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime,
-        default=lambda: datetime.now(timezone.utc),
-        onupdate=lambda: datetime.now(timezone.utc),
+        default=lambda: to_app_timezone(datetime.now(timezone.utc)),
+        onupdate=lambda: to_app_timezone(datetime.now(timezone.utc)),
     )
     last_login_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
 
@@ -45,7 +46,7 @@ class Admin(Base):
         return f"<Admin(id={self.id}, username='{self.username}')>"
 
 
-class AdminLoginLog(Base):
+class AdminLoginLog(AdminBase):
     """管理员登录日志表"""
 
     __tablename__ = "admin_login_logs"
@@ -55,7 +56,9 @@ class AdminLoginLog(Base):
     login_ip: Mapped[Optional[str]] = mapped_column(String(45))
     user_agent: Mapped[Optional[str]] = mapped_column(Text)
     login_at: Mapped[datetime] = mapped_column(
-        DateTime, default=lambda: datetime.now(timezone.utc), index=True
+        DateTime,
+        default=lambda: to_app_timezone(datetime.now(timezone.utc)),
+        index=True,
     )
     status: Mapped[LoginStatus] = mapped_column(Enum(LoginStatus), nullable=False)
     failure_reason: Mapped[Optional[str]] = mapped_column(String(255))
@@ -64,7 +67,7 @@ class AdminLoginLog(Base):
         return f"<AdminLoginLog(id={self.id}, admin_id={self.admin_id}, status={self.status})>"
 
 
-class GlobalPlugin(Base):
+class GlobalPlugin(AdminBase):
     """全局插件配置表"""
 
     __tablename__ = "global_plugins"
@@ -76,12 +79,12 @@ class GlobalPlugin(Base):
     is_globally_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     global_config_json: Mapped[Optional[str]] = mapped_column(Text)  # JSON配置
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=lambda: datetime.now(timezone.utc)
+        DateTime, default=lambda: to_app_timezone(datetime.now(timezone.utc))
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime,
-        default=lambda: datetime.now(timezone.utc),
-        onupdate=lambda: datetime.now(timezone.utc),
+        default=lambda: to_app_timezone(datetime.now(timezone.utc)),
+        onupdate=lambda: to_app_timezone(datetime.now(timezone.utc)),
     )
 
     def __repr__(self) -> str:

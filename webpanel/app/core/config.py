@@ -174,6 +174,10 @@ class Settings(BaseSettings):
     password_min_length: int = 8
     max_login_attempts: int = 5
 
+    # 时区配置
+    timezone: str = "Asia/Shanghai"
+    use_local_timezone: bool = True
+
     # 数据库配置 - 强制使用MySQL
     database_url: str = (
         "mysql+aiomysql://opengewe:opengewe123@localhost:3306/opengewe_webpanel"
@@ -214,7 +218,14 @@ class Settings(BaseSettings):
         webpanel_config = toml_config.get("webpanel", {})
 
         # 基础配置
-        for key in ["secret_key", "debug", "host", "port"]:
+        for key in [
+            "secret_key",
+            "debug",
+            "host",
+            "port",
+            "timezone",
+            "use_local_timezone",
+        ]:
             if key in webpanel_config:
                 kwargs.setdefault(key, webpanel_config[key])
 
