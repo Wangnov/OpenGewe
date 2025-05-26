@@ -13,7 +13,6 @@ from typing import (
 )
 import json
 import asyncio
-import inspect
 
 from opengewe.logger import get_logger
 from opengewe.callback.types import MessageType
