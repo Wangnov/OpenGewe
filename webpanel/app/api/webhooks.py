@@ -18,9 +18,9 @@ from ..schemas.bot import WebhookPayload
 router = APIRouter()
 
 
-@router.post("/{bot_schema_id}", summary="接收机器人Webhook")
+@router.post("/{gewe_app_id}", summary="接收机器人Webhook")
 async def receive_webhook(
-    bot_schema_id: str,
+    gewe_app_id: str,
     payload: WebhookPayload,
     request: Request,
     session: AsyncSession = Depends(get_admin_session),
@@ -28,43 +28,32 @@ async def receive_webhook(
     """
     接收来自GeWeAPI的Webhook回调
 
-    - **bot_schema_id**: 机器人Schema标识符
+    - **gewe_app_id**: GeWe应用ID标识符
     - **payload**: Webhook负载数据
     """
     # 验证Webhook来源
     await verify_webhook_source(request)
 
     try:
-        # 解析Schema ID到bot_wxid
-        # bot_schema_id格式: bot_wxid 或 gewe_app_id
-        bot_wxid = None
+        # 验证payload中的app_id与路径参数匹配
+        if payload.Appid != gewe_app_id:
+            logger.warning(
+                f"Webhook App ID不匹配: 路径参数={gewe_app_id}, payload={payload.Appid}"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="App ID参数不匹配"
+            )
 
-        # 首先尝试按gewe_app_id查找
-        stmt = select(BotInfo).where(BotInfo.gewe_app_id == payload.Appid)
+        # 查找机器人信息
+        stmt = select(BotInfo).where(BotInfo.gewe_app_id == gewe_app_id)
         result = await session.execute(stmt)
         bot = result.scalar_one_or_none()
 
-        if bot:
-            bot_wxid = bot.bot_wxid
-        else:
-            # 如果按app_id找不到，尝试直接使用bot_schema_id作为bot_wxid
-            if bot_schema_id.startswith("bot_"):
-                bot_wxid = bot_schema_id[4:]  # 去掉'bot_'前缀
-            else:
-                bot_wxid = bot_schema_id
-
-            # 验证bot_wxid是否存在
-            stmt = select(BotInfo).where(BotInfo.bot_wxid == bot_wxid)
-            result = await session.execute(stmt)
-            bot = result.scalar_one_or_none()
-
-            if not bot:
-                logger.warning(
-                    f"未找到机器人: schema_id={bot_schema_id}, app_id={payload.Appid}"
-                )
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND, detail="机器人不存在"
-                )
+        if not bot:
+            logger.warning(f"未找到机器人: gewe_app_id={gewe_app_id}")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="机器人不存在"
+            )
 
         # 提取消息信息
         data = payload.Data
@@ -80,9 +69,9 @@ async def receive_webhook(
         )
 
         # 使用机器人专用数据库存储原始回调数据
-        async with get_bot_session(bot_wxid) as bot_session:
+        async with get_bot_session(gewe_app_id) as bot_session:
             raw_log = RawCallbackLog(
-                bot_wxid=bot_wxid,
+                bot_wxid=bot.bot_wxid,
                 gewe_appid=payload.Appid,
                 type_name=payload.TypeName,
                 msg_id=str(msg_id) if msg_id else None,
@@ -97,21 +86,8 @@ async def receive_webhook(
             await bot_session.commit()
 
             logger.info(
-                f"Webhook消息已存储: bot={bot_wxid}, type={payload.TypeName}, msg_id={msg_id}"
+                f"Webhook消息已存储: gewe_app_id={gewe_app_id}, bot_wxid={bot.bot_wxid}, type={payload.TypeName}, msg_id={msg_id}"
             )
-
-        # TODO: 分发给OpenGewe MessageFactory进行处理
-        # client = await bot_client_manager.get_client(bot_wxid)
-        # await client.message_factory.process(payload.model_dump())
-
-        # TODO: 实时推送给前端WebSocket连接
-        # await websocket_manager.broadcast_to_bot_subscribers(
-        #     bot_wxid,
-        #     {
-        #         "type": "new_message",
-        #         "data": payload.model_dump()
-        #     }
-        # )
 
         # 更新机器人最后在线时间
         bot.last_seen_at = datetime.now(timezone.utc)
@@ -131,9 +107,9 @@ async def receive_webhook(
         )
 
 
-@router.get("/test/{bot_wxid}", summary="测试Webhook连接")
+@router.get("/test/{gewe_app_id}", summary="测试Webhook连接")
 async def test_webhook(
-    bot_wxid: str, session: AsyncSession = Depends(get_admin_session)
+    gewe_app_id: str, session: AsyncSession = Depends(get_admin_session)
 ):
     """
     测试Webhook连接状态
@@ -141,7 +117,7 @@ async def test_webhook(
     用于验证机器人与后台的连接是否正常
     """
     # 验证机器人是否存在
-    stmt = select(BotInfo).where(BotInfo.bot_wxid == bot_wxid)
+    stmt = select(BotInfo).where(BotInfo.gewe_app_id == gewe_app_id)
     result = await session.execute(stmt)
     bot = result.scalar_one_or_none()
 
@@ -152,11 +128,11 @@ async def test_webhook(
 
     try:
         # 检查最近的Webhook消息
-        async with get_bot_session(bot_wxid) as bot_session:
+        async with get_bot_session(gewe_app_id) as bot_session:
             # 查询最近5条消息
             stmt = (
                 select(RawCallbackLog)
-                .where(RawCallbackLog.bot_wxid == bot_wxid)
+                .where(RawCallbackLog.bot_wxid == bot.bot_wxid)
                 .order_by(RawCallbackLog.received_at.desc())
                 .limit(5)
             )
@@ -165,7 +141,8 @@ async def test_webhook(
             recent_messages = result.scalars().all()
 
             webhook_status = {
-                "bot_wxid": bot_wxid,
+                "gewe_app_id": gewe_app_id,
+                "bot_wxid": bot.bot_wxid,
                 "is_online": bot.is_online,
                 "last_seen_at": bot.last_seen_at.isoformat()
                 if bot.last_seen_at
@@ -191,9 +168,11 @@ async def test_webhook(
         )
 
 
-@router.post("/manual-trigger/{bot_wxid}", summary="手动触发消息处理")
+@router.post("/manual-trigger/{gewe_app_id}", summary="手动触发消息处理")
 async def manual_trigger_processing(
-    bot_wxid: str, limit: int = 10, session: AsyncSession = Depends(get_admin_session)
+    gewe_app_id: str,
+    limit: int = 10,
+    session: AsyncSession = Depends(get_admin_session),
 ):
     """
     手动触发未处理消息的处理
@@ -201,7 +180,7 @@ async def manual_trigger_processing(
     用于调试或重新处理失败的消息
     """
     # 验证机器人是否存在
-    stmt = select(BotInfo).where(BotInfo.bot_wxid == bot_wxid)
+    stmt = select(BotInfo).where(BotInfo.gewe_app_id == gewe_app_id)
     result = await session.execute(stmt)
     bot = result.scalar_one_or_none()
 
@@ -213,13 +192,13 @@ async def manual_trigger_processing(
     try:
         processed_count = 0
 
-        async with get_bot_session(bot_wxid) as bot_session:
+        async with get_bot_session(gewe_app_id) as bot_session:
             # 查询未处理的消息
             stmt = (
                 select(RawCallbackLog)
                 .where(
                     and_(
-                        RawCallbackLog.bot_wxid == bot_wxid,
+                        RawCallbackLog.bot_wxid == bot.bot_wxid,
                         RawCallbackLog.processed is False,
                     )
                 )
@@ -232,12 +211,7 @@ async def manual_trigger_processing(
 
             for message in unprocessed_messages:
                 try:
-                    # TODO: 重新处理消息
-                    # payload = json.loads(message.raw_json_data)
-                    # client = await bot_client_manager.get_client(bot_wxid)
-                    # await client.message_factory.process(payload)
-
-                    # 标记为已处理
+                    # 标记为已处理（实际处理逻辑需要与OpenGewe集成）
                     message.processed = True
                     processed_count += 1
 
