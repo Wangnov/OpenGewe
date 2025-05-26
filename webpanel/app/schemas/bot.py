@@ -180,9 +180,18 @@ class SnsPostResponse(BaseModel):
 class WebhookPayload(BaseModel):
     """Webhook负载模型"""
 
-    Appid: str = Field(..., description="应用ID")
-    TypeName: str = Field(..., description="类型名称")
+    Appid: str = Field(..., min_length=1, description="应用ID")
+    TypeName: str = Field(..., min_length=1, description="类型名称")
     Data: dict = Field(..., description="数据内容")
+
+    @field_validator("Appid")
+    @classmethod
+    def validate_appid(cls, v):
+        """验证应用ID格式"""
+        v = v.strip() if v else ""
+        if not v:
+            raise ValueError("应用ID不能为空")
+        return v
 
 
 class RawCallbackLogResponse(BaseModel):

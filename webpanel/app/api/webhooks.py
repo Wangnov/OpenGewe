@@ -18,9 +18,8 @@ from ..schemas.bot import WebhookPayload
 router = APIRouter()
 
 
-@router.post("/{gewe_app_id}", summary="接收机器人Webhook")
+@router.post("/callback", summary="接收机器人Webhook")
 async def receive_webhook(
-    gewe_app_id: str,
     payload: WebhookPayload,
     request: Request,
     session: AsyncSession = Depends(get_admin_session),
@@ -28,20 +27,19 @@ async def receive_webhook(
     """
     接收来自GeWeAPI的Webhook回调
 
-    - **gewe_app_id**: GeWe应用ID标识符
-    - **payload**: Webhook负载数据
+    - **payload**: Webhook负载数据，包含Appid字段用于标识机器人
     """
     # 验证Webhook来源
     await verify_webhook_source(request)
 
     try:
-        # 验证payload中的app_id与路径参数匹配
-        if payload.Appid != gewe_app_id:
-            logger.warning(
-                f"Webhook App ID不匹配: 路径参数={gewe_app_id}, payload={payload.Appid}"
-            )
+        # 从payload中提取gewe_app_id
+        gewe_app_id = payload.Appid
+
+        if not gewe_app_id:
+            logger.warning("Webhook payload中缺少Appid字段")
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="App ID参数不匹配"
+                status_code=status.HTTP_400_BAD_REQUEST, detail="缺少必需的Appid字段"
             )
 
         # 查找机器人信息
