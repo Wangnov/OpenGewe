@@ -15,8 +15,8 @@ try:
 except ImportError:
     import tomli as tomllib
 
-from .session_manager import admin_session, session_manager
-from ..models.bot import BotInfo
+from ...core.session_manager import admin_session, session_manager
+from ...models.bot import BotInfo
 
 
 async def initialize_bots_from_config() -> None:

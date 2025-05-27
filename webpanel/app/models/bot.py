@@ -9,7 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 import enum
 
 from ..core.bases import BotBase, AdminBase
-from ..core.timezone_utils import to_app_timezone
+from ..utils.timezone_utils import to_app_timezone
 
 
 class ContactType(enum.Enum):

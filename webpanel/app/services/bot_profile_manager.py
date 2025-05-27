@@ -11,8 +11,8 @@ from loguru import logger
 
 from opengewe.client import GeweClient
 from ..models.bot import BotInfo
-from .session_manager import admin_session
-from .timezone_utils import utc_now, to_app_timezone
+from ..core.session_manager import admin_session
+from ..utils.timezone_utils import utc_now, to_app_timezone
 
 
 class BotProfileManager:

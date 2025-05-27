@@ -54,12 +54,56 @@ async def lifespan(app: FastAPI):
 
         # 初始化机器人配置（从配置文件）
         try:
-            from app.core.bot_initializer import initialize_bots_from_config
+            from app.services.initializers.bot_initializer import (
+                initialize_bots_from_config,
+            )
 
             await initialize_bots_from_config()
         except Exception as e:
             logger.error(f"机器人配置初始化失败: {e}", exc_info=True)
             # 机器人初始化失败不影响应用启动
+
+        # 初始化插件配置
+        try:
+            from app.services.initializers.plugin_initializer import initialize_plugins
+
+            await initialize_plugins()
+        except Exception as e:
+            logger.error(f"插件配置初始化失败: {e}", exc_info=True)
+            # 插件初始化失败不影响应用启动
+
+        # 确保调度器启动
+        try:
+            from app.utils.scheduler_manager import scheduler_manager
+
+            if not scheduler_manager.is_scheduler_running():
+                logger.info("启动定时任务调度器...")
+                scheduler_manager.ensure_scheduler_started()
+        except Exception as e:
+            logger.error(f"调度器启动失败: {e}", exc_info=True)
+
+        # 预加载所有bot客户端（重要：确保插件和定时任务立即生效）
+        try:
+            from app.services.bot_preloader import bot_preloader
+
+            logger.info("开始预加载bot客户端...")
+            preload_result = await bot_preloader.preload_all_bots()
+
+            if preload_result["status"] == "completed":
+                logger.info(
+                    f"Bot预加载完成：成功 {preload_result['loaded_count']}/{preload_result['total_bots']} 个"
+                )
+
+                # 记录调度器任务摘要
+                scheduler_manager.log_jobs_summary()
+            elif preload_result["status"] == "no_bots":
+                logger.info("没有配置的bot需要预加载")
+            else:
+                logger.warning(f"Bot预加载结果: {preload_result}")
+
+        except Exception as e:
+            logger.error(f"Bot预加载失败: {e}", exc_info=True)
+            # 预加载失败不影响应用启动，但会影响定时任务的即时生效
 
         # TODO: 创建默认管理员账户（如果不存在）
         # await create_default_admin()

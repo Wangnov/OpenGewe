@@ -17,7 +17,7 @@ from opengewe.utils.plugin_base import PluginBase
 from ..models.admin import GlobalPlugin
 from ..models.bot import BotInfo, BotPlugin
 from ..core.session_manager import admin_session
-from ..core.bot_profile_manager import BotProfileManager
+from .bot_profile_manager import BotProfileManager
 from ..core.session_manager import session_manager
 
 
@@ -118,9 +118,26 @@ class BotClientManager:
 
         logger.info(f"开始加载插件目录: {plugins_dir}")
 
+        # 需要排除的目录名称
+        excluded_dirs = {
+            "utils",
+            "__pycache__",
+            ".git",
+            ".vscode",
+            ".idea",
+            "node_modules",
+            "venv",
+            ".venv",
+        }
+
         # 遍历插件目录
         for plugin_folder in plugins_dir.iterdir():
             if not plugin_folder.is_dir() or plugin_folder.name.startswith("."):
+                continue
+
+            # 排除非插件目录
+            if plugin_folder.name in excluded_dirs:
+                logger.debug(f"跳过非插件目录: {plugin_folder.name}")
                 continue
 
             # 检查是否有main.py文件
@@ -176,27 +193,32 @@ class BotClientManager:
         # 确保插件已加载
         await self._load_available_plugins()
 
+        logger.info(f"开始为机器人 {bot.gewe_app_id} 加载插件...")
+        logger.debug(f"可用插件: {list(self._available_plugins.keys())}")
+
         # 查询全局启用的插件
         global_plugins_stmt = select(GlobalPlugin).where(
-            GlobalPlugin.is_globally_enabled is True
+            GlobalPlugin.is_globally_enabled
         )
         global_result = await session.execute(global_plugins_stmt)
         global_plugins = {
             plugin.plugin_name: plugin for plugin in global_result.scalars().all()
         }
+        logger.debug(f"全局启用的插件: {list(global_plugins.keys())}")
 
         # 查询机器人启用的插件 - 使用机器人专用会话
         async with session_manager.get_bot_session(bot.gewe_app_id) as bot_session:
             bot_plugins_stmt = select(BotPlugin).where(
                 and_(
                     BotPlugin.gewe_app_id == bot.gewe_app_id,
-                    BotPlugin.is_enabled is True,
+                    BotPlugin.is_enabled,
                 )
             )
             bot_result = await bot_session.execute(bot_plugins_stmt)
             bot_plugins = {
                 plugin.plugin_name: plugin for plugin in bot_result.scalars().all()
             }
+        logger.debug(f"机器人 {bot.gewe_app_id} 启用的插件: {list(bot_plugins.keys())}")
 
         loaded_count = 0
 
@@ -205,22 +227,134 @@ class BotClientManager:
             if plugin_name in self._available_plugins and plugin_name in global_plugins:
                 try:
                     plugin_cls = self._available_plugins[plugin_name]
+                    logger.info(
+                        f"正在为机器人 {bot.gewe_app_id} 注册插件: {plugin_name}"
+                    )
 
                     # 注册插件到客户端
                     await client.plugin_manager.register_plugin(plugin_cls)
                     loaded_count += 1
 
-                    logger.info(f"为机器人 {bot.gewe_app_id} 加载插件: {plugin_name}")
+                    logger.info(
+                        f"为机器人 {bot.gewe_app_id} 成功加载插件: {plugin_name}"
+                    )
 
                 except Exception as e:
                     logger.error(
                         f"为机器人 {bot.gewe_app_id} 加载插件 {plugin_name} 失败: {e}",
                         exc_info=True,
                     )
+            else:
+                missing_conditions = []
+                if plugin_name not in self._available_plugins:
+                    missing_conditions.append("插件类不可用")
+                if plugin_name not in global_plugins:
+                    missing_conditions.append("全局未启用")
+
+                logger.warning(
+                    f"跳过插件 {plugin_name} for 机器人 {bot.gewe_app_id}: {', '.join(missing_conditions)}"
+                )
 
         logger.info(
             f"机器人 {bot.gewe_app_id} 插件加载完成，已加载 {loaded_count} 个插件"
         )
+
+        # 启动插件管理器
+        try:
+            plugin_manager = client.plugin_manager
+
+            # 方式1: 尝试start_all_plugins方法
+            if hasattr(plugin_manager, "start_all_plugins"):
+                await plugin_manager.start_all_plugins()
+                logger.debug(
+                    f"机器人 {bot.gewe_app_id} 的插件管理器已启动 (start_all_plugins)"
+                )
+
+            # 方式2: 尝试start方法
+            elif hasattr(plugin_manager, "start"):
+                await plugin_manager.start()
+                logger.debug(f"机器人 {bot.gewe_app_id} 的插件管理器已启动 (start)")
+
+            # 方式4: 检查是否需要手动初始化事件管理器
+            if not hasattr(plugin_manager, "event_manager"):
+                logger.warning("插件管理器缺少event_manager，尝试手动初始化")
+                # 尝试从opengewe导入EventManager
+                try:
+                    from opengewe.utils.event_manager import EventManager
+
+                    plugin_manager.event_manager = EventManager()
+                    logger.debug(f"已为机器人 {bot.gewe_app_id} 手动创建事件管理器")
+                except ImportError:
+                    logger.warning("无法导入EventManager")
+
+            # 方式5: 检查并初始化事件管理器的handlers属性
+            if hasattr(plugin_manager, "event_manager"):
+                event_manager = plugin_manager.event_manager
+                if not hasattr(event_manager, "handlers"):
+                    logger.warning("事件管理器缺少handlers属性，尝试手动初始化")
+                    try:
+                        from collections import defaultdict
+
+                        event_manager.handlers = defaultdict(list)
+                        logger.debug(
+                            f"已为机器人 {bot.gewe_app_id} 手动创建事件处理器字典"
+                        )
+                    except Exception as e:
+                        logger.error(f"创建事件处理器字典失败: {e}")
+
+                # 方式6: 尝试重新注册插件的事件处理器
+                try:
+                    for plugin_name, plugin_instance in plugin_manager.plugins.items():
+                        logger.debug(f"尝试为插件 {plugin_name} 重新注册事件处理器")
+
+                        # 检查插件是否有消息处理方法
+                        for method_name in dir(plugin_instance):
+                            if method_name.startswith("handle_"):
+                                method = getattr(plugin_instance, method_name)
+                                if callable(method):
+                                    logger.debug(
+                                        f"发现插件方法: {plugin_name}.{method_name}"
+                                    )
+
+                                    # 尝试手动注册到事件管理器
+                                    if method_name == "handle_text":
+                                        try:
+                                            from opengewe.callback.types import (
+                                                MessageType,
+                                            )
+
+                                            if hasattr(event_manager, "handlers"):
+                                                event_manager.handlers[
+                                                    MessageType.TEXT
+                                                ].append(method)
+                                                logger.debug(
+                                                    f"已手动注册文本消息处理器: {plugin_name}.{method_name}"
+                                                )
+                                        except Exception as e:
+                                            logger.error(
+                                                f"手动注册文本消息处理器失败: {e}"
+                                            )
+
+                except Exception as e:
+                    logger.error(f"重新注册插件事件处理器失败: {e}")
+
+            # 检查插件是否正确注册了事件处理器
+            if hasattr(plugin_manager, "event_manager") and hasattr(
+                plugin_manager.event_manager, "handlers"
+            ):
+                handlers = plugin_manager.event_manager.handlers
+                total_handlers = sum(
+                    len(handler_list) for handler_list in handlers.values()
+                )
+                logger.debug(
+                    f"机器人 {bot.gewe_app_id} 的事件处理器数量: {total_handlers}"
+                )
+
+                if total_handlers == 0:
+                    logger.warning(f"机器人 {bot.gewe_app_id} 没有注册任何事件处理器")
+
+        except Exception as e:
+            logger.error(f"启动插件管理器失败: {e}", exc_info=True)
 
     async def process_webhook_message(
         self,
@@ -294,16 +428,39 @@ class BotClientManager:
             return {"error": "机器人客户端不存在"}
 
         try:
+            # 获取插件管理器信息
+            plugin_manager_info = {
+                "plugin_count": len(client.plugin_manager.plugins),
+                "registered_plugins": list(client.plugin_manager.plugins.keys()),
+            }
+
+            # 尝试获取更多插件信息
+            if hasattr(client.plugin_manager, "plugin_info"):
+                plugin_manager_info["plugin_info"] = client.plugin_manager.plugin_info
+                plugin_manager_info["enabled_plugins"] = [
+                    name
+                    for name, info in client.plugin_manager.plugin_info.items()
+                    if info.get("enabled", False)
+                ]
+
+            # 获取事件处理器信息
+            event_handlers_info = {}
+            if hasattr(client.plugin_manager, "event_manager"):
+                event_manager = client.plugin_manager.event_manager
+                if hasattr(event_manager, "handlers"):
+                    for event_type, handlers in event_manager.handlers.items():
+                        event_handlers_info[event_type] = len(handlers)
+
             plugin_status = {
-                "loaded_plugins": [],
                 "available_plugins": list(self._available_plugins.keys()),
-                "plugin_manager_info": {
-                    "plugin_count": len(client.plugin_manager.plugins),
-                    "enabled_plugins": [
-                        name
-                        for name, info in client.plugin_manager.plugin_info.items()
-                        if info.get("enabled", False)
-                    ],
+                "plugin_manager_info": plugin_manager_info,
+                "event_handlers_info": event_handlers_info,
+                "client_info": {
+                    "has_plugin_manager": hasattr(client, "plugin_manager"),
+                    "has_message_factory": hasattr(client, "message_factory"),
+                    "plugin_manager_type": type(client.plugin_manager).__name__
+                    if hasattr(client, "plugin_manager")
+                    else None,
                 },
             }
 
