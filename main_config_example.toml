@@ -60,6 +60,8 @@ secret_key = "your-super-secret-key-change-this-in-production-environment-12345"
 debug = true
 host = "0.0.0.0"
 port = 5432
+admin_username = "admin"
+admin_password = "admin@123"
 
 # 数据库配置 - 仅支持MySQL（需要schema支持）
 [webpanel.database]
