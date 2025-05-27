@@ -11,10 +11,10 @@ from loguru import logger
 
 from ..core.session_manager import get_admin_session, bot_session
 from ..core.security import verify_webhook_source
-from ..core.bot_manager import bot_manager
+from ..services.bot_manager import bot_manager
 from ..models.bot import BotInfo, RawCallbackLog
 from ..schemas.bot import WebhookPayload
-from ..core.timezone_utils import to_app_timezone
+from ..utils.timezone_utils import to_app_timezone
 
 
 router = APIRouter()

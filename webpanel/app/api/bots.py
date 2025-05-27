@@ -268,7 +268,7 @@ async def get_bot_status(
         async with bot_session(bot.gewe_app_id) as bot_session_obj:
             # 统计联系人数量
             contact_stmt = select(func.count(Contact.id)).where(
-                and_(Contact.gewe_app_id == gewe_app_id, Contact.is_deleted is False)
+                and_(Contact.gewe_app_id == gewe_app_id, not Contact.is_deleted)
             )
             contact_result = await bot_session_obj.execute(contact_stmt)
             contact_count = contact_result.scalar() or 0
@@ -278,7 +278,7 @@ async def get_bot_status(
                 and_(
                     Contact.gewe_app_id == gewe_app_id,
                     Contact.contact_type == ContactType.GROUP,
-                    Contact.is_deleted is False,
+                    not Contact.is_deleted,
                 )
             )
             group_result = await bot_session_obj.execute(group_stmt)
