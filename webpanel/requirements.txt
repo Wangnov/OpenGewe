@@ -12,7 +12,8 @@ aiomysql>=0.2.0
 
 # 认证和安全
 python-jose[cryptography]>=3.3.0
-passlib[bcrypt]>=1.7.4
+passlib>=1.7.4
+bcrypt<=3.2.2  # 限制bcrypt版本，避免与passlib不兼容
 python-multipart>=0.0.9
 
 # 配置管理

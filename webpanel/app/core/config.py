@@ -174,6 +174,10 @@ class Settings(BaseSettings):
     password_min_length: int = 8
     max_login_attempts: int = 5
 
+    # 管理员配置
+    admin_username: str = "admin"
+    admin_password: str = "admin@123"
+
     # 时区配置
     timezone: str = "Asia/Shanghai"
     use_local_timezone: bool = True
@@ -225,6 +229,8 @@ class Settings(BaseSettings):
             "port",
             "timezone",
             "use_local_timezone",
+            "admin_username",
+            "admin_password",
         ]:
             if key in webpanel_config:
                 kwargs.setdefault(key, webpanel_config[key])

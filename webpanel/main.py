@@ -105,8 +105,15 @@ async def lifespan(app: FastAPI):
             logger.error(f"Bot预加载失败: {e}", exc_info=True)
             # 预加载失败不影响应用启动，但会影响定时任务的即时生效
 
-        # TODO: 创建默认管理员账户（如果不存在）
-        # await create_default_admin()
+        # 初始化管理员账号
+        try:
+            from app.services.initializers import initialize_admin
+
+            logger.info("初始化管理员账号...")
+            await initialize_admin()
+        except Exception as e:
+            logger.error(f"管理员账号初始化失败: {e}", exc_info=True)
+            # 管理员初始化失败不影响应用启动
 
         # TODO: 初始化Redis连接
         # await init_redis_connection()
