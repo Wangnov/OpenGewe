@@ -10,6 +10,7 @@ import inspect
 import os
 import sys
 import asyncio
+from pathlib import Path
 # 根据Python版本导入不同的TOML解析库
 try:
     import tomllib
@@ -96,16 +97,22 @@ class PluginManager(metaclass=Singleton):
         将plugins目录和plugins/utils目录添加到Python的模块搜索路径中，
         使插件可以通过'utils'模块名称直接导入桥接层
         """
+        # 获取项目根目录（从当前文件向上4级目录）
+        # 当前文件路径: src/opengewe/utils/plugin_manager.py
+        # 项目根目录: ../../../../
+        project_root = Path(__file__).parent.parent.parent.parent
+        plugins_dir = project_root / "plugins"
+        plugins_dir_str = str(plugins_dir.absolute())
+        
         # 确保plugins目录存在
-        plugins_dir = os.path.abspath("plugins")
-        if not os.path.exists(plugins_dir):
+        if not plugins_dir.exists():
             try:
-                os.makedirs(plugins_dir, exist_ok=True)
-                logger.info(f"插件目录不存在，已创建: {plugins_dir}")
+                plugins_dir.mkdir(parents=True, exist_ok=True)
+                logger.info(f"插件目录不存在，已创建: {plugins_dir_str}")
                 # 创建__init__.py文件以使其成为有效的Python包
-                init_file = os.path.join(plugins_dir, "__init__.py")
-                if not os.path.exists(init_file):
-                    with open(init_file, "w") as f:
+                init_file = plugins_dir / "__init__.py"
+                if not init_file.exists():
+                    with open(init_file, "w", encoding="utf-8") as f:
                         f.write("# 插件目录\n")
                     logger.info(f"创建了插件包初始化文件: {init_file}")
             except Exception as e:
@@ -113,12 +120,12 @@ class PluginManager(metaclass=Singleton):
                 logger.warning("将使用内存中的插件，不会加载文件系统中的插件")
 
         # 确保plugins目录在搜索路径中
-        if plugins_dir not in sys.path:
-            sys.path.insert(0, plugins_dir)
+        if plugins_dir_str not in sys.path:
+            sys.path.insert(0, plugins_dir_str)
 
         # 确保plugins的父目录也在搜索路径中
         # 这样插件可以通过相对导入找到utils包
-        parent_dir = os.path.dirname(plugins_dir)
+        parent_dir = str(project_root.absolute())
         if parent_dir not in sys.path:
             sys.path.insert(0, parent_dir)
 
@@ -722,7 +729,7 @@ class PluginManager(metaclass=Singleton):
             self.excluded_plugins.append(plugin_name)
             
             logger.info(f"已在内存中禁用插件 {plugin_name}，但此更改不会保存到配置文件")
-            logger.info(f"若要永久禁用插件，请手动编辑 main_config.toml 文件中的 plugins.disabled_plugins 列表")
+            logger.info("若要永久禁用插件，请手动编辑 main_config.toml 文件中的 plugins.disabled_plugins 列表")
             return True
         except Exception as e:
             logger.error(f"禁用插件 {plugin_name} 时出错: {e}")
