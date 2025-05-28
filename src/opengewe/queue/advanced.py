@@ -3,16 +3,18 @@ import os
 import base64
 import tempfile
 from asyncio import Future
-from typing import Any, Awaitable, Callable, Dict, Optional
-
-from opengewe.logger import get_logger
+from typing import Any, Awaitable, Callable, Dict
 from .base import BaseMessageQueue, QueueError, WorkerNotFoundError
+from opengewe.logger import init_default_logger, get_logger
+
+init_default_logger()
 
 logger = get_logger("Queue.Advanced")
 # 可选依赖导入
 try:
     from celery import Celery
     from celery.result import AsyncResult
+
     CELERY_AVAILABLE = True
 except ImportError:
     logger.warning(
@@ -26,6 +28,7 @@ except ImportError:
 
 try:
     import joblib
+
     JOBLIB_AVAILABLE = True
 except ImportError:
     logger.warning(
@@ -37,7 +40,8 @@ except ImportError:
     JOBLIB_AVAILABLE = False
 
 try:
-    import redis
+    import redis  # noqa: F401
+
     REDIS_AVAILABLE = True
 except ImportError:
     logger.debug(
@@ -48,7 +52,8 @@ except ImportError:
     REDIS_AVAILABLE = False
 
 try:
-    import lz4
+    import lz4  # noqa: F401
+
     LZ4_AVAILABLE = True
 except ImportError:
     logger.debug(
@@ -89,7 +94,7 @@ def create_celery_app(
             "请运行以下命令安装: pip install opengewe[advanced]\n"
             "或者单独安装: pip install celery"
         )
-    
+
     app = Celery("opengewe_queue")
     app.conf.update(
         broker_url=broker,
@@ -119,6 +124,7 @@ if CELERY_AVAILABLE:
 
 # 定义处理消息的Celery任务（仅在Celery可用时）
 if CELERY_AVAILABLE and celery is not None:
+
     @celery.task(name="opengewe.queue.advanced.process_message", bind=True)
     def process_message(
         self,
@@ -186,7 +192,11 @@ if CELERY_AVAILABLE and celery is not None:
             import traceback
 
             logger.error(f"错误堆栈: {traceback.format_exc()}")
-            return {"status": "error", "error": str(e), "traceback": traceback.format_exc()}
+            return {
+                "status": "error",
+                "error": str(e),
+                "traceback": traceback.format_exc(),
+            }
 else:
     # 创建一个占位符函数
     def process_message(*args, **kwargs):
@@ -221,7 +231,7 @@ class AdvancedMessageQueue(BaseMessageQueue):
                 "请运行以下命令安装: pip install opengewe[advanced]\n"
                 "或者单独安装: pip install celery"
             )
-        
+
         self.broker = broker
         self.backend = backend
         self.queue_name = queue_name
@@ -239,7 +249,7 @@ class AdvancedMessageQueue(BaseMessageQueue):
 
         Returns:
             str: base64编码的序列化函数数据
-            
+
         Raises:
             ValueError: 如果序列化失败
             ImportError: 如果joblib未安装
@@ -251,7 +261,7 @@ class AdvancedMessageQueue(BaseMessageQueue):
                 "或者单独安装: pip install joblib\n"
                 "joblib是高级消息队列序列化函数所必需的依赖。"
             )
-        
+
         try:
             # 创建临时文件来存储序列化数据
             with tempfile.NamedTemporaryFile(delete=False) as temp_file:
@@ -479,7 +489,10 @@ class AdvancedMessageQueue(BaseMessageQueue):
             raise QueueError(f"提交任务到队列失败: {str(e)}") from e
 
     async def _wait_for_result(
-        self, task_id: str, async_result: AsyncResult, timeout: float = 30.0 # type: ignore
+        self,
+        task_id: str,
+        async_result: AsyncResult,
+        timeout: float = 30.0,  # type: ignore
     ) -> None:
         """等待Celery任务结果并设置到Future
 
@@ -549,7 +562,7 @@ class AdvancedMessageQueue(BaseMessageQueue):
             if not self._futures:
                 self._is_processing = False
 
-    async def _wait_for_task_completion(self, async_result: AsyncResult) -> None: # type: ignore
+    async def _wait_for_task_completion(self, async_result: AsyncResult) -> None:  # type: ignore
         """等待任务完成的内部方法
 
         Args:

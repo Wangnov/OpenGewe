@@ -5,7 +5,10 @@
 """
 
 from typing import Dict, Any, Optional
-from loguru import logger
+from opengewe.logger import init_default_logger, get_logger
+
+init_default_logger()
+logger = get_logger(__name__)
 
 try:
     from opengewe.utils.decorators import scheduler

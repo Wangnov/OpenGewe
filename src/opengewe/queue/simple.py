@@ -5,8 +5,9 @@ import time
 from asyncio import Future, Queue, sleep
 from typing import Any, Awaitable, Callable, Dict, Optional
 
-from opengewe.logger import get_logger
+from opengewe.logger import init_default_logger, get_logger
 
+init_default_logger()
 from .base import BaseMessageQueue, QueueError
 
 logger = get_logger("Queue.Simple")
@@ -65,7 +66,7 @@ class SimpleMessageQueue(BaseMessageQueue):
         """
         try:
             cleared_count = 0
-            
+
             # 清空队列中的所有任务
             while not self._queue.empty():
                 try:
@@ -76,16 +77,18 @@ class SimpleMessageQueue(BaseMessageQueue):
                     cleared_count += 1
                 except asyncio.QueueEmpty:
                     break
-            
+
             logger.info(f"已清空简单队列，删除 {cleared_count} 个待处理任务")
             return cleared_count
-            
+
         except Exception as e:
             error_msg = f"清空简单队列失败: {str(e)}"
             logger.error(error_msg)
             raise QueueError(error_msg) from e
 
-    async def enqueue(self, func: Callable[..., Awaitable[Any]], *args: Any, **kwargs: Any) -> Any:
+    async def enqueue(
+        self, func: Callable[..., Awaitable[Any]], *args: Any, **kwargs: Any
+    ) -> Any:
         """将消息添加到队列
 
         Args:
@@ -111,7 +114,7 @@ class SimpleMessageQueue(BaseMessageQueue):
 
         self._is_processing = True
         logger.debug("开始处理消息队列")
-        
+
         try:
             while True:
                 if self._queue.empty():
@@ -137,4 +140,4 @@ class SimpleMessageQueue(BaseMessageQueue):
     async def stop_processing(self) -> None:
         """停止处理队列中的消息"""
         self._is_processing = False
-        logger.debug("停止处理消息队列") 
+        logger.debug("停止处理消息队列")

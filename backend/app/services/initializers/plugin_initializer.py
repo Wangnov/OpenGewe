@@ -7,12 +7,14 @@
 from typing import List, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
-from loguru import logger
-
 from ...core.session_manager import admin_session, session_manager
 from ..bot_manager import bot_manager
 from ...models.admin import GlobalPlugin
 from ...models.bot import BotInfo, BotPlugin
+from opengewe.logger import init_default_logger, get_logger
+
+init_default_logger()
+logger = get_logger(__name__)
 
 
 async def initialize_plugins() -> None:

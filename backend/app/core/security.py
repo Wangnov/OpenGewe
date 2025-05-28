@@ -9,10 +9,12 @@ from jose import JWTError, jwt
 from fastapi import HTTPException, status, Depends, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
-from loguru import logger
-
 from .config import get_settings
 from .database import get_admin_session
+from opengewe.logger import init_default_logger, get_logger
+
+init_default_logger()
+logger = get_logger(__name__)
 
 
 # 密码加密上下文

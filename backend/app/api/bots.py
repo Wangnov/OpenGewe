@@ -6,8 +6,6 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_, or_
-from loguru import logger
-
 from ..core.session_manager import get_admin_session, bot_session, session_manager
 from ..core.security import get_current_active_user, require_superadmin
 from ..models.bot import BotInfo, Contact, ContactType
@@ -19,6 +17,10 @@ from ..schemas.bot import (
     BotStatusResponse,
     ContactResponse,
 )
+from opengewe.logger import init_default_logger, get_logger
+
+init_default_logger()
+logger = get_logger(__name__)
 
 
 router = APIRouter()

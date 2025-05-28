@@ -10,8 +10,6 @@ from typing import Dict, Optional, List, Any
 from pathlib import Path
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
-from loguru import logger
-
 from opengewe.client import GeweClient
 from opengewe.utils.plugin_base import PluginBase
 from ..models.admin import GlobalPlugin
@@ -19,6 +17,10 @@ from ..models.bot import BotInfo, BotPlugin
 from ..core.session_manager import admin_session
 from .bot_profile_manager import BotProfileManager
 from ..core.session_manager import session_manager
+from opengewe.logger import init_default_logger, get_logger
+
+init_default_logger()
+logger = get_logger(__name__)
 
 
 class BotClientManager:
@@ -275,32 +277,14 @@ class BotClientManager:
                 await plugin_manager.start()
                 logger.debug(f"机器人 {bot.gewe_app_id} 的插件管理器已启动 (start)")
 
-            # 方式4: 检查是否需要手动初始化事件管理器
+            # 检查插件管理器的event_manager是否正确初始化
             if not hasattr(plugin_manager, "event_manager"):
-                logger.warning("插件管理器缺少event_manager，尝试手动初始化")
-                # 尝试从opengewe导入EventManager
-                try:
-                    from opengewe.utils.event_manager import EventManager
+                logger.error("插件管理器缺少event_manager，这不应该发生")
 
-                    plugin_manager.event_manager = EventManager()
-                    logger.debug(f"已为机器人 {bot.gewe_app_id} 手动创建事件管理器")
-                except ImportError:
-                    logger.warning("无法导入EventManager")
-
-            # 方式5: 检查并初始化事件管理器的handlers属性
-            if hasattr(plugin_manager, "event_manager"):
-                event_manager = plugin_manager.event_manager
-                if not hasattr(event_manager, "handlers"):
-                    logger.warning("事件管理器缺少handlers属性，尝试手动初始化")
-                    try:
-                        from collections import defaultdict
-
-                        event_manager.handlers = defaultdict(list)
-                        logger.debug(
-                            f"已为机器人 {bot.gewe_app_id} 手动创建事件处理器字典"
-                        )
-                    except Exception as e:
-                        logger.error(f"创建事件处理器字典失败: {e}")
+            # 检查事件管理器的handlers属性
+            event_manager = plugin_manager.event_manager
+            if not hasattr(event_manager.__class__, "_handlers"):
+                logger.error("事件管理器缺少_handlers类属性，这不应该发生")
 
                 # 方式6: 尝试重新注册插件的事件处理器
                 try:

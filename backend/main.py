@@ -8,13 +8,21 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from sqlalchemy.exc import SQLAlchemyError
-from loguru import logger
 import traceback
 
 from app.core.config import get_settings
 from app.core.session_manager import session_manager
 from app.api import api_router
 from sqlalchemy import text
+from opengewe.logger import init_default_logger, get_logger
+import os
+
+# 获取正确的配置文件路径（相对于backend目录的上级目录）
+config_file_path = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "main_config.toml"
+)
+init_default_logger(config_file=config_file_path)
+logger = get_logger(__name__)
 
 
 @asynccontextmanager

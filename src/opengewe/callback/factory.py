@@ -13,8 +13,6 @@ from typing import (
 )
 import json
 import asyncio
-
-from opengewe.logger import get_logger
 from opengewe.callback.types import MessageType
 from opengewe.callback.models import (
     BaseMessage,
@@ -52,13 +50,16 @@ from opengewe.callback.models import (
     FinderMessage,
 )
 from opengewe.callback.handlers import DEFAULT_HANDLERS, BaseHandler
+from opengewe.logger import init_default_logger, get_logger
+
+init_default_logger()
+# 获取消息工厂日志记录器
+logger = get_logger("MessageFactory")
 
 if TYPE_CHECKING:
     from opengewe.client import GeweClient
     from opengewe.utils.plugin_manager import PluginManager
 
-# 获取消息工厂日志记录器
-logger = get_logger("MessageFactory")
 
 # 异步处理器类型定义
 AsyncHandlerResult = Union[BaseMessage, None]
@@ -141,18 +142,18 @@ class MessageFactory:
 
     # MsgType到消息类型的映射（用于AddMsg类型消息）
     _msgtype_map = {
-        1: MessageType.TEXT,        # 文本消息
-        3: MessageType.IMAGE,       # 图片消息
-        34: MessageType.VOICE,      # 语音消息
-        42: MessageType.CARD,       # 名片消息
-        43: MessageType.VIDEO,      # 视频消息
-        47: MessageType.EMOJI,      # emoji表情
-        48: MessageType.LOCATION,   # 地理位置
-        49: MessageType.LINK,       # 公众号链接/小程序/文件/转账/红包/视频号等（需要进一步判断）
+        1: MessageType.TEXT,  # 文本消息
+        3: MessageType.IMAGE,  # 图片消息
+        34: MessageType.VOICE,  # 语音消息
+        42: MessageType.CARD,  # 名片消息
+        43: MessageType.VIDEO,  # 视频消息
+        47: MessageType.EMOJI,  # emoji表情
+        48: MessageType.LOCATION,  # 地理位置
+        49: MessageType.LINK,  # 公众号链接/小程序/文件/转账/红包/视频号等（需要进一步判断）
         37: MessageType.FRIEND_REQUEST,  # 好友请求
-        10000: MessageType.TEXT,    # 系统文本消息（群操作等）
+        10000: MessageType.TEXT,  # 系统文本消息（群操作等）
         10002: MessageType.REVOKE,  # 撤回/拍一拍/群公告/群待办等系统消息（需要进一步判断）
-        51: MessageType.SYNC,       # 同步消息
+        51: MessageType.SYNC,  # 同步消息
     }
 
     # 添加TypeName到消息类型的映射
@@ -185,25 +186,25 @@ class MessageFactory:
             # 尝试获取消息类型
             type_name = data.get("TypeName", "Unknown")
             type_name = type_name.upper()
-            
+
             # 处理AddMsg类型消息，需要通过MsgType进一步判断
             if type_name == "ADDMSG":
                 if "Data" not in data or "MsgType" not in data["Data"]:
                     logger.warning(f"AddMsg消息缺少MsgType字段: {data}")
                     return None
-                
+
                 msg_type = data["Data"]["MsgType"]
                 message_type = cls._msgtype_map.get(msg_type)
-                
+
                 if message_type is None:
                     logger.warning(f"未知的MsgType: {msg_type}")
                     return None
-                
+
                 # 对于某些MsgType需要进一步判断具体类型
                 if msg_type == 49:
                     # MsgType=49包括多种消息类型，需要进一步判断
                     content = data["Data"].get("Content", {}).get("string", "")
-                    
+
                     # 检查是否是文件通知消息（type=74）
                     if "type>74</type" in content:
                         message_type = MessageType.FILE_NOTICE
@@ -220,10 +221,16 @@ class MessageFactory:
                     elif "finderFeed" in content:
                         message_type = MessageType.FINDER
                     # 检查是否是转账消息（type=2000）
-                    elif "type>2000</type" in content or '<type><![CDATA[2000]]></type>' in content:
+                    elif (
+                        "type>2000</type" in content
+                        or "<type><![CDATA[2000]]></type>" in content
+                    ):
                         message_type = MessageType.TRANSFER
                     # 检查是否是红包消息（type=2001）
-                    elif "type>2001</type" in content or '<type><![CDATA[2001]]></type>' in content:
+                    elif (
+                        "type>2001</type" in content
+                        or "<type><![CDATA[2001]]></type>" in content
+                    ):
                         message_type = MessageType.RED_PACKET
                     # 检查是否是引用消息（type=57）
                     elif "type>57</type" in content:
@@ -231,16 +238,20 @@ class MessageFactory:
                     # 默认为链接消息
                     else:
                         message_type = MessageType.LINK
-                
+
                 elif msg_type == 10002:
                     # MsgType=10002包括多种系统消息，需要进一步判断
                     content = data["Data"].get("Content", {}).get("string", "")
-                    
+
                     # 检查是否是撤回消息
                     if "revokemsg" in content:
                         message_type = MessageType.REVOKE
                     # 检查是否是拍一拍消息
-                    elif "type=\"pat\"" in content or '<sysmsg type="pat">' in content or 'type=\\"pat\\"' in content:
+                    elif (
+                        'type="pat"' in content
+                        or '<sysmsg type="pat">' in content
+                        or 'type=\\"pat\\"' in content
+                    ):
                         message_type = MessageType.PAT
                     # 检查是否是群公告消息
                     elif "mmchatroombarannouncememt" in content:
@@ -257,17 +268,19 @@ class MessageFactory:
                     # 默认保持原类型
                     else:
                         message_type = MessageType.REVOKE
-                
+
                 elif msg_type == 10000:
                     # MsgType=10000主要是系统文本消息，需要根据内容判断具体类型
                     content = data["Data"].get("Content", {}).get("string", "")
-                    
+
                     # 检查是否是群操作相关消息
                     if "你被" in content and "移出群聊" in content:
                         message_type = MessageType.GROUP_REMOVED
                     elif "移出了群聊" in content and "你将" not in content:
                         message_type = MessageType.GROUP_KICK
-                    elif "解散该群聊" in content or ("群主" in content and "解散" in content):
+                    elif "解散该群聊" in content or (
+                        "群主" in content and "解散" in content
+                    ):
                         message_type = MessageType.GROUP_DISMISS
                     elif "修改群名" in content:
                         message_type = MessageType.GROUP_RENAME
@@ -276,13 +289,15 @@ class MessageFactory:
                     # 默认为文本消息
                     else:
                         message_type = MessageType.TEXT
-                
+
                 # 使用对应的消息类创建消息对象
                 msg_cls = cls._message_type_map.get(message_type)
                 if msg_cls:
-                    logger.debug(f"通过MsgType {msg_type} 映射到消息类型 {message_type.name}")
+                    logger.debug(
+                        f"通过MsgType {msg_type} 映射到消息类型 {message_type.name}"
+                    )
                     return await msg_cls.from_dict(data, client)
-            
+
             # 处理其他TypeName
             else:
                 message_type = cls._typename_map.get(type_name)
@@ -294,17 +309,19 @@ class MessageFactory:
                             message_type = MessageType.GROUP_INFO_UPDATE
                         else:
                             message_type = MessageType.CONTACT_UPDATE
-                    
+
                     # 使用对应的消息类创建消息对象
                     msg_cls = cls._message_type_map.get(message_type)
                     if msg_cls:
-                        logger.debug(f"通过TypeName '{type_name}' 映射到消息类型 {message_type.name}")
+                        logger.debug(
+                            f"通过TypeName '{type_name}' 映射到消息类型 {message_type.name}"
+                        )
                         return await msg_cls.from_dict(data, client)
-            
+
             # 如果没有找到对应的消息类型，返回None让处理器处理
             logger.debug(f"未找到TypeName '{type_name}' 的映射，将由处理器处理")
             return None
-            
+
         except Exception as e:
             logger.error(f"创建消息对象失败: {e}", exc_info=True)
             return None
@@ -375,11 +392,13 @@ class MessageFactory:
         """
         # 尝试直接使用create_message方法创建消息对象
         type_name = data.get("TypeName", "未知")
-        logger.debug(f"开始处理消息 TypeName={type_name}, Appid={data.get('Appid', '')}")
+        logger.debug(
+            f"开始处理消息 TypeName={type_name}, Appid={data.get('Appid', '')}"
+        )
 
         # 首先尝试使用类映射直接创建消息对象
         message = await self.create_message(data, self.client)
-        
+
         # 如果无法直接创建，则遍历处理器尝试处理
         if message is None:
             matched_handler = None

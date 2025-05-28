@@ -7,8 +7,6 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from loguru import logger
-
 from ..core.session_manager import get_admin_session
 from ..core.security import (
     security_manager,
@@ -23,6 +21,10 @@ from ..schemas.auth import (
     RefreshTokenRequest,
     ChangePasswordRequest,
 )
+from opengewe.logger import init_default_logger, get_logger
+
+init_default_logger()
+logger = get_logger(__name__)
 
 
 router = APIRouter()

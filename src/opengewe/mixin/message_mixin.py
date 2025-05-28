@@ -1,9 +1,10 @@
 from typing import Dict, Optional, Union, Any
-
-from loguru import logger
-
 from ..modules.message import MessageModule
 from ..queue import create_message_queue
+from opengewe.logger import init_default_logger, get_logger
+
+init_default_logger()
+logger = get_logger(__name__)
 
 
 class MessageMixin:

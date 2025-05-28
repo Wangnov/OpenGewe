@@ -7,7 +7,6 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
-from loguru import logger
 
 from ..core.session_manager import get_admin_session, bot_session
 from ..core.security import verify_webhook_source
@@ -15,6 +14,10 @@ from ..services.bot_manager import bot_manager
 from ..models.bot import BotInfo, RawCallbackLog
 from ..schemas.bot import WebhookPayload
 from ..utils.timezone_utils import to_app_timezone
+from opengewe.logger import init_default_logger, get_logger
+
+init_default_logger()
+logger = get_logger(__name__)
 
 
 router = APIRouter()

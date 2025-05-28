@@ -13,10 +13,12 @@ from sqlalchemy.ext.asyncio import (
     AsyncEngine,
 )
 from sqlalchemy import text
-from loguru import logger
-
 from .config import get_settings
 from .bases import BotBase
+from opengewe.logger import init_default_logger, get_logger
+
+init_default_logger()
+logger = get_logger(__name__)
 
 
 class SessionManager:

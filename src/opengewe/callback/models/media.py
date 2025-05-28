@@ -4,8 +4,9 @@ import xml.etree.ElementTree as ET
 
 from opengewe.callback.types import MessageType
 from opengewe.callback.models.base import MediaBaseMessage
-from opengewe.logger import get_logger
+from opengewe.logger import init_default_logger, get_logger
 
+init_default_logger()
 # 使用TYPE_CHECKING条件导入，只用于类型注解
 if TYPE_CHECKING:
     from opengewe.client import GeweClient
@@ -16,13 +17,16 @@ logger = get_logger("Callback")
 @dataclass
 class ImageMessage(MediaBaseMessage):
     """图片消息"""
+
     img_download_url: str = ""  # 图片下载链接
     img_buffer: bytes = b""  # 图片buffer
-    
+
     # 设置消息类型类变量
     message_type = MessageType.IMAGE
-    
-    async def _process_specific_data(self, data: Dict[str, Any], client: Optional["GeweClient"] = None) -> None:
+
+    async def _process_specific_data(
+        self, data: Dict[str, Any], client: Optional["GeweClient"] = None
+    ) -> None:
         """处理图片消息特有数据"""
         # 如果提供了GeweClient实例，使用API获取下载链接
         if client:
@@ -30,22 +34,27 @@ class ImageMessage(MediaBaseMessage):
             self.img_download_url = await self._download_media(
                 client, client.message.download_image, self.content, type=1
             )
-            
+
             # 如果高清图片下载失败，尝试下载常规图片
             if not self.img_download_url:
                 self.img_download_url = await self._download_media(
                     client, client.message.download_image, self.content, type=2
                 )
-                
+
             # 如果常规图片下载失败，尝试下载缩略图
             if not self.img_download_url:
                 self.img_download_url = await self._download_media(
                     client, client.message.download_image, self.content, type=3
                 )
-        
+
         # 获取缩略图数据
-        if "Data" in data and "ImgBuf" in data["Data"] and "buffer" in data["Data"]["ImgBuf"]:
+        if (
+            "Data" in data
+            and "ImgBuf" in data["Data"]
+            and "buffer" in data["Data"]["ImgBuf"]
+        ):
             import base64
+
             try:
                 self.img_buffer = base64.b64decode(data["Data"]["ImgBuf"]["buffer"])
             except Exception:
@@ -55,12 +64,13 @@ class ImageMessage(MediaBaseMessage):
 @dataclass
 class VoiceMessage(MediaBaseMessage):
     """语音消息"""
+
     voice_url: str = ""  # 语音文件URL
     voice_length: int = 0  # 语音长度(毫秒)
     voice_buffer: bytes = b""  # 语音buffer
     voice_md5: str = ""  # 语音MD5值
     aes_key: str = ""  # AES密钥
-    
+
     # 设置消息类型类变量
     message_type = MessageType.VOICE
 
@@ -105,8 +115,10 @@ class VoiceMessage(MediaBaseMessage):
         except Exception as e:
             logger.error(f"保存语音文件失败: {e}")
             return ""
-    
-    async def _process_specific_data(self, data: Dict[str, Any], client: Optional["GeweClient"] = None) -> None:
+
+    async def _process_specific_data(
+        self, data: Dict[str, Any], client: Optional["GeweClient"] = None
+    ) -> None:
         """处理语音消息特有数据"""
         try:
             # 解析XML获取语音信息
@@ -120,14 +132,22 @@ class VoiceMessage(MediaBaseMessage):
                 # 如果提供了GeweClient实例，使用API获取下载链接
                 if client:
                     self.voice_url = await self._download_media(
-                        client, client.message.download_voice, self.content, msg_id=self.msg_id
+                        client,
+                        client.message.download_voice,
+                        self.content,
+                        msg_id=self.msg_id,
                     )
         except Exception:
             pass
 
         # 获取语音数据
-        if "Data" in data and "ImgBuf" in data["Data"] and "buffer" in data["Data"]["ImgBuf"]:
+        if (
+            "Data" in data
+            and "ImgBuf" in data["Data"]
+            and "buffer" in data["Data"]["ImgBuf"]
+        ):
             import base64
+
             try:
                 self.voice_buffer = base64.b64decode(data["Data"]["ImgBuf"]["buffer"])
             except Exception:
@@ -137,16 +157,19 @@ class VoiceMessage(MediaBaseMessage):
 @dataclass
 class VideoMessage(MediaBaseMessage):
     """视频消息"""
+
     video_url: str = ""  # 视频URL
     thumbnail_url: str = ""  # 缩略图URL
     play_length: int = 0  # 播放时长(秒)
     video_md5: str = ""  # 视频MD5值
     aes_key: str = ""  # AES密钥
-    
+
     # 设置消息类型类变量
     message_type = MessageType.VIDEO
-    
-    async def _process_specific_data(self, data: Dict[str, Any], client: Optional["GeweClient"] = None) -> None:
+
+    async def _process_specific_data(
+        self, data: Dict[str, Any], client: Optional["GeweClient"] = None
+    ) -> None:
         """处理视频消息特有数据"""
         try:
             # 解析XML获取视频信息
@@ -171,13 +194,16 @@ class VideoMessage(MediaBaseMessage):
 @dataclass
 class EmojiMessage(MediaBaseMessage):
     """表情消息"""
+
     emoji_md5: str = ""  # 表情MD5值
     emoji_url: str = ""  # 表情URL
-    
+
     # 设置消息类型类变量
     message_type = MessageType.EMOJI
-    
-    async def _process_specific_data(self, data: Dict[str, Any], client: Optional["GeweClient"] = None) -> None:
+
+    async def _process_specific_data(
+        self, data: Dict[str, Any], client: Optional["GeweClient"] = None
+    ) -> None:
         """处理表情消息特有数据"""
         try:
             # 解析XML获取表情信息

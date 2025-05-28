@@ -8,15 +8,17 @@ import os
 from typing import Dict, Any, List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
-from loguru import logger
+from ...core.session_manager import admin_session, session_manager
+from ...models.bot import BotInfo
+from opengewe.logger import init_default_logger, get_logger
+
+init_default_logger()
+logger = get_logger(__name__)
 
 try:
     import tomllib
 except ImportError:
     import tomli as tomllib
-
-from ...core.session_manager import admin_session, session_manager
-from ...models.bot import BotInfo
 
 
 async def initialize_bots_from_config() -> None:

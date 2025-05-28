@@ -3,13 +3,14 @@
 """
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-from loguru import logger
-
 from ...core.config import get_settings
 from ...core.session_manager import get_admin_session
 from ...models.admin import Admin
 from ...core.security import security_manager
+from opengewe.logger import init_default_logger, get_logger
+
+init_default_logger()
+logger = get_logger(__name__)
 
 
 async def initialize_admin():
@@ -32,7 +33,7 @@ async def initialize_admin():
         # 获取数据库会话
         async for session in get_admin_session():
             # 检查是否已存在管理员账号
-            stmt = select(Admin).where(Admin.is_superadmin == True)
+            stmt = select(Admin).where(Admin.is_superadmin)
             result = await session.execute(stmt)
             admin = result.scalar_one_or_none()
 

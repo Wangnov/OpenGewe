@@ -19,8 +19,9 @@ from opengewe.mixin import MessageMixin
 from opengewe.callback.factory import MessageFactory
 from opengewe.utils.plugin_manager import PluginManager
 from opengewe.utils.decorators import scheduler
-from opengewe.logger import get_logger
+from opengewe.logger import init_default_logger, get_logger
 
+init_default_logger()
 # 获取客户端日志记录器
 logger = get_logger("GeweClient")
 
