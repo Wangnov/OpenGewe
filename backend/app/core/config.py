@@ -8,7 +8,10 @@ from functools import lru_cache
 from typing import Optional, List
 from pydantic_settings import BaseSettings
 from pydantic import field_validator
+from opengewe.logger import init_default_logger, get_logger
 
+init_default_logger()
+logger = get_logger(__name__)
 try:
     import tomllib
 except ImportError:
@@ -30,7 +33,7 @@ def ensure_config_file() -> str:
     if not os.path.exists(config_file):
         if os.path.exists(example_file):
             shutil.copy2(example_file, config_file)
-            print(f"配置文件不存在，已从 {example_path} 复制到 {config_path}")
+            logger.info(f"配置文件不存在，已从 {example_path} 复制到 {config_path}")
         else:
             raise FileNotFoundError(
                 f"配置文件 {config_path} 和示例文件 {example_path} 都不存在"
@@ -48,7 +51,7 @@ def load_toml_config() -> dict:
             config = tomllib.load(f)
             return config
     except Exception as e:
-        print(f"加载配置文件失败: {e}")
+        logger.info(f"加载配置文件失败: {e}")
         return {}
 
 
@@ -122,13 +125,13 @@ async def ensure_database_exists(db_config: dict) -> None:
 
             if not result:
                 # 数据库不存在，创建它
-                print(f"数据库 '{database}' 不存在，正在创建...")
+                logger.info(f"数据库 '{database}' 不存在，正在创建...")
                 await cursor.execute(
                     f"CREATE DATABASE `{database}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
                 )
-                print(f"数据库 '{database}' 创建成功")
+                logger.info(f"数据库 '{database}' 创建成功")
             else:
-                print(f"数据库 '{database}' 已存在")
+                logger.info(f"数据库 '{database}' 已存在")
 
             await cursor.close()
         finally:
@@ -265,7 +268,7 @@ class Settings(BaseSettings):
             except ValueError as e:
                 raise ValueError(f"数据库配置错误: {e}")
         else:
-            print("警告: 未找到数据库配置，使用默认MySQL配置")
+            logger.info("警告: 未找到数据库配置，使用默认MySQL配置")
             # 设置默认的数据库配置
             default_db_config = {
                 "type": "mysql",

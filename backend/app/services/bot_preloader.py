@@ -6,11 +6,13 @@ Bot预加载服务
 
 from typing import Dict, Any
 from sqlalchemy import select
-from loguru import logger
-
 from ..core.session_manager import admin_session
 from .bot_manager import bot_manager
 from ..models.bot import BotInfo
+from opengewe.logger import init_default_logger, get_logger
+
+init_default_logger()
+logger = get_logger(__name__)
 
 
 class BotPreloader:

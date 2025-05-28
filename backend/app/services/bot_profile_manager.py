@@ -7,12 +7,14 @@
 from typing import Dict, Any, Optional
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from loguru import logger
-
 from opengewe.client import GeweClient
 from ..models.bot import BotInfo
 from ..core.session_manager import admin_session
 from ..utils.timezone_utils import utc_now, to_app_timezone
+from opengewe.logger import init_default_logger, get_logger
+
+init_default_logger()
+logger = get_logger(__name__)
 
 
 class BotProfileManager:

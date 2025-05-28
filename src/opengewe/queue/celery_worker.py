@@ -42,8 +42,9 @@ Celery worker 启动脚本
 import argparse
 import os
 import sys
-from opengewe.logger import get_logger
+from opengewe.logger import init_default_logger, get_logger
 
+init_default_logger()
 # 预设配置常量
 BROKER_PRESETS = {
     "redis": "redis://localhost:6379/0",
@@ -221,7 +222,7 @@ def main():
 
     # 构建配置
     config = get_effective_config(args)
-    
+
     logger.info("正在启动OpenGewe Celery Worker...")
     logger.info(f"消息代理类型: {args.type}")
     logger.info(f"Broker: {config['broker']}")
@@ -235,17 +236,19 @@ def main():
     global celery_app
     if args.config or any([args.username, args.password]):
         logger.info("检测到自定义配置，重新创建Celery应用...")
-        
+
         # 更新broker配置
         broker_url = config["broker"]
         backend_url = config["backend"]
-        
+
         # 重新创建Celery应用
         celery_app.conf.update(
             broker_url=broker_url,
             result_backend=backend_url,
             task_routes={
-                "opengewe.queue.advanced.process_message": {"queue": config["queue_name"]},
+                "opengewe.queue.advanced.process_message": {
+                    "queue": config["queue_name"]
+                },
             },
         )
         logger.info("Celery应用重新创建完成")

@@ -7,8 +7,9 @@ from abc import ABC
 from typing import Set
 import sys
 from opengewe.utils.decorators import scheduler, add_job_safe, remove_job_safe
-from opengewe.logger import get_logger
+from opengewe.logger import init_default_logger, get_logger
 
+init_default_logger()
 # 在日志系统加载前确保loguru已被拦截
 try:
     from opengewe.logger.utils import intercept_plugin_loguru

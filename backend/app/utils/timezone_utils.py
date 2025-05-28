@@ -6,7 +6,10 @@
 
 from datetime import datetime, timezone
 import pytz
-from loguru import logger
+from opengewe.logger import init_default_logger, get_logger
+
+init_default_logger()
+logger = get_logger(__name__)
 
 
 def get_app_timezone() -> timezone:
