@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 // Font Awesome icons are loaded via CDN in index.html
 import botService from '../../services/botService';
 import { toast } from 'react-hot-toast';
+import LoadingSpinner from '../common/LoadingSpinner';
+import useApiLoading from '../../hooks/useApiLoading';
 
 /**
  * 创建机器人弹窗组件
@@ -22,6 +25,46 @@ const CreateBotModal = ({ isOpen, onClose, onSuccess }) => {
   const [testPassed, setTestPassed] = useState(false);
   const [creating, setCreating] = useState(false);
   const [errors, setErrors] = useState({});
+  const { loading: apiLoading, executeWithLoading } = useApiLoading();
+
+  // 动画变体
+  const backdropVariants = {
+    hidden: { opacity: 0 },
+    visible: { 
+      opacity: 1,
+      transition: { duration: 0.3, ease: "easeOut" }
+    },
+    exit: { 
+      opacity: 0,
+      transition: { duration: 0.2, ease: "easeIn" }
+    }
+  };
+
+  const modalVariants = {
+    hidden: {
+      opacity: 0,
+      scale: 0.9,
+      y: 20
+    },
+    visible: {
+      opacity: 1,
+      scale: 1,
+      y: 0,
+      transition: {
+        duration: 0.3,
+        ease: "easeOut"
+      }
+    },
+    exit: {
+      opacity: 0,
+      scale: 0.95,
+      y: 10,
+      transition: {
+        duration: 0.2,
+        ease: "easeIn"
+      }
+    }
+  };
 
   // 重置表单
   const resetForm = () => {
@@ -63,7 +106,7 @@ const CreateBotModal = ({ isOpen, onClose, onSuccess }) => {
     try {
       new URL(string);
       return true;
-    } catch (_) {
+    } catch {
       return false;
     }
   };
@@ -91,11 +134,13 @@ const CreateBotModal = ({ isOpen, onClose, onSuccess }) => {
       setTesting(true);
       setTestPassed(false);
 
-      // 调用测试API
-      await botService.testBotConnection({
-        gewe_app_id: formData.gewe_app_id,
-        gewe_token: formData.gewe_token,
-        base_url: formData.base_url
+      // 使用加载管理器调用测试API
+      await executeWithLoading(async () => {
+        await botService.testBotConnection({
+          gewe_app_id: formData.gewe_app_id,
+          gewe_token: formData.gewe_token,
+          base_url: formData.base_url
+        });
       });
 
       setTestPassed(true);
@@ -120,10 +165,12 @@ const CreateBotModal = ({ isOpen, onClose, onSuccess }) => {
     try {
       setCreating(true);
 
-      await botService.createBot({
-        gewe_app_id: formData.gewe_app_id,
-        gewe_token: formData.gewe_token,
-        base_url: formData.base_url
+      await executeWithLoading(async () => {
+        await botService.createBot({
+          gewe_app_id: formData.gewe_app_id,
+          gewe_token: formData.gewe_token,
+          base_url: formData.base_url
+        });
       });
 
       toast.success('机器人创建成功！');
@@ -147,148 +194,174 @@ const CreateBotModal = ({ isOpen, onClose, onSuccess }) => {
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-        {/* 背景遮罩 */}
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={handleClose}></div>
+    <AnimatePresence mode="wait">
+      {isOpen && (
+        <motion.div 
+          className="fixed inset-0 z-50 overflow-y-auto"
+          initial="hidden"
+          animate="visible"
+          exit="exit"
+        >
+          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            {/* 背景遮罩 */}
+            <motion.div 
+              variants={backdropVariants}
+              className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" 
+              onClick={handleClose}
+            />
 
-        {/* 弹窗内容 */}
-        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-          {/* 弹窗头部 */}
-          <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg leading-6 font-medium text-gray-900">
-                新建机器人
-              </h3>
-              <button
-                onClick={handleClose}
-                className="text-gray-400 hover:text-gray-600 focus:outline-none"
-              >
-                <i className="fas fa-times h-6 w-6 align-middle"></i>
-              </button>
-            </div>
-
-            {/* 表单内容 */}
-            <div className="space-y-4">
-              {/* App ID */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  GeWe App ID <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.gewe_app_id}
-                  onChange={(e) => handleInputChange('gewe_app_id', e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent ${errors.gewe_app_id ? 'border-red-300' : 'border-gray-300'
-                    }`}
-                  placeholder="请输入GeWe App ID"
-                />
-                {errors.gewe_app_id && (
-                  <p className="mt-1 text-sm text-red-600">{errors.gewe_app_id}</p>
-                )}
-              </div>
-
-              {/* Token */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  GeWe Token <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="password"
-                  value={formData.gewe_token}
-                  onChange={(e) => handleInputChange('gewe_token', e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent ${errors.gewe_token ? 'border-red-300' : 'border-gray-300'
-                    }`}
-                  placeholder="请输入GeWe Token"
-                />
-                {errors.gewe_token && (
-                  <p className="mt-1 text-sm text-red-600">{errors.gewe_token}</p>
-                )}
-              </div>
-
-              {/* Base URL */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Base URL <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="url"
-                  value={formData.base_url}
-                  onChange={(e) => handleInputChange('base_url', e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent ${errors.base_url ? 'border-red-300' : 'border-gray-300'
-                    }`}
-                  placeholder="请输入Base URL"
-                />
-                {errors.base_url && (
-                  <p className="mt-1 text-sm text-red-600">{errors.base_url}</p>
-                )}
-                <p className="mt-1 text-xs text-gray-500">
-                  默认: https://www.geweapi.com/gewe/v2/api
-                </p>
-              </div>
-
-              {/* 测试状态提示 */}
-              {testPassed && (
-                <div className="flex items-center p-3 bg-green-50 border border-green-200 rounded-md">
-                  <i className="fas fa-check h-5 w-5 text-green-500 mr-2 flex items-center"></i>
-                  <span className="text-sm text-green-700">连接测试通过，可以保存机器人</span>
+            {/* 弹窗内容 */}
+            <motion.div 
+              variants={modalVariants}
+              className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all relative sm:my-8 sm:align-middle sm:max-w-lg sm:w-full"
+            >
+              {/* 显示加载遮罩 */}
+              {(apiLoading || testing || creating) && (
+                <div className="absolute inset-0 bg-white bg-opacity-80 backdrop-blur-sm flex items-center justify-center z-50">
+                  <LoadingSpinner 
+                    size="md" 
+                    text={testing ? '测试连接中...' : creating ? '创建中...' : '处理中...'} 
+                  />
                 </div>
               )}
-            </div>
+
+              {/* 弹窗头部 */}
+              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg leading-6 font-medium text-gray-900">
+                    新建机器人
+                  </h3>
+                  <button
+                    onClick={handleClose}
+                    className="text-gray-400 hover:text-gray-600 focus:outline-none"
+                  >
+                    <i className="fas fa-times h-6 w-6 align-middle"></i>
+                  </button>
+                </div>
+
+                {/* 表单内容 */}
+                <div className="space-y-4">
+                  {/* App ID */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      GeWe App ID <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.gewe_app_id}
+                      onChange={(e) => handleInputChange('gewe_app_id', e.target.value)}
+                      className={`w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent ${errors.gewe_app_id ? 'border-red-300' : 'border-gray-300'
+                        }`}
+                      placeholder="请输入GeWe App ID"
+                    />
+                    {errors.gewe_app_id && (
+                      <p className="mt-1 text-sm text-red-600">{errors.gewe_app_id}</p>
+                    )}
+                  </div>
+
+                  {/* Token */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      GeWe Token <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="password"
+                      value={formData.gewe_token}
+                      onChange={(e) => handleInputChange('gewe_token', e.target.value)}
+                      className={`w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent ${errors.gewe_token ? 'border-red-300' : 'border-gray-300'
+                        }`}
+                      placeholder="请输入GeWe Token"
+                    />
+                    {errors.gewe_token && (
+                      <p className="mt-1 text-sm text-red-600">{errors.gewe_token}</p>
+                    )}
+                  </div>
+
+                  {/* Base URL */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Base URL <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="url"
+                      value={formData.base_url}
+                      onChange={(e) => handleInputChange('base_url', e.target.value)}
+                      className={`w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent ${errors.base_url ? 'border-red-300' : 'border-gray-300'
+                        }`}
+                      placeholder="请输入Base URL"
+                    />
+                    {errors.base_url && (
+                      <p className="mt-1 text-sm text-red-600">{errors.base_url}</p>
+                    )}
+                    <p className="mt-1 text-xs text-gray-500">
+                      默认: https://www.geweapi.com/gewe/v2/api
+                    </p>
+                  </div>
+
+                  {/* 测试状态提示 */}
+                  {testPassed && (
+                    <div className="flex items-center p-3 bg-green-50 border border-green-200 rounded-md">
+                      <i className="fas fa-check h-5 w-5 text-green-500 mr-2 flex items-center"></i>
+                      <span className="text-sm text-green-700">连接测试通过，可以保存机器人</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* 弹窗底部操作按钮 */}
+              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <div className="flex space-x-3">
+                  {/* 测试按钮 */}
+                  <button
+                    onClick={testConnection}
+                    disabled={testing || !formData.gewe_app_id || !formData.gewe_token || !formData.base_url}
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {testing ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600 mr-2"></div>
+                        测试中...
+                      </>
+                    ) : (
+                      '测试连接'
+                    )}
+                  </button>
+
+                  {/* 保存按钮 */}
+                  <button
+                    onClick={createBot}
+                    disabled={!testPassed || creating}
+                    className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {creating ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        创建中...
+                      </>
+                    ) : (
+                      <>
+                        <i className="fas fa-check h-4 w-4 mr-2 flex items-center"></i>
+                        保存
+                      </>
+                    )}
+                  </button>
+
+                  {/* 取消按钮 */}
+                  <button
+                    onClick={handleClose}
+                    disabled={creating}
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <i className="fas fa-times-circle h-4 w-4 mr-2 flex items-center"></i>
+                    取消
+                  </button>
+                </div>
+              </div>
+            </motion.div>
           </div>
-
-          {/* 弹窗底部操作按钮 */}
-          <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-            <div className="flex space-x-3">
-              {/* 测试按钮 */}
-              <button
-                onClick={testConnection}
-                disabled={testing || !formData.gewe_app_id || !formData.gewe_token || !formData.base_url}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {testing ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600 mr-2"></div>
-                    测试中...
-                  </>
-                ) : (
-                  '测试连接'
-                )}
-              </button>
-
-              {/* 保存按钮 */}
-              <button
-                onClick={createBot}
-                disabled={!testPassed || creating}
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {creating ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    创建中...
-                  </>
-                ) : (
-                  <>
-                    <i className="fas fa-check h-4 w-4 mr-2 flex items-center"></i>
-                    保存
-                  </>
-                )}
-              </button>
-
-              {/* 取消按钮 */}
-              <button
-                onClick={handleClose}
-                disabled={creating}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <i className="fas fa-times-circle h-4 w-4 mr-2 flex items-center"></i>
-                取消
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>,
+        </motion.div>
+      )}
+    </AnimatePresence>,
     document.body
   );
 };

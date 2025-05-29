@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 // Font Awesome icons are loaded via CDN in index.html
 import botService from '../services/botService';
 import BotDetailModal from '../components/bots/BotDetailModal';
 import CreateBotModal from '../components/bots/CreateBotModal';
+import LoadingSpinner from '../components/common/LoadingSpinner';
+import CachedImage from '../components/common/CachedImage';
+import useApiLoading from '../hooks/useApiLoading';
 import { toast } from 'react-hot-toast';
 
 /**
@@ -16,12 +19,16 @@ const Bots = () => {
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [copiedField, setCopiedField] = useState(null);
+    const [refreshingBot, setRefreshingBot] = useState(null);
+    const { executeWithLoading } = useApiLoading();
 
     // 获取机器人列表
-    const fetchBots = async () => {
+    const fetchBots = useCallback(async () => {
         try {
             setLoading(true);
-            const response = await botService.getBots();
+            const response = await executeWithLoading(async () => {
+                return await botService.getBots();
+            });
             console.log('API响应数据:', response);
             // 根据实际API响应结构解析数据
             const botsData = response.data?.data || response.data?.bots || response.data || [];
@@ -33,19 +40,23 @@ const Bots = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [executeWithLoading]);
 
     // 刷新单个机器人信息
     const updateBot = async (geweAppId) => {
         try {
-            // 调用后端API刷新机器人信息
-            await botService.updateBotInfo(geweAppId);
+            setRefreshingBot(geweAppId);
+            await executeWithLoading(async () => {
+                await botService.updateBotInfo(geweAppId);
+            });
             toast.success('机器人信息刷新成功');
             // 重新获取列表
             fetchBots();
         } catch (error) {
             console.error('刷新机器人信息失败:', error);
             toast.error('刷新机器人信息失败');
+        } finally {
+            setRefreshingBot(null);
         }
     };
 
@@ -76,7 +87,9 @@ const Bots = () => {
     // 删除机器人
     const deleteBot = async (geweAppId) => {
         try {
-            await botService.deleteBot(geweAppId);
+            await executeWithLoading(async () => {
+                await botService.deleteBot(geweAppId);
+            });
             toast.success('机器人删除成功');
             fetchBots();
         } catch (error) {
@@ -99,12 +112,12 @@ const Bots = () => {
 
     useEffect(() => {
         fetchBots();
-    }, []);
+    }, [fetchBots]);
 
     if (loading) {
         return (
             <div className="flex items-center justify-center h-64">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+                <LoadingSpinner size="lg" text="加载机器人列表中..." />
             </div>
         );
     }
@@ -158,7 +171,7 @@ const Bots = () => {
                                         className="relative cursor-pointer"
                                         onClick={() => openBotDetail(bot)}
                                     >
-                                        <img
+                                        <CachedImage
                                             src={bot.small_head_img_url || '/default-avatar.png'}
                                             alt={bot.nickname || '机器人头像'}
                                             className="w-12 h-12 rounded-full object-cover ring-2 ring-purple-100 hover:ring-purple-300 transition-all"
@@ -252,10 +265,20 @@ const Bots = () => {
                                     <div className="flex space-x-2">
                                         <button
                                             onClick={() => updateBot(bot.gewe_app_id)}
-                                            className="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                                            disabled={refreshingBot === bot.gewe_app_id}
+                                            className="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
-                                            <i className="fas fa-sync-alt h-3 w-3 mr-1 align-middle"></i>
-                                            更新
+                                            {refreshingBot === bot.gewe_app_id ? (
+                                                <>
+                                                    <div className="w-3 h-3 mr-1 border border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                                                    更新中
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <i className="fas fa-sync-alt h-3 w-3 mr-1 align-middle"></i>
+                                                    更新
+                                                </>
+                                            )}
                                         </button>
                                         <button
                                             onClick={() => openBotDetail(bot)}
