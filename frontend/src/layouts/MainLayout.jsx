@@ -99,7 +99,7 @@ const MainLayout = () => {
                 {/* 导航菜单 */}
                 <nav className="flex-1 px-4 py-2 relative z-10">
                     <ul className="space-y-2">
-                        {navItems.map((item, index) => (
+                        {navItems.map((item) => (
                             <li key={item.to}>
                                 <NavLink
                                     to={item.to}
