@@ -60,7 +60,7 @@ const MainLayout = () => {
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20 flex">
             {/* 侧边栏 - 桌面端显示，移动端隐藏 */}
             <aside
-                className={`hidden md:flex backdrop-blur-xl bg-white/80 border-r border-white/20 shadow-xl transition-all duration-500 ease-out ${isSidebarOpen ? 'w-72' : 'w-20'
+                className={`hidden md:flex backdrop-blur-xl bg-white/80 border-r border-white/20 shadow-xl transition-all duration-500 ease-out ${isSidebarOpen ? 'w-60' : 'w-20'
                     } flex-col relative overflow-hidden`}
                 style={{
                     transform: scrollTransforms.sidebar,
@@ -179,7 +179,7 @@ const MainLayout = () => {
                         transform: scrollTransforms.header,
                     }}
                 >
-                    <div className="px-8 py-6 flex items-center justify-between">
+                    <div className="px-6 py-4 flex items-center justify-between">
                         <div>
                             <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-800 via-gray-700 to-gray-600 bg-clip-text text-transparent">
                                 {location.pathname === '/dashboard' && '仪表盘'}
@@ -206,7 +206,7 @@ const MainLayout = () => {
                 </header>
 
                 {/* 内容区 */}
-                <div className="flex-1 overflow-auto p-8 md:p-8 pb-24 md:pb-8 relative z-10">
+                <div className="flex-1 overflow-auto p-6 md:p-6 pb-24 md:pb-6 relative z-10">
                     <div
                         className="transition-transform duration-300 ease-out"
                         style={{
