@@ -112,7 +112,7 @@ const Bots = () => {
     return (
         <div>
             {/* 页面标题和操作按钮 */}
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex justify-between items-center mb-4">
                 <h1 className="text-2xl font-bold text-gray-900">机器人列表</h1>
                 <div className="flex space-x-3">
                     <button
@@ -180,9 +180,9 @@ const Bots = () => {
 
                                 {/* 参数区域 */}
                                 <div className="space-y-2">
-                                    {/* WXID */}
+                                    {/* Wxid */}
                                     <div className="flex items-center justify-between">
-                                        <span className="text-xs text-gray-500">WXID:</span>
+                                        <span className="text-xs text-gray-500">Wxid:</span>
                                         <div className="flex items-center space-x-1">
                                             <span className="text-xs text-gray-900 truncate max-w-20">
                                                 {bot.wxid || 'N/A'}
