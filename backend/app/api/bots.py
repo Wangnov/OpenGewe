@@ -17,6 +17,8 @@ from ..schemas.bot import (
     BotStatusResponse,
     ContactResponse,
 )
+from ..services.bot_manager import BotClientManager
+from ..services.bot_profile_manager import BotProfileManager
 from opengewe.logger import init_default_logger, get_logger
 
 init_default_logger()
@@ -367,4 +369,68 @@ async def get_bot_contacts(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="获取联系人信息失败",
+        )
+
+
+@router.put("/{gewe_app_id}/update", response_model=BotResponse, summary="更新机器人个人信息")
+async def update_bot_profile(
+    gewe_app_id: str,
+    current_user: dict = Depends(get_current_active_user),
+    session: AsyncSession = Depends(get_admin_session),
+):
+    """
+    更新机器人个人信息
+    
+    从GeWe服务器获取机器人的个人信息并更新到数据库
+    """
+    # 先验证机器人是否存在
+    stmt = select(BotInfo).where(BotInfo.gewe_app_id == gewe_app_id)
+    result = await session.execute(stmt)
+    bot = result.scalar_one_or_none()
+
+    if not bot:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="机器人不存在"
+        )
+
+    try:
+        # 获取机器人客户端管理器实例
+        bot_manager = BotClientManager()
+        
+        # 获取唯一的客户端实例
+        client = await bot_manager.get_client(gewe_app_id, session)
+        
+        if not client:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="无法获取机器人客户端"
+            )
+        
+        # 调用fetch_and_update_profile更新机器人信息
+        profile_data = await BotProfileManager.fetch_and_update_profile(
+            client, gewe_app_id, session
+        )
+        
+        if not profile_data:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="获取机器人个人信息失败"
+            )
+        
+        # 重新查询更新后的机器人信息
+        await session.refresh(bot)
+        
+        logger.info(
+            f"机器人个人信息更新成功: {gewe_app_id} by {current_user['username']}"
+        )
+        
+        return BotResponse.model_validate(bot)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"更新机器人个人信息失败: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="更新机器人个人信息失败"
         )
