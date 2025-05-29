@@ -42,7 +42,7 @@ const MainLayout = () => {
     // 导航项配置 - 使用useMemo优化性能
     const navItems = useMemo(() => [
         { to: '/dashboard', icon: 'fas fa-chart-pie', label: '仪表盘', gradient: 'from-blue-400 to-blue-600' },
-        { to: '/bots', icon: 'fas fa-robot', label: '机器人管理', gradient: 'from-purple-400 to-purple-600' },
+        { to: '/bots', icon: 'fab fa-weixin', label: '机器人管理', gradient: 'from-purple-400 to-purple-600' },
         { to: '/plugins', icon: 'fas fa-puzzle-piece', label: '插件管理', gradient: 'from-indigo-400 to-indigo-600' },
         { to: '/settings', icon: 'fas fa-sliders-h', label: '系统设置', gradient: 'from-violet-400 to-violet-600' }
     ], []);
@@ -72,7 +72,7 @@ const MainLayout = () => {
                     {isSidebarOpen ? (
                         <div className="flex items-center space-x-3">
                             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg flex-shrink-0">
-                                <i className="fas fa-cube text-white text-lg"></i>
+                                <i className="fas fa-robot text-white text-lg"></i>
                             </div>
                             <div>
                                 <h1 className="text-xl font-bold bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
@@ -83,7 +83,7 @@ const MainLayout = () => {
                         </div>
                     ) : (
                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg flex-shrink-0">
-                            <i className="fas fa-cube text-white text-lg"></i>
+                            <i className="fas fa-robot text-white text-lg"></i>
                         </div>
                     )}
                     <button
@@ -103,7 +103,7 @@ const MainLayout = () => {
                                     to={item.to}
                                     className={({ isActive }) =>
                                         `group flex items-center ${isSidebarOpen ? 'px-4 py-3' : 'p-3 justify-center w-12 h-12'} rounded-xl transition-all duration-300 relative overflow-hidden ${isActive
-                                            ? 'bg-white/70 shadow-lg backdrop-blur-sm border border-white/30 text-gray-800'
+                                            ? 'bg-white/70 shadow-lg backdrop-blur-sm border-white/30 text-gray-800'
                                             : 'text-gray-600 hover:bg-white/40 hover:text-gray-800 hover:shadow-md'
                                         }`
                                     }
@@ -185,10 +185,10 @@ const MainLayout = () => {
                             <p className="text-sm text-gray-500 mt-1">智能化管理您的微信机器人</p>
                         </div>
                         <div className="flex items-center space-x-3">
-                            <button className="p-3 rounded-xl bg-white/50 backdrop-blur-sm border border-white/30 text-gray-600 hover:text-blue-600 hover:bg-white/70 transition-all duration-300 hover:scale-105 shadow-sm">
+                            <button className="w-12 h-12 rounded-lg bg-white/50 backdrop-blur-sm border border-white/30 text-gray-600 hover:text-blue-600 hover:bg-white/70 transition-all duration-300 hover:scale-105 shadow-sm flex items-center justify-center">
                                 <i className="fas fa-bell text-lg"></i>
                             </button>
-                            <button className="p-3 rounded-xl bg-white/50 backdrop-blur-sm border border-white/30 text-gray-600 hover:text-purple-600 hover:bg-white/70 transition-all duration-300 hover:scale-105 shadow-sm">
+                            <button className="w-12 h-12 rounded-lg bg-white/50 backdrop-blur-sm border border-white/30 text-gray-600 hover:text-purple-600 hover:bg-white/70 transition-all duration-300 hover:scale-105 shadow-sm flex items-center justify-center">
                                 <i className="fas fa-question-circle text-lg"></i>
                             </button>
                         </div>

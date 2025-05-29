@@ -1,17 +1,17 @@
 /* 全局样式 - 现代化亮色系设计 */
 :root {
-  /* 主色调 - 蓝紫色系 */
-  --color-primary: #3B82F6;
-  --color-primary-light: #60A5FA;
-  --color-primary-dark: #1D4ED8;
+  /* 主色调 - 蓝绿紫色系 */
+  --color-primary: #2aae67;
+  --color-primary-light:rgb(96, 250, 183);
+  --color-primary-dark:rgb(24, 147, 98);
   
-  --color-secondary: #8B5CF6;
+  --color-secondary: #9333ea;
   --color-secondary-light: #A78BFA;
   --color-secondary-dark: #7C3AED;
   
-  --color-accent: #06B6D4;
-  --color-accent-light: #22D3EE;
-  --color-accent-dark: #0891B2;
+  --color-accent: #3b82f6;
+  --color-accent-light:rgb(41, 222, 250);
+  --color-accent-dark:rgb(6, 144, 178);
   
   /* 中性色 */
   --color-gray-50: #F8FAFC;
@@ -107,7 +107,7 @@ html, body {
   font-size: clamp(3rem, 5vw, 8rem);
   line-height: 1;
   letter-spacing: -0.02em;
-  background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+  background: linear-gradient(90deg, var(--color-accent), var(--color-secondary));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -134,18 +134,18 @@ html, body {
 }
 
 .btn-primary {
-  background-color: var(--primary-color);
+  background-color: var(--color-secondary);
   color: white;
 }
 
 .btn-primary:hover {
-  background-color: #2563eb;
+  background-color:var(--color-secondary-dark);
   transform: translateY(-2px);
-  box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 10px 15px -3px rgba(176, 106, 255, 0.3);
 }
 
 .btn-secondary {
-  background-color: var(--secondary-color);
+  background-color: var(--color-secondary);
   color: white;
 }
 
@@ -181,7 +181,7 @@ html, body {
 
 .input:focus {
   outline: none;
-  border-color: var(--primary-color);
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
 }
 
