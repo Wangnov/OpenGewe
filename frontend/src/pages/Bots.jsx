@@ -36,10 +36,10 @@ const Bots = () => {
     };
 
     // 刷新单个机器人信息
-    const refreshBot = async (geweAppId) => {
+    const updateBot = async (geweAppId) => {
         try {
             // 调用后端API刷新机器人信息
-            await botService.refreshBotInfo(geweAppId);
+            await botService.updateBotInfo(geweAppId);
             toast.success('机器人信息刷新成功');
             // 重新获取列表
             fetchBots();
@@ -251,11 +251,11 @@ const Bots = () => {
                                 <div className="flex justify-between items-center">
                                     <div className="flex space-x-2">
                                         <button
-                                            onClick={() => refreshBot(bot.gewe_app_id)}
+                                            onClick={() => updateBot(bot.gewe_app_id)}
                                             className="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
                                         >
                                             <i className="fas fa-sync-alt h-3 w-3 mr-1 align-middle"></i>
-                                            刷新
+                                            更新
                                         </button>
                                         <button
                                             onClick={() => openBotDetail(bot)}

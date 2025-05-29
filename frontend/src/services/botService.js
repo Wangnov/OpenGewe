@@ -127,8 +127,8 @@ const botService = {
      * @param {string} geweAppId - GeWe应用ID
      * @returns {Promise} - 刷新机器人信息响应
      */
-    refreshBotInfo: async (geweAppId) => {
-        return api.post(`/bots/${geweAppId}/refresh`);
+    updateBotInfo: async (geweAppId) => {
+        return api.post(`/bots/${geweAppId}/update`);
     },
 };
 
