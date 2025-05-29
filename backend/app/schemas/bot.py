@@ -13,7 +13,8 @@ class BotBase(BaseModel):
     gewe_app_id: str = Field(
         ..., min_length=1, max_length=100, description="GeWe应用ID"
     )
-    gewe_token: str = Field(..., min_length=1, max_length=255, description="GeWe Token")
+    gewe_token: str = Field(..., min_length=1,
+                            max_length=255, description="GeWe Token")
     callback_url_override: Optional[str] = Field(
         None, max_length=500, description="回调URL覆盖"
     )
@@ -57,12 +58,30 @@ class BotResponse(BaseModel):
     """机器人响应"""
 
     gewe_app_id: str = Field(..., description="GeWe应用ID")
+    gewe_token: str = Field(..., description="GeWe令牌")
+    base_url: str = Field(..., description="基础URL")
     nickname: Optional[str] = Field(None, description="昵称")
     avatar_url: Optional[str] = Field(None, description="头像URL")
     big_head_img_url: Optional[str] = Field(None, description="大头像URL")
     small_head_img_url: Optional[str] = Field(None, description="小头像URL")
+
+    # 个人资料字段
+    wxid: Optional[str] = Field(None, description="微信号")
+    mobile: Optional[str] = Field(None, description="手机号")
+    uin: Optional[int] = Field(None, description="UIN")
+    sex: Optional[int] = Field(None, description="性别")
+    province: Optional[str] = Field(None, description="省份")
+    city: Optional[str] = Field(None, description="城市")
+    signature: Optional[str] = Field(None, description="个性签名")
+    country: Optional[str] = Field(None, description="国家")
+    reg_country: Optional[str] = Field(None, description="注册国家")
+    sns_bg_img: Optional[str] = Field(None, description="朋友圈背景图")
+    alias: Optional[str] = Field(None, description="别名")
+
     is_online: bool = Field(..., description="是否在线")
     last_seen_at: Optional[datetime] = Field(None, description="最后在线时间")
+    profile_updated_at: Optional[datetime] = Field(
+        None, description="个人资料更新时间")
     callback_url_override: Optional[str] = Field(None, description="回调URL覆盖")
     created_at: datetime = Field(..., description="创建时间")
     updated_at: datetime = Field(..., description="更新时间")
