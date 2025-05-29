@@ -68,7 +68,7 @@ def get_log_format() -> str:
 DEFAULT_CONSOLE_FORMAT = (
     "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | "
     "<level>{level.name: ^8}</level> {extra[level_emoji]} | "
-    "<cyan>[{extra[source]}]</cyan> - "
+    "<cyan>[{extra[source]}:{line}]</cyan> - "
     "{message}"
 )
 
@@ -76,7 +76,7 @@ DEFAULT_CONSOLE_FORMAT = (
 SIMPLE_CONSOLE_FORMAT = (
     "{time:YYYY-MM-DD HH:mm:ss} | "
     "{level.name: ^8} | "
-    "[{extra[source]}] - "
+    "[{extra[source]}:{line}] - "
     "{message}"
 )
 
@@ -111,11 +111,11 @@ DEFAULT_HANDLERS = [
         "rotation": "1 day",
         "retention": "30 days",
         "compression": "zip",
-        "format": "{time:YYYY-MM-DD HH:mm:ss} | {level.name: ^8} {extra[level_emoji]} | [{extra[source]}] | {message}",
-        "filter": lambda record: "API" in record["extra"].get("source", "") 
-                              or "api" in record["message"].lower()
-                              or "请求" in record["message"]
-                              or "响应" in record["message"],
+        "format": "{time:YYYY-MM-DD HH:mm:ss} | {level.name: ^8} {extra[level_emoji]} | [{extra[source]}:{line}] | {message}",
+        "filter": lambda record: "API" in record["extra"].get("source", "")
+        or "api" in record["message"].lower()
+        or "请求" in record["message"]
+        or "响应" in record["message"],
     },
     # 添加DEBUG级别日志文件，记录详细信息
     {
@@ -133,7 +133,7 @@ DEFAULT_HANDLERS = [
         "rotation": "1 day",
         "retention": "30 days",
         "compression": "zip",
-        "format": "{time:YYYY-MM-DD HH:mm:ss} | {level.name: ^8} {extra[level_emoji]} | [{extra[source]}] | {message}",
+        "format": "{time:YYYY-MM-DD HH:mm:ss} | {level.name: ^8} {extra[level_emoji]} | [{extra[source]}:{line}] | {message}",
         "filter": lambda record: "scheduler" in record["message"].lower()
         or "task" in record["message"].lower()
         or "job" in record["message"].lower()
@@ -157,9 +157,9 @@ DEFAULT_HANDLERS = [
         "rotation": "1 day",
         "retention": "30 days",
         "compression": "zip",
-        "format": "{time:YYYY-MM-DD HH:mm:ss} | {level.name: ^8} {extra[level_emoji]} | [{extra[source]}] | {message}",
-        "filter": lambda record: "Plugin" in record["extra"].get("source", "") 
-                              or record["extra"].get("source", "").startswith("Plugins."),
+        "format": "{time:YYYY-MM-DD HH:mm:ss} | {level.name: ^8} {extra[level_emoji]} | [{extra[source]}:{line}] | {message}",
+        "filter": lambda record: "Plugin" in record["extra"].get("source", "")
+        or record["extra"].get("source", "").startswith("Plugins."),
     },
 ]
 
@@ -191,21 +191,22 @@ def configure_from_dict(config: Dict[str, Any]) -> None:
     # 更新全局配置
     global _LOGGER_CONFIG
     _LOGGER_CONFIG.update({k: v for k, v in config.items() if k in _LOGGER_CONFIG})
-    
+
     # 提取主要配置项
     level = config.get("level", "INFO")
     format_type = config.get("format", "color")
     log_dir = config.get("path", DEFAULT_LOG_DIR)
     console = config.get("stdout", True)
-    
+
     # 解析日志轮转参数
     rotation = config.get("rotation", "1 day")
     retention = config.get("retention", "30 days")
     compression = config.get("compression", "zip")
-    
+
     # 根据format_type选择格式
     if format_type == "json":
         structured = True
+
         def console_format(record):
             return format_structured_record(record, DEFAULT_JSON_FORMAT)
     elif format_type == "simple":
@@ -214,7 +215,7 @@ def configure_from_dict(config: Dict[str, Any]) -> None:
     else:  # 默认彩色格式
         structured = False
         console_format = DEFAULT_CONSOLE_FORMAT
-    
+
     # 配置日志系统
     setup_logger(
         console=console,
@@ -313,6 +314,7 @@ def setup_logger(
         # 使用结构化日志格式（如果启用）
         actual_format = console_format
         if structured and not callable(actual_format):
+
             def actual_format(record):
                 return format_structured_record(
                     record, json_format or DEFAULT_JSON_FORMAT
@@ -339,6 +341,7 @@ def setup_logger(
         # 使用结构化日志格式（如果启用）
         actual_format = file_format
         if structured and not callable(actual_format):
+
             def actual_format(record):
                 return format_structured_record(
                     record, json_format or DEFAULT_JSON_FORMAT
@@ -511,6 +514,7 @@ def get_logger(source: str = "OpenGewe", **extra_context):
     context = {"source": source}
     context.update(extra_context)
     return logger.bind(**context)
+
 
 # 解析日志配置文件
 def load_logging_config(config_dict: Dict[str, Any]) -> None:
