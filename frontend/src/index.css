@@ -1,4 +1,14 @@
 /* 全局样式 - 现代化亮色系设计 */
+
+/* 隐藏滚动条的工具类 */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}
+
 :root {
   /* 主色调 - 蓝绿紫色系 */
   --color-primary: #2aae67;
