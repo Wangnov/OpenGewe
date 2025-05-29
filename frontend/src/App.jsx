@@ -4,6 +4,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import AuthLayout from './layouts/AuthLayout';
 import MainLayout from './layouts/MainLayout';
 import Login from './pages/Login';
+import Bots from './pages/Bots';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 
 /**
@@ -27,7 +28,7 @@ function App() {
               <Route path="/dashboard" element={<div>仪表盘页面（待实现）</div>} />
 
               {/* 机器人管理 */}
-              <Route path="/bots" element={<div>机器人管理页面（待实现）</div>} />
+              <Route path="/bots" element={<Bots />} />
               <Route path="/bots/:botId" element={<div>机器人详情页面（待实现）</div>} />
 
               {/* 插件管理 */}

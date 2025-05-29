@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import useAuth from '../hooks/useAuth';
 import MobileBottomNav from '../components/MobileBottomNav';
 
@@ -10,6 +10,7 @@ import MobileBottomNav from '../components/MobileBottomNav';
 const MainLayout = () => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [scrollY, setScrollY] = useState(0);
 
@@ -181,9 +182,17 @@ const MainLayout = () => {
                     <div className="px-8 py-6 flex items-center justify-between">
                         <div>
                             <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-800 via-gray-700 to-gray-600 bg-clip-text text-transparent">
-                                微信机器人管理后台
+                                {location.pathname === '/dashboard' && '仪表盘'}
+                                {location.pathname === '/bots' && '机器人管理'}
+                                {location.pathname === '/plugins' && '插件管理'}
+                                {location.pathname === '/settings' && '系统设置'}
                             </h2>
-                            <p className="text-sm text-gray-500 mt-1">智能化管理您的微信机器人</p>
+                            <p className="text-sm text-gray-500 mt-1">
+                                {location.pathname === '/dashboard' && '查看系统概览和统计信息'}
+                                {location.pathname === '/bots' && '管理您的微信机器人实例'}
+                                {location.pathname === '/plugins' && '配置和管理机器人插件'}
+                                {location.pathname === '/settings' && '系统配置和参数设置'}
+                            </p>
                         </div>
                         <div className="flex items-center space-x-3">
                             <button className="w-12 h-12 rounded-lg bg-white/50 backdrop-blur-sm border border-white/30 text-gray-600 hover:text-blue-600 hover:bg-white/70 transition-all duration-300 hover:scale-105 shadow-sm flex items-center justify-center">

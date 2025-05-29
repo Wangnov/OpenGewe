@@ -109,6 +109,27 @@ const botService = {
             config_json: configJson,
         });
     },
+
+    /**
+     * 测试机器人连接
+     * @param {Object} botData - 机器人连接数据
+     * @param {string} botData.gewe_app_id - GeWe应用ID
+     * @param {string} botData.gewe_token - GeWe Token
+     * @param {string} botData.base_url - 基础URL
+     * @returns {Promise} - 测试连接响应
+     */
+    testBotConnection: async (botData) => {
+        return api.post('/bots/test-connection', botData);
+    },
+
+    /**
+     * 刷新机器人信息
+     * @param {string} geweAppId - GeWe应用ID
+     * @returns {Promise} - 刷新机器人信息响应
+     */
+    refreshBotInfo: async (geweAppId) => {
+        return api.post(`/bots/${geweAppId}/refresh`);
+    },
 };
 
-export default botService; 
+export default botService;
