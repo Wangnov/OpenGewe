@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import useAuth from '../hooks/useAuth';
+import MobileBottomNav from '../components/MobileBottomNav';
 
 /**
  * 主布局组件 - 现代化Bento Grid风格设计
@@ -56,10 +57,10 @@ const MainLayout = () => {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20 flex">
-            {/* 侧边栏 */}
+            {/* 侧边栏 - 桌面端显示，移动端隐藏 */}
             <aside
-                className={`backdrop-blur-xl bg-white/80 border-r border-white/20 shadow-xl transition-all duration-500 ease-out ${isSidebarOpen ? 'w-72' : 'w-20'
-                    } flex flex-col relative overflow-hidden`}
+                className={`hidden md:flex backdrop-blur-xl bg-white/80 border-r border-white/20 shadow-xl transition-all duration-500 ease-out ${isSidebarOpen ? 'w-72' : 'w-20'
+                    } flex-col relative overflow-hidden`}
                 style={{
                     transform: scrollTransforms.sidebar,
                 }}
@@ -196,7 +197,7 @@ const MainLayout = () => {
                 </header>
 
                 {/* 内容区 */}
-                <div className="flex-1 overflow-auto p-8 relative z-10">
+                <div className="flex-1 overflow-auto p-8 md:p-8 pb-24 md:pb-8 relative z-10">
                     <div
                         className="transition-transform duration-300 ease-out"
                         style={{
@@ -207,6 +208,9 @@ const MainLayout = () => {
                     </div>
                 </div>
             </main>
+
+            {/* 移动端底部导航栏 */}
+            <MobileBottomNav />
         </div>
     );
 };
