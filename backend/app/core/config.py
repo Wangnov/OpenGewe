@@ -55,6 +55,43 @@ def load_toml_config() -> dict:
         return {}
 
 
+async def load_database_config() -> dict:
+    """从数据库加载配置"""
+    try:
+        # 延迟导入避免循环依赖
+        from ..services.config_manager import config_manager
+
+        # 获取所有数据库配置
+        db_configs = await config_manager.get_all_configs()
+        logger.debug(f"从数据库加载配置段: {list(db_configs.keys())}")
+        return db_configs
+    except Exception as e:
+        logger.debug(f"从数据库加载配置失败 (这在初始化阶段是正常的): {e}")
+        return {}
+
+
+def merge_config_sources(db_configs: dict, file_config: dict) -> dict:
+    """
+    合并配置源，优先级：数据库 → 文件 → 默认值
+
+    Args:
+        db_configs: 数据库配置字典
+        file_config: 文件配置字典
+
+    Returns:
+        合并后的配置字典
+    """
+    merged_config = file_config.copy()
+
+    # 将数据库配置覆盖到合并的配置中
+    for section_name, section_config in db_configs.items():
+        if section_config:
+            merged_config[section_name] = section_config
+            logger.debug(f"使用数据库配置覆盖配置段: {section_name}")
+
+    return merged_config
+
+
 def validate_mysql_config(db_config: dict) -> None:
     """验证MySQL配置的完整性"""
     required_fields = ["host", "port", "username", "password", "database"]
@@ -222,9 +259,31 @@ class Settings(BaseSettings):
     db_config: Optional[dict] = None
 
     def __init__(self, **kwargs):
-        # 加载TOML配置
+        # 加载TOML配置文件
         toml_config = load_toml_config()
-        webpanel_config = toml_config.get("webpanel", {})
+
+        # 尝试加载数据库配置（在应用启动后才可用）
+        import asyncio
+
+        try:
+            # 检查是否在事件循环中
+            loop = asyncio.get_running_loop()
+            # 如果有运行中的事件循环，尝试加载数据库配置
+            try:
+                db_configs = asyncio.run_coroutine_threadsafe(
+                    load_database_config(), loop
+                ).result(timeout=1.0)
+            except Exception:
+                db_configs = {}
+        except RuntimeError:
+            # 没有运行中的事件循环，跳过数据库配置加载
+            db_configs = {}
+
+        # 合并配置：数据库 → 文件 → 默认值
+        merged_config = merge_config_sources(db_configs, toml_config)
+
+        # 获取webpanel配置（优先使用合并后的配置）
+        webpanel_config = merged_config.get("webpanel", {})
 
         # 基础配置
         for key in [
@@ -240,7 +299,7 @@ class Settings(BaseSettings):
             if key in webpanel_config:
                 kwargs.setdefault(key, webpanel_config[key])
 
-                # 验证并构建数据库URL
+        # 验证并构建数据库URL
         if "database" in webpanel_config:
             db_config = webpanel_config["database"]
 
@@ -313,6 +372,6 @@ def get_settings() -> Settings:
 
 
 def get_gewe_apps_config() -> dict:
-    """获取GeWe应用配置"""
+    """获取GeWe应用配置 - 保持现有逻辑不变"""
     toml_config = load_toml_config()
     return toml_config.get("gewe_apps", {})
