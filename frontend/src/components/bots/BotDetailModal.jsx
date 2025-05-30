@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 // Font Awesome icons are loaded via CDN in index.html
 import botService from '../../services/botService';
-import { toast } from 'react-hot-toast';
 import LoadingSpinner from '../common/LoadingSpinner';
 import CachedImage from '../common/CachedImage';
 import useApiLoading from '../../hooks/useApiLoading';
 import { useProxiedImage } from '../../utils/imageProxy';
+import useNotification from '../../hooks/useNotification';
 
 /**
  * 机器人背景图片组件
@@ -17,7 +17,7 @@ import { useProxiedImage } from '../../utils/imageProxy';
  */
 const BotBackgroundImage = ({ imageUrl }) => {
   const { imageUrl: proxiedImageUrl, loading, error } = useProxiedImage(imageUrl, true);
-  
+
   if (loading) {
     return (
       <div className="absolute inset-0 bg-gray-200 flex items-center justify-center">
@@ -25,7 +25,7 @@ const BotBackgroundImage = ({ imageUrl }) => {
       </div>
     );
   }
-  
+
   if (error) {
     return (
       <div className="absolute inset-0 bg-gray-200 flex items-center justify-center text-gray-500">
@@ -33,7 +33,7 @@ const BotBackgroundImage = ({ imageUrl }) => {
       </div>
     );
   }
-  
+
   return (
     <div
       className="absolute inset-0 bg-cover bg-center"
@@ -63,16 +63,298 @@ const BotDetailModal = ({ bot, isOpen, onClose, onUpdate, onDelete }) => {
   const [testPassed, setTestPassed] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [copiedField, setCopiedField] = useState(null);
+  const [generalError, setGeneralError] = useState('');
+  const [isClosing, setIsClosing] = useState(false);
   const { loading: saving, executeWithLoading } = useApiLoading();
+  const { success, error: notifyError } = useNotification();
+  const backdropRef = useRef(null);
+  const contentRef = useRef(null);
+
+  // 初始化编辑表单
+  useEffect(() => {
+    if (bot) {
+      setEditForm({
+        gewe_app_id: bot.gewe_app_id || '',
+        gewe_token: bot.gewe_token || '',
+        base_url: bot.base_url || 'https://www.geweapi.com/gewe/v2/api'
+      });
+    }
+  }, [bot]);
+
+  // 复制到剪贴板
+  const copyToClipboard = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedField(text === bot.gewe_app_id ? 'gewe_app_id' :
+        text === bot.gewe_token ? 'gewe_token' :
+          text === bot.base_url ? 'base_url' :
+            text === bot.wxid ? 'wxid' : 'unknown');
+
+      setTimeout(() => setCopiedField(null), 2000);
+      success('复制成功', '内容已复制到剪贴板', { duration: 2000 });
+    } catch (error) {
+      console.error('复制失败:', error);
+      notifyError('复制失败', '无法复制到剪贴板，请手动复制', { duration: 3000 });
+    }
+  };
+
+  // 测试机器人连接
+  const testConnection = async () => {
+    try {
+      setTesting(true);
+      setTestPassed(false);
+
+      // 使用加载管理器调用测试API
+      await executeWithLoading(async () => {
+        await botService.testBotConnection({
+          gewe_app_id: editForm.gewe_app_id,
+          gewe_token: editForm.gewe_token,
+          base_url: editForm.base_url
+        });
+      });
+
+      setTestPassed(true);
+      success('连接测试成功', `机器人 "${bot.nickname || 'Unknown'}" 连接正常`, {
+        duration: 3000,
+        metadata: { botId: bot.gewe_app_id, botName: bot.nickname }
+      });
+    } catch (error) {
+      // 详细的错误调试日志
+      console.error('连接测试失败 - 完整错误对象:', error);
+      console.error('错误响应数据:', error.response?.data);
+      console.error('错误状态码:', error.response?.status);
+      console.error('错误消息:', error.message);
+
+      // 更全面的错误消息提取逻辑
+      let errorMessage = '连接测试失败';
+
+      try {
+        if (error.response?.data) {
+          const responseData = error.response.data;
+
+          // 尝试多种错误消息格式
+          if (typeof responseData === 'string') {
+            errorMessage = responseData;
+          } else if (responseData.detail) {
+            errorMessage = responseData.detail;
+          } else if (responseData.message) {
+            errorMessage = responseData.message;
+          } else if (responseData.error) {
+            errorMessage = responseData.error;
+          } else if (responseData.errors) {
+            // 处理验证错误数组
+            if (Array.isArray(responseData.errors)) {
+              errorMessage = responseData.errors.map(err =>
+                typeof err === 'string' ? err : err.message || err.detail || JSON.stringify(err)
+              ).join(', ');
+            } else {
+              errorMessage = JSON.stringify(responseData.errors);
+            }
+          } else {
+            // 如果没有标准错误字段，使用整个响应数据
+            errorMessage = JSON.stringify(responseData);
+          }
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+      } catch (parseError) {
+        console.error('解析错误消息失败:', parseError);
+        errorMessage = '连接测试失败，请检查控制台获取详细信息';
+      }
+
+      // 通知系统调用
+      setTimeout(() => {
+        notifyError('连接测试失败', `机器人 "${bot.nickname || 'Unknown'}" 连接失败: ${errorMessage}`, {
+          duration: 5000,
+          metadata: { botId: bot.gewe_app_id, botName: bot.nickname },
+          actions: [{
+            label: '重试',
+            onClick: () => testConnection(),
+            variant: 'primary'
+          }]
+        });
+      }, 0);
+
+      // 同时设置备用错误显示
+      setGeneralError('连接测试失败: ' + errorMessage);
+
+      setTestPassed(false);
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  // 保存编辑
+  const saveEdit = async () => {
+    if (!testPassed) {
+      notifyError('保存失败', '请先通过连接测试再保存', {
+        duration: 3000,
+        actions: [{
+          label: '测试连接',
+          onClick: () => testConnection(),
+          variant: 'primary'
+        }]
+      });
+      return;
+    }
+
+    try {
+      await executeWithLoading(async () => {
+        await botService.updateBot(bot.gewe_app_id, {
+          gewe_token: editForm.gewe_token,
+          base_url: editForm.base_url
+        });
+      });
+
+      setIsEditing(false);
+      setTestPassed(false);
+      setGeneralError(''); // 清除错误状态
+
+      success('保存成功', `机器人 "${bot.nickname || 'Unknown'}" 信息已更新`, {
+        duration: 3000,
+        metadata: { botId: bot.gewe_app_id, botName: bot.nickname }
+      });
+
+      // 调用更新回调
+      if (onUpdate) {
+        onUpdate();
+      }
+    } catch (error) {
+      console.error('保存失败:', error);
+
+      let errorMessage = '保存失败，请重试';
+      if (error.response?.data) {
+        const responseData = error.response.data;
+        if (typeof responseData === 'string') {
+          errorMessage = responseData;
+        } else if (responseData.detail) {
+          errorMessage = responseData.detail;
+        } else if (responseData.message) {
+          errorMessage = responseData.message;
+        }
+      }
+
+      notifyError('保存失败', `机器人 "${bot.nickname || 'Unknown'}" 更新失败: ${errorMessage}`, {
+        duration: 5000,
+        metadata: { botId: bot.gewe_app_id, botName: bot.nickname }
+      });
+
+      setGeneralError('保存失败: ' + errorMessage);
+    }
+  };
+
+  // 删除机器人
+  const handleDelete = async () => {
+    try {
+      await executeWithLoading(async () => {
+        await botService.deleteBot(bot.gewe_app_id);
+      });
+
+      success('删除成功', `机器人 "${bot.nickname || bot.gewe_app_id}" 已删除`, {
+        duration: 3000,
+        metadata: { botId: bot.gewe_app_id, botName: bot.nickname }
+      });
+
+      // 关闭确认弹窗和主弹窗
+      setShowDeleteConfirm(false);
+      handleClose();
+
+      // 调用删除回调
+      if (onDelete) {
+        onDelete(bot.gewe_app_id);
+      }
+    } catch (error) {
+      console.error('删除失败:', error);
+
+      let errorMessage = '删除失败，请重试';
+      if (error.response?.data) {
+        const responseData = error.response.data;
+        if (typeof responseData === 'string') {
+          errorMessage = responseData;
+        } else if (responseData.detail) {
+          errorMessage = responseData.detail;
+        } else if (responseData.message) {
+          errorMessage = responseData.message;
+        }
+      }
+
+      notifyError('删除失败', `机器人 "${bot.nickname || bot.gewe_app_id}" 删除失败: ${errorMessage}`, {
+        duration: 5000,
+        metadata: { botId: bot.gewe_app_id, botName: bot.nickname }
+      });
+    }
+  };
+
+  // 获取性别文本
+  const getSexText = (sex) => {
+    switch (sex) {
+      case 1: return '男';
+      case 2: return '女';
+      default: return '未知';
+    }
+  };
+
+  // 格式化时间
+  const formatTime = (timestamp) => {
+    if (!timestamp) return 'N/A';
+    return new Date(timestamp * 1000).toLocaleString('zh-CN');
+  };
+
+  /**
+   * 处理主弹窗关闭
+   */
+  const handleClose = () => {
+    if (isClosing) return; // 防止重复触发
+
+    setIsClosing(true);
+
+    // 添加退出动画类
+    if (backdropRef.current && contentRef.current) {
+      backdropRef.current.classList.add('animate-modal-backdrop-exit');
+      backdropRef.current.classList.remove('animate-modal-backdrop-enter');
+
+      contentRef.current.classList.add('animate-modal-content-exit');
+      contentRef.current.classList.remove('animate-modal-content-enter');
+
+      // 监听动画结束事件
+      const handleAnimationEnd = () => {
+        contentRef.current?.removeEventListener('animationend', handleAnimationEnd);
+        setIsClosing(false);
+        onClose(); // 真正关闭弹窗
+      };
+
+      contentRef.current.addEventListener('animationend', handleAnimationEnd);
+
+      // 备用：如果动画事件没有触发，使用定时器
+      setTimeout(() => {
+        if (contentRef.current) {
+          contentRef.current.removeEventListener('animationend', handleAnimationEnd);
+          setIsClosing(false);
+          onClose();
+        }
+      }, 300);
+    } else {
+      // 如果DOM元素不存在，直接关闭
+      setIsClosing(false);
+      onClose();
+    }
+  };
+
+  // 重置关闭状态
+  useEffect(() => {
+    if (isOpen) {
+      setIsClosing(false);
+    }
+  }, [isOpen]);
 
   // 动画变体
   const backdropVariants = {
     hidden: { opacity: 0 },
-    visible: { 
+    visible: {
       opacity: 1,
       transition: { duration: 0.3, ease: "easeOut" }
     },
-    exit: { 
+    exit: {
       opacity: 0,
       transition: { duration: 0.2, ease: "easeIn" }
     }
@@ -130,115 +412,12 @@ const BotDetailModal = ({ bot, isOpen, onClose, onUpdate, onDelete }) => {
     }
   };
 
-  // 初始化编辑表单
-  useEffect(() => {
-    if (bot) {
-      setEditForm({
-        gewe_app_id: bot.gewe_app_id || '',
-        gewe_token: bot.gewe_token || '',
-        base_url: bot.base_url || 'https://www.geweapi.com/gewe/v2/api'
-      });
-    }
-  }, [bot]);
-
-  // 复制文本到剪贴板
-  const copyToClipboard = async (text, fieldName) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedField(fieldName);
-      toast.success('复制成功');
-      setTimeout(() => setCopiedField(null), 2000);
-    } catch (error) {
-      console.error('复制失败:', error);
-      toast.error('复制失败');
-    }
-  };
-
-  // 测试机器人连接
-  const testConnection = async () => {
-    try {
-      setTesting(true);
-      setTestPassed(false);
-
-      // 使用加载管理器调用测试API
-      await executeWithLoading(async () => {
-        await botService.testBotConnection({
-          gewe_app_id: editForm.gewe_app_id,
-          gewe_token: editForm.gewe_token,
-          base_url: editForm.base_url
-        });
-      });
-
-      setTestPassed(true);
-      toast.success('连接测试成功');
-    } catch (error) {
-      console.error('连接测试失败:', error);
-      toast.error('连接测试失败: ' + (error.response?.data?.detail || error.message));
-      setTestPassed(false);
-    } finally {
-      setTesting(false);
-    }
-  };
-
-  // 保存编辑
-  const saveEdit = async () => {
-    if (!testPassed) {
-      toast.error('请先通过连接测试');
-      return;
-    }
-
-    try {
-      await executeWithLoading(async () => {
-        await botService.updateBot(bot.gewe_app_id, {
-          gewe_token: editForm.gewe_token,
-          base_url: editForm.base_url
-        });
-      });
-
-      toast.success('机器人信息更新成功');
-      setIsEditing(false);
-      setTestPassed(false);
-      onUpdate();
-    } catch (error) {
-      console.error('更新机器人失败:', error);
-      toast.error('更新机器人失败: ' + (error.response?.data?.detail || error.message));
-    }
-  };
-
-  // 删除机器人
-  const handleDelete = async () => {
-    try {
-      await executeWithLoading(async () => {
-        await onDelete(bot.gewe_app_id);
-      });
-      setShowDeleteConfirm(false);
-      onClose();
-    } catch (error) {
-      console.error('删除机器人失败:', error);
-    }
-  };
-
-  // 格式化时间
-  const formatTime = (timeString) => {
-    if (!timeString) return 'N/A';
-    return new Date(timeString).toLocaleString('zh-CN');
-  };
-
-  // 获取性别文本
-  const getSexText = (sex) => {
-    switch (sex) {
-      case 1: return '男';
-      case 2: return '女';
-      default: return '未知';
-    }
-  };
-
   if (!isOpen || !bot) return null;
 
   return createPortal(
     <AnimatePresence mode="wait">
       {isOpen && (
-        <motion.div 
+        <motion.div
           className="fixed inset-0 z-50 overflow-y-auto"
           initial="hidden"
           animate="visible"
@@ -246,23 +425,25 @@ const BotDetailModal = ({ bot, isOpen, onClose, onUpdate, onDelete }) => {
         >
           <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             {/* 背景遮罩 */}
-            <motion.div 
+            <motion.div
+              ref={backdropRef}
               variants={backdropVariants}
-              className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" 
-              onClick={onClose}
+              className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity animate-modal-backdrop-enter"
+              onClick={(e) => e.target === e.currentTarget && handleClose()}
             />
 
             {/* 弹窗内容 */}
-            <motion.div 
+            <motion.div
+              ref={contentRef}
               variants={modalVariants}
-              className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all relative sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full"
+              className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all relative sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full animate-modal-content-enter"
             >
               {/* 显示加载遮罩 */}
               {(saving || testing) && (
                 <div className="absolute inset-0 bg-white bg-opacity-80 backdrop-blur-sm flex items-center justify-center z-50">
-                  <LoadingSpinner 
-                    size="md" 
-                    text={testing ? '测试连接中...' : '保存中...'} 
+                  <LoadingSpinner
+                    size="md"
+                    text={testing ? '测试连接中...' : '保存中...'}
                   />
                 </div>
               )}
@@ -274,11 +455,14 @@ const BotDetailModal = ({ bot, isOpen, onClose, onUpdate, onDelete }) => {
                     机器人详情
                   </h3>
                   <button
-                    onClick={onClose}
-                    className="text-gray-400 hover:text-gray-600 focus:outline-none">
+                    onClick={handleClose}
+                    disabled={isClosing}
+                    className="text-gray-400 hover:text-gray-600 focus:outline-none disabled:opacity-50"
+                  >
                     <i className="fas fa-times h-6 w-6 align-middle"></i>
                   </button>
                 </div>
+
                 {/* 机器人卡片 */}
                 <div className="relative bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 rounded-lg overflow-hidden mb-6 h-48">
                   {/* SNS背景图 */}
@@ -323,7 +507,7 @@ const BotDetailModal = ({ bot, isOpen, onClose, onUpdate, onDelete }) => {
                         <span className="text-sm text-gray-900">{bot.wxid || 'N/A'}</span>
                         {bot.wxid && (
                           <button
-                            onClick={() => copyToClipboard(bot.wxid, 'wxid')}
+                            onClick={() => copyToClipboard(bot.wxid)}
                             className="p-1 hover:bg-gray-100 rounded"
                           >
                             {copiedField === 'wxid' ? (
@@ -363,7 +547,11 @@ const BotDetailModal = ({ bot, isOpen, onClose, onUpdate, onDelete }) => {
                             <input
                               type="text"
                               value={editForm.gewe_app_id}
-                              onChange={(e) => setEditForm({ ...editForm, gewe_app_id: e.target.value })}
+                              onChange={(e) => {
+                                setEditForm({ ...editForm, gewe_app_id: e.target.value });
+                                setGeneralError(''); // 清除错误状态
+                                setTestPassed(false); // 重置测试状态
+                              }}
                               className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                               disabled
                             />
@@ -371,10 +559,10 @@ const BotDetailModal = ({ bot, isOpen, onClose, onUpdate, onDelete }) => {
                             <>
                               <span className="text-sm text-gray-900 font-mono">{bot.gewe_app_id}</span>
                               <button
-                                onClick={() => copyToClipboard(bot.gewe_app_id, 'app_id')}
+                                onClick={() => copyToClipboard(bot.gewe_app_id)}
                                 className="p-1 hover:bg-gray-100 rounded"
                               >
-                                {copiedField === 'app_id' ? (
+                                {copiedField === 'gewe_app_id' ? (
                                   <i className="fas fa-check h-4 w-4 text-green-500 "></i>
                                 ) : (
                                   <i className="fas fa-copy h-4 w-4 text-gray-400 "></i>
@@ -393,7 +581,11 @@ const BotDetailModal = ({ bot, isOpen, onClose, onUpdate, onDelete }) => {
                             <input
                               type="password"
                               value={editForm.gewe_token}
-                              onChange={(e) => setEditForm({ ...editForm, gewe_token: e.target.value })}
+                              onChange={(e) => {
+                                setEditForm({ ...editForm, gewe_token: e.target.value });
+                                setGeneralError(''); // 清除错误状态
+                                setTestPassed(false); // 重置测试状态
+                              }}
                               className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                               placeholder="输入新的Token"
                             />
@@ -401,10 +593,10 @@ const BotDetailModal = ({ bot, isOpen, onClose, onUpdate, onDelete }) => {
                             <>
                               <span className="text-sm text-gray-900 font-mono">••••••••••••••••</span>
                               <button
-                                onClick={() => copyToClipboard(bot.gewe_token, 'token')}
+                                onClick={() => copyToClipboard(bot.gewe_token)}
                                 className="p-1 hover:bg-gray-100 rounded"
                               >
-                                {copiedField === 'token' ? (
+                                {copiedField === 'gewe_token' ? (
                                   <i className="fas fa-check h-4 w-4 text-green-500 "></i>
                                 ) : (
                                   <i className="fas fa-copy h-4 w-4 text-gray-400 "></i>
@@ -423,7 +615,11 @@ const BotDetailModal = ({ bot, isOpen, onClose, onUpdate, onDelete }) => {
                             <input
                               type="url"
                               value={editForm.base_url}
-                              onChange={(e) => setEditForm({ ...editForm, base_url: e.target.value })}
+                              onChange={(e) => {
+                                setEditForm({ ...editForm, base_url: e.target.value });
+                                setGeneralError(''); // 清除错误状态
+                                setTestPassed(false); // 重置测试状态
+                              }}
                               className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                               placeholder="输入Base URL"
                             />
@@ -431,7 +627,7 @@ const BotDetailModal = ({ bot, isOpen, onClose, onUpdate, onDelete }) => {
                             <>
                               <span className="text-sm text-gray-900 font-mono">{bot.base_url}</span>
                               <button
-                                onClick={() => copyToClipboard(bot.base_url, 'base_url')}
+                                onClick={() => copyToClipboard(bot.base_url)}
                                 className="p-1 hover:bg-gray-100 rounded"
                               >
                                 {copiedField === 'base_url' ? (
@@ -446,6 +642,35 @@ const BotDetailModal = ({ bot, isOpen, onClose, onUpdate, onDelete }) => {
                       </div>
                     </div>
                   </div>
+
+                  {/* 编辑模式下的错误和状态显示 */}
+                  {isEditing && (
+                    <div className="space-y-3">
+                      {/* 通用错误显示 */}
+                      {generalError && (
+                        <div className="flex items-start p-3 bg-red-50 border border-red-200 rounded-md">
+                          <i className="fas fa-exclamation-triangle h-5 w-5 text-red-500 mr-2 flex-shrink-0 mt-0.5"></i>
+                          <div className="flex-1">
+                            <span className="text-sm text-red-700 break-words">{generalError}</span>
+                            <button
+                              onClick={() => setGeneralError('')}
+                              className="ml-2 text-red-400 hover:text-red-600 focus:outline-none"
+                            >
+                              <i className="fas fa-times h-4 w-4"></i>
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 测试状态提示 */}
+                      {testPassed && (
+                        <div className="flex items-center p-3 bg-green-50 border border-green-200 rounded-md">
+                          <i className="fas fa-check h-5 w-5 text-green-500 mr-2 flex items-center"></i>
+                          <span className="text-sm text-green-700">连接测试通过，可以保存机器人</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* 时间信息 */}
                   <div className="border-t pt-4">
@@ -495,6 +720,7 @@ const BotDetailModal = ({ bot, isOpen, onClose, onUpdate, onDelete }) => {
                       onClick={() => {
                         setIsEditing(false);
                         setTestPassed(false);
+                        setGeneralError(''); // 清除错误状态
                         setEditForm({
                           gewe_app_id: bot.gewe_app_id || '',
                           gewe_token: bot.gewe_token || '',
@@ -532,25 +758,26 @@ const BotDetailModal = ({ bot, isOpen, onClose, onUpdate, onDelete }) => {
           {/* 删除确认弹窗 */}
           <AnimatePresence>
             {showDeleteConfirm && (
-              <motion.div 
+              <motion.div
                 className="fixed inset-0 z-60 overflow-y-auto"
                 initial="hidden"
                 animate="visible"
                 exit="exit"
               >
                 <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                  <motion.div 
+                  <motion.div
                     variants={backdropVariants}
                     className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+                    onClick={(e) => e.target === e.currentTarget && setShowDeleteConfirm(false)}
                   />
-                  <motion.div 
+                  <motion.div
                     variants={confirmModalVariants}
-                    className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full"
+                    className="inline-block align-middle bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all relative sm:my-8 sm:align-middle sm:max-w-lg sm:w-full"
                   >
                     <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                       <div className="sm:flex sm:items-start">
                         <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
-                          <i className="fas fa-trash h-6 w-6 text-red-600 flex items-center"></i>
+                          <i className="fas fa-trash h-6 w-6 text-red-600 flex items-center justify-center"></i>
                         </div>
                         <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
                           <h3 className="text-lg leading-6 font-medium text-gray-900">

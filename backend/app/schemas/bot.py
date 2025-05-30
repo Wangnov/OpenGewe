@@ -15,6 +15,8 @@ class BotBase(BaseModel):
     )
     gewe_token: str = Field(..., min_length=1,
                             max_length=255, description="GeWe Token")
+    base_url: str = Field(..., min_length=1,
+                          max_length=255, description="基础URL")
     callback_url_override: Optional[str] = Field(
         None, max_length=500, description="回调URL覆盖"
     )
@@ -39,6 +41,15 @@ class BotCreateRequest(BotBase):
         v = v.strip()
         if not v:
             raise ValueError("GeWe Token不能为空")
+        return v
+
+    @field_validator("base_url")
+    @classmethod
+    def validate_base_url(cls, v):
+        """验证基础URL格式"""
+        v = v.strip()
+        if not v:
+            raise ValueError("基础URL不能为空")
         return v
 
 

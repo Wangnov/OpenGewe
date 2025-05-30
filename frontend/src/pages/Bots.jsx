@@ -6,7 +6,7 @@ import CreateBotModal from '../components/bots/CreateBotModal';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import CachedImage from '../components/common/CachedImage';
 import useApiLoading from '../hooks/useApiLoading';
-import { toast } from 'react-hot-toast';
+import useNotification from '../hooks/useNotification';
 
 /**
  * 机器人管理页面
@@ -21,9 +21,10 @@ const Bots = () => {
     const [copiedField, setCopiedField] = useState(null);
     const [refreshingBot, setRefreshingBot] = useState(null);
     const { executeWithLoading } = useApiLoading();
+    const { success, error: notifyError, info } = useNotification();
 
     // 获取机器人列表
-    const fetchBots = useCallback(async () => {
+    const fetchBots = useCallback(async (isManualRefresh = false) => {
         try {
             setLoading(true);
             const response = await executeWithLoading(async () => {
@@ -34,27 +35,57 @@ const Bots = () => {
             const botsData = response.data?.data || response.data?.bots || response.data || [];
             console.log('解析的机器人数据:', botsData);
             setBots(Array.isArray(botsData) ? botsData : []);
+
+            // 仅在手动刷新时显示成功通知
+            if (isManualRefresh) {
+                info('刷新成功', `已获取到 ${Array.isArray(botsData) ? botsData.length : 0} 个机器人`, {
+                    duration: 2000
+                });
+            }
         } catch (error) {
             console.error('获取机器人列表失败:', error);
-            toast.error('获取机器人列表失败');
+            notifyError('获取失败', '获取机器人列表失败，请检查网络连接', {
+                duration: 5000,
+                actions: [{
+                    label: '重试',
+                    onClick: () => fetchBots(true),
+                    variant: 'primary'
+                }]
+            });
         } finally {
             setLoading(false);
         }
-    }, [executeWithLoading]);
+    }, [executeWithLoading, info, notifyError]);
 
     // 刷新单个机器人信息
     const updateBot = async (geweAppId) => {
         try {
             setRefreshingBot(geweAppId);
+            const bot = bots.find(b => b.gewe_app_id === geweAppId);
+
             await executeWithLoading(async () => {
                 await botService.updateBotInfo(geweAppId);
             });
-            toast.success('机器人信息刷新成功');
+
+            success('更新成功', `机器人 "${bot?.nickname || 'Unknown'}" 信息已成功刷新`, {
+                duration: 3000,
+                metadata: { botId: geweAppId, botName: bot?.nickname }
+            });
+
             // 重新获取列表
             fetchBots();
         } catch (error) {
             console.error('刷新机器人信息失败:', error);
-            toast.error('刷新机器人信息失败');
+            const bot = bots.find(b => b.gewe_app_id === geweAppId);
+            notifyError('更新失败', `机器人 "${bot?.nickname || 'Unknown'}" 信息刷新失败，请稍后重试`, {
+                duration: 5000,
+                metadata: { botId: geweAppId, botName: bot?.nickname },
+                actions: [{
+                    label: '重试',
+                    onClick: () => updateBot(geweAppId),
+                    variant: 'primary'
+                }]
+            });
         } finally {
             setRefreshingBot(null);
         }
@@ -65,11 +96,17 @@ const Bots = () => {
         try {
             await navigator.clipboard.writeText(text);
             setCopiedField(fieldName);
-            toast.success('复制成功');
+
+            success('复制成功', '内容已复制到剪贴板', {
+                duration: 2000
+            });
+
             setTimeout(() => setCopiedField(null), 2000);
         } catch (error) {
             console.error('复制失败:', error);
-            toast.error('复制失败');
+            notifyError('复制失败', '无法复制到剪贴板，请手动复制', {
+                duration: 3000
+            });
         }
     };
 
@@ -87,25 +124,57 @@ const Bots = () => {
     // 删除机器人
     const deleteBot = async (geweAppId) => {
         try {
+            const bot = bots.find(b => b.gewe_app_id === geweAppId);
+
             await executeWithLoading(async () => {
                 await botService.deleteBot(geweAppId);
             });
-            toast.success('机器人删除成功');
+
+            success('删除成功', `机器人 "${bot?.nickname || 'Unknown'}" 已成功删除`, {
+                duration: 3000,
+                metadata: { botId: geweAppId, botName: bot?.nickname },
+                actions: [{
+                    label: '查看列表',
+                    onClick: () => fetchBots(),
+                    variant: 'primary'
+                }]
+            });
+
             fetchBots();
         } catch (error) {
             console.error('删除机器人失败:', error);
-            toast.error('删除机器人失败');
+            const bot = bots.find(b => b.gewe_app_id === geweAppId);
+            notifyError('删除失败', `机器人 "${bot?.nickname || 'Unknown'}" 删除失败，请稍后重试`, {
+                duration: 5000,
+                metadata: { botId: geweAppId, botName: bot?.nickname },
+                actions: [{
+                    label: '重试',
+                    onClick: () => deleteBot(geweAppId),
+                    variant: 'primary'
+                }]
+            });
         }
     };
 
     // 创建机器人成功回调
     const handleBotCreated = () => {
+        success('创建成功', '新机器人已成功创建并添加到列表', {
+            duration: 3000,
+            actions: [{
+                label: '查看详情',
+                onClick: () => fetchBots(),
+                variant: 'primary'
+            }]
+        });
         fetchBots();
         setShowCreateModal(false);
     };
 
     // 机器人更新成功回调
     const handleBotUpdated = () => {
+        success('更新成功', '机器人信息已成功更新', {
+            duration: 3000
+        });
         fetchBots();
         setShowDetailModal(false);
     };
@@ -129,7 +198,7 @@ const Bots = () => {
                 <h1 className="text-2xl font-bold text-gray-900">机器人列表</h1>
                 <div className="flex space-x-3">
                     <button
-                        onClick={fetchBots}
+                        onClick={() => fetchBots(true)}
                         className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
                     >
                         <i className="fas fa-sync-alt h-4 w-4 mr-2 flex items-center"></i>

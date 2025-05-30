@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect } from 'react';
 import authService from '../services/authService';
+import useNotification from '../hooks/useNotification';
 
 // 创建认证上下文
 export const AuthContext = createContext();
@@ -16,6 +17,9 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
     // 错误状态
     const [error, setError] = useState(null);
+
+    // 通知系统
+    const { success, error: notifyError, info } = useNotification();
 
     // 初始化时检查用户是否已登录
     useEffect(() => {
@@ -63,10 +67,33 @@ export const AuthProvider = ({ children }) => {
         try {
             const data = await authService.login(username, password, remember);
             setUser(data.user);
+
+            // 显示登录成功通知
+            success('登录成功', `欢迎回来，${data.user?.username || '用户'}！`, {
+                duration: 3000,
+                actions: [{
+                    label: '查看仪表盘',
+                    onClick: () => window.location.href = '/dashboard',
+                    variant: 'primary'
+                }]
+            });
+
             return data;
         } catch (err) {
             console.error('登录失败', err);
-            setError(err.response?.data?.detail || '登录失败');
+            const errorMessage = err.response?.data?.detail || '登录失败，请检查用户名和密码';
+            setError(errorMessage);
+
+            // 显示登录失败通知
+            notifyError('登录失败', errorMessage, {
+                duration: 0, // 错误通知不自动消失
+                actions: [{
+                    label: '重试',
+                    onClick: () => window.location.reload(),
+                    variant: 'primary'
+                }]
+            });
+
             throw err;
         } finally {
             setLoading(false);
@@ -82,9 +109,20 @@ export const AuthProvider = ({ children }) => {
         try {
             await authService.logout();
             setUser(null);
+
+            // 显示登出成功通知
+            info('已退出登录', '您已安全退出系统，感谢使用！', {
+                duration: 2000
+            });
+
         } catch (err) {
             console.error('登出失败', err);
             setError('登出失败');
+
+            // 显示登出失败通知
+            notifyError('登出失败', '登出过程中出现错误，请刷新页面重试', {
+                duration: 5000
+            });
         } finally {
             setLoading(false);
         }
@@ -106,10 +144,33 @@ export const AuthProvider = ({ children }) => {
                 newPassword,
                 confirmPassword
             );
+
+            // 显示修改密码成功通知
+            success('密码修改成功', '您的密码已成功更新，请妥善保管新密码', {
+                duration: 5000,
+                actions: [{
+                    label: '重新登录',
+                    onClick: () => logout(),
+                    variant: 'primary'
+                }]
+            });
+
             return result;
         } catch (err) {
             console.error('修改密码失败', err);
-            setError(err.response?.data?.detail || '修改密码失败');
+            const errorMessage = err.response?.data?.detail || '修改密码失败';
+            setError(errorMessage);
+
+            // 显示修改密码失败通知
+            notifyError('密码修改失败', errorMessage, {
+                duration: 0,
+                actions: [{
+                    label: '重试',
+                    onClick: () => window.location.reload(),
+                    variant: 'primary'
+                }]
+            });
+
             throw err;
         } finally {
             setLoading(false);
