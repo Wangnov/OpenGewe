@@ -119,12 +119,6 @@ const BotDetailModal = ({ bot, isOpen, onClose, onUpdate, onDelete }) => {
         metadata: { botId: bot.gewe_app_id, botName: bot.nickname }
       });
     } catch (error) {
-      // 详细的错误调试日志
-      console.error('连接测试失败 - 完整错误对象:', error);
-      console.error('错误响应数据:', error.response?.data);
-      console.error('错误状态码:', error.response?.status);
-      console.error('错误消息:', error.message);
-
       // 更全面的错误消息提取逻辑
       let errorMessage = '连接测试失败';
 
@@ -158,7 +152,6 @@ const BotDetailModal = ({ bot, isOpen, onClose, onUpdate, onDelete }) => {
           errorMessage = error.message;
         }
       } catch (parseError) {
-        console.error('解析错误消息失败:', parseError);
         errorMessage = '连接测试失败，请检查控制台获取详细信息';
       }
 
@@ -220,8 +213,6 @@ const BotDetailModal = ({ bot, isOpen, onClose, onUpdate, onDelete }) => {
         onUpdate();
       }
     } catch (error) {
-      console.error('保存失败:', error);
-
       let errorMessage = '保存失败，请重试';
       if (error.response?.data) {
         const responseData = error.response.data;
@@ -264,8 +255,6 @@ const BotDetailModal = ({ bot, isOpen, onClose, onUpdate, onDelete }) => {
         onDelete(bot.gewe_app_id);
       }
     } catch (error) {
-      console.error('删除失败:', error);
-
       let errorMessage = '删除失败，请重试';
       if (error.response?.data) {
         const responseData = error.response.data;
@@ -296,8 +285,31 @@ const BotDetailModal = ({ bot, isOpen, onClose, onUpdate, onDelete }) => {
 
   // 格式化时间
   const formatTime = (timestamp) => {
-    if (!timestamp) return 'N/A';
-    return new Date(timestamp * 1000).toLocaleString('zh-CN');
+    if (!timestamp || timestamp === null || timestamp === undefined) return 'N/A';
+
+    try {
+      // 直接使用Date构造函数处理ISO字符串
+      const date = new Date(timestamp);
+
+      // 检查日期是否有效
+      if (isNaN(date.getTime())) {
+        console.warn('无效的日期:', timestamp);
+        return 'N/A';
+      }
+
+      // 返回本地化的时间字符串
+      return date.toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+    } catch (error) {
+      console.error('时间格式化错误:', error, timestamp);
+      return 'N/A';
+    }
   };
 
   /**
@@ -684,13 +696,9 @@ const BotDetailModal = ({ bot, isOpen, onClose, onUpdate, onDelete }) => {
                         <span className="text-gray-600">更新时间:</span>
                         <span className="ml-2 text-gray-900">{formatTime(bot.updated_at)}</span>
                       </div>
-                      <div>
+                      <div className="col-span-2">
                         <span className="text-gray-600">最后在线:</span>
                         <span className="ml-2 text-gray-900">{formatTime(bot.last_seen_at)}</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">资料更新:</span>
-                        <span className="ml-2 text-gray-900">{formatTime(bot.profile_updated_at)}</span>
                       </div>
                     </div>
                   </div>

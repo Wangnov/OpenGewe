@@ -69,7 +69,7 @@ const MobileBottomNav = () => {
 
                 {/* 底部导航栏主体 */}
                 <div className="bg-white/95 backdrop-blur-xl border-t border-white/30 shadow-xl">
-                    <div className="flex items-center px-2 py-2">
+                    <div className="flex items-center">
                         {/* 可滚动的导航项容器 */}
                         <div className="flex-1 overflow-x-auto scrollbar-hide">
                             <div className="flex space-x-1 px-2">
@@ -78,8 +78,8 @@ const MobileBottomNav = () => {
                                         key={item.to}
                                         to={item.to}
                                         className={({ isActive }) =>
-                                            `flex flex-col items-center justify-center min-w-[70px] px-3 py-2 rounded-xl transition-all duration-300 ${isActive
-                                                ? 'bg-white/70 shadow-lg backdrop-blur-sm border border-white/30'
+                                            `flex flex-col items-center justify-center min-w-[70px] p-3 my-2 rounded-xl transition-all duration-300 ${isActive
+                                                ? 'bg-white/70 shadow-lg backdrop-blur-sm'
                                                 : 'hover:bg-white/40'
                                             }`
                                         }
@@ -93,8 +93,8 @@ const MobileBottomNav = () => {
 
                                                 {/* 图标 */}
                                                 <div className={`w-6 h-6 rounded-lg flex items-center justify-center transition-all duration-300 relative z-10 mb-1 ${isActive
-                                                        ? `bg-gradient-to-r ${item.gradient} text-white shadow-md`
-                                                        : 'text-gray-500'
+                                                    ? `bg-gradient-to-r ${item.gradient} text-white shadow-md`
+                                                    : 'text-gray-500'
                                                     }`}>
                                                     <i className={`${item.icon} text-xs`}></i>
                                                 </div>

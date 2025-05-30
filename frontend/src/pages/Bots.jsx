@@ -171,12 +171,36 @@ const Bots = () => {
     };
 
     // 机器人更新成功回调
-    const handleBotUpdated = () => {
+    const handleBotUpdated = async () => {
         success('更新成功', '机器人信息已成功更新', {
             duration: 3000
         });
-        fetchBots();
-        setShowDetailModal(false);
+
+        // 重新获取列表数据
+        try {
+            setLoading(true);
+            const response = await executeWithLoading(async () => {
+                return await botService.getBots();
+            });
+
+            const botsData = response.data?.data || response.data?.bots || response.data || [];
+            setBots(Array.isArray(botsData) ? botsData : []);
+
+            // 如果当前有选中的机器人，更新selectedBot数据
+            if (selectedBot) {
+                const updatedBot = botsData.find(bot => bot.gewe_app_id === selectedBot.gewe_app_id);
+                if (updatedBot) {
+                    setSelectedBot(updatedBot); // 更新selectedBot为最新数据，包含时间戳
+                }
+            }
+        } catch (error) {
+            console.error('获取更新后的机器人数据失败:', error);
+            notifyError('数据同步失败', '无法获取最新的机器人信息', {
+                duration: 3000
+            });
+        } finally {
+            setLoading(false);
+        }
     };
 
     useEffect(() => {
