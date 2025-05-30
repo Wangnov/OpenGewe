@@ -60,6 +60,22 @@ async def lifespan(app: FastAPI):
 
         logger.info("数据库表结构初始化完成")
 
+        # 初始化配置系统（将TOML配置迁移到数据库）
+        try:
+            from app.services.initializers.config_initializer import config_initializer
+
+            logger.info("初始化配置系统...")
+            config_init_success = await config_initializer.initialize_config()
+
+            if config_init_success:
+                logger.info("配置系统初始化完成")
+            else:
+                logger.warning("配置系统初始化部分失败，将使用文件配置作为回退")
+
+        except Exception as e:
+            logger.error(f"配置系统初始化失败: {e}", exc_info=True)
+            logger.warning("将继续使用文件配置系统")
+
         # 初始化机器人配置（从配置文件）
         try:
             from app.services.initializers.bot_initializer import (
