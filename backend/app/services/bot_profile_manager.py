@@ -127,6 +127,7 @@ class BotProfileManager:
         # 更新时间戳
         bot.profile_updated_at = to_app_timezone(utc_now())
         bot.updated_at = to_app_timezone(utc_now())
+        bot.last_seen_at = to_app_timezone(utc_now())  # 更新最后在线时间
 
         await session.commit()
 
