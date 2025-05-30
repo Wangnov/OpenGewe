@@ -34,7 +34,7 @@ const botService = {
      * @param {Object} botData - 机器人数据
      * @param {string} botData.gewe_app_id - GeWe应用ID
      * @param {string} botData.gewe_token - GeWe Token
-     * @param {string} botData.callback_url_override - 回调URL覆盖（可选）
+     * @param {string} botData.base_url - 基础URL
      * @returns {Promise} - 创建机器人响应
      */
     createBot: async (botData) => {
@@ -119,7 +119,7 @@ const botService = {
      * @returns {Promise} - 测试连接响应
      */
     testBotConnection: async (botData) => {
-        return api.post('/bots/test-connection', botData);
+        return api.post('/bots/check-online', botData);
     },
 
     /**

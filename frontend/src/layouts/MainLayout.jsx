@@ -1,7 +1,11 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import useAuth from '../hooks/useAuth';
+import useNotification from '../hooks/useNotification';
 import MobileBottomNav from '../components/MobileBottomNav';
+import NotificationBar from '../components/notifications/NotificationBar';
+import NotificationBadge from '../components/notifications/NotificationBadge';
+import NotificationHistory from '../components/notifications/NotificationHistory';
 
 /**
  * 主布局组件 - 现代化Bento Grid风格设计
@@ -9,6 +13,7 @@ import MobileBottomNav from '../components/MobileBottomNav';
  */
 const MainLayout = () => {
     const { user, logout } = useAuth();
+    const { toggleHistory, unreadCount } = useNotification();
     const navigate = useNavigate();
     const location = useLocation();
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -195,8 +200,12 @@ const MainLayout = () => {
                             </p>
                         </div>
                         <div className="flex items-center space-x-3">
-                            <button className="w-12 h-12 rounded-lg bg-white/50 backdrop-blur-sm border border-white/30 text-gray-600 hover:text-blue-600 hover:bg-white/70 transition-all duration-300 hover:scale-105 shadow-sm flex items-center justify-center">
+                            <button
+                                onClick={toggleHistory}
+                                className="relative w-12 h-12 rounded-lg bg-white/50 backdrop-blur-sm border border-white/30 text-gray-600 hover:text-blue-600 hover:bg-white/70 transition-all duration-300 hover:scale-105 shadow-sm flex items-center justify-center"
+                            >
                                 <i className="fas fa-bell text-lg"></i>
+                                <NotificationBadge count={unreadCount} />
                             </button>
                             <button className="w-12 h-12 rounded-lg bg-white/50 backdrop-blur-sm border border-white/30 text-gray-600 hover:text-purple-600 hover:bg-white/70 transition-all duration-300 hover:scale-105 shadow-sm flex items-center justify-center">
                                 <i className="fas fa-question-circle text-lg"></i>
@@ -220,6 +229,12 @@ const MainLayout = () => {
 
             {/* 移动端底部导航栏 */}
             <MobileBottomNav />
+
+            {/* 浮动通知栏 */}
+            <NotificationBar />
+
+            {/* 通知历史弹窗 */}
+            <NotificationHistory />
         </div>
     );
 };

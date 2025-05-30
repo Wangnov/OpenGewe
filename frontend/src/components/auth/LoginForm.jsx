@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import useAuth from '../../hooks/useAuth';
+import useNotification from '../../hooks/useNotification';
 
 /**
  * 登录表单组件
@@ -15,6 +16,8 @@ const LoginForm = () => {
 
     // 使用认证钩子
     const { login, error: authError } = useAuth();
+    // 使用通知钩子
+    const { info, warning } = useNotification();
 
     /**
      * 处理表单提交
@@ -26,16 +29,21 @@ const LoginForm = () => {
         // 表单验证
         if (!username.trim()) {
             setFormError('请输入用户名');
+            warning('输入验证', '请输入用户名后继续', { duration: 3000 });
             return;
         }
 
         if (!password) {
             setFormError('请输入密码');
+            warning('输入验证', '请输入密码后继续', { duration: 3000 });
             return;
         }
 
         setFormError('');
         setIsSubmitting(true);
+
+        // 显示登录处理中的信息
+        info('登录中', '正在验证您的身份...', { duration: 2000 });
 
         try {
             // 调用登录
@@ -46,6 +54,16 @@ const LoginForm = () => {
             console.error('登录失败', error);
         } finally {
             setIsSubmitting(false);
+        }
+    };
+
+    /**
+     * 处理输入变化，清除错误
+     */
+    const handleInputChange = (setter) => (e) => {
+        setter(e.target.value);
+        if (formError) {
+            setFormError('');
         }
     };
 
@@ -73,7 +91,7 @@ const LoginForm = () => {
                     type="text"
                     className="input"
                     value={username}
-                    onChange={(e) => setUsername(e.target.value)}
+                    onChange={handleInputChange(setUsername)}
                     disabled={isSubmitting}
                     placeholder="请输入用户名"
                     autoComplete="username"
@@ -90,7 +108,7 @@ const LoginForm = () => {
                     type="password"
                     className="input"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={handleInputChange(setPassword)}
                     disabled={isSubmitting}
                     placeholder="请输入密码"
                     autoComplete="current-password"

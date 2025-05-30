@@ -200,6 +200,99 @@ html, body {
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1));
 }
 
+/* 通知动画 */
+@keyframes notification-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes notification-exit {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    max-height: 200px;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-30px) scale(0.85);
+    max-height: 0;
+    margin-bottom: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+}
+
+.animate-notification-enter {
+  animation: notification-enter 0.4s ease-out forwards;
+}
+
+.animate-notification-exit {
+  animation: notification-exit 0.5s ease-in forwards;
+}
+
+/* 弹窗动画 */
+@keyframes modal-backdrop-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modal-backdrop-exit {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes modal-content-enter {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes modal-content-exit {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(10px) scale(0.95);
+  }
+}
+
+.animate-modal-backdrop-enter {
+  animation: modal-backdrop-enter 0.3s ease-out forwards;
+}
+
+.animate-modal-backdrop-exit {
+  animation: modal-backdrop-exit 0.2s ease-in forwards;
+}
+
+.animate-modal-content-enter {
+  animation: modal-content-enter 0.3s ease-out forwards;
+}
+
+.animate-modal-content-exit {
+  animation: modal-content-exit 0.2s ease-in forwards;
+}
+
 /* 动画效果 */
 .animate-fade-in {
   animation: fadeIn 1s ease-in-out;

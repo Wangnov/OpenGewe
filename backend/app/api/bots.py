@@ -19,6 +19,7 @@ from ..schemas.bot import (
 )
 from ..services.bot_manager import BotClientManager
 from ..services.bot_profile_manager import BotProfileManager
+from opengewe.client import GeweClient
 from opengewe.logger import init_default_logger, get_logger
 
 init_default_logger()
@@ -99,6 +100,7 @@ async def create_bot(
 
     - **gewe_app_id**: GeWe应用ID
     - **gewe_token**: GeWe Token
+    - **base_url**: client URL基础路径
     - **callback_url_override**: 回调URL覆盖（可选）
     """
     # 检查是否已存在相同的gewe_app_id
@@ -108,22 +110,19 @@ async def create_bot(
 
     if existing_bot:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="该GeWe应用ID已存在"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="该gewe_app_id已存在"
         )
 
     try:
-        # 临时使用虚拟数据，等集成OpenGewe后替换
-        nickname = f"机器人_{bot_data.gewe_app_id}"
-        avatar_url = None
-
-        # 创建机器人记录
+        # 创建机器人记录（初始状态，个人信息将通过API获取）
         bot = BotInfo(
             gewe_app_id=bot_data.gewe_app_id,
             gewe_token=bot_data.gewe_token,
-            nickname=nickname,
-            avatar_url=avatar_url,
+            base_url=bot_data.base_url,
+            nickname=None,  # 将通过API获取
+            avatar_url=None,  # 将通过API获取
             callback_url_override=bot_data.callback_url_override,
-            is_online=False,  # 初始状态为离线
+            is_online=True,  # 初始状态为在线
         )
 
         session.add(bot)
@@ -144,6 +143,32 @@ async def create_bot(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="创建机器人数据库失败",
             )
+
+        # 获取机器人客户端管理器实例并获取个人信息
+        try:
+            bot_manager = BotClientManager()
+
+            # 获取唯一的客户端实例
+            client = await bot_manager.get_client(bot_data.gewe_app_id, session)
+
+            if not client:
+                logger.warning(f"无法获取机器人客户端: {bot_data.gewe_app_id}")
+            else:
+                # 调用fetch_and_update_profile更新机器人信息
+                profile_data = await BotProfileManager.fetch_and_update_profile(
+                    client, bot_data.gewe_app_id, session
+                )
+
+                if profile_data:
+                    # 重新查询更新后的机器人信息
+                    await session.refresh(bot)
+                    logger.info(f"机器人个人信息获取成功: {bot_data.gewe_app_id}")
+                else:
+                    logger.warning(f"机器人个人信息获取失败: {bot_data.gewe_app_id}")
+
+        except Exception as e:
+            logger.error(f"获取机器人个人信息失败: {e}")
+            # 个人信息获取失败不影响机器人创建，只记录警告
 
         logger.info(
             f"机器人创建成功: {bot_data.gewe_app_id} by {current_user['username']}"
@@ -372,6 +397,44 @@ async def get_bot_contacts(
         )
 
 
+@router.post("/check-online", summary="测试机器人连接")
+async def check_bot_online(
+    bot_data: BotCreateRequest,
+    current_user: dict = Depends(get_current_active_user),
+):
+    """
+    测试机器人连接
+
+    使用提供的凭据创建临时客户端并检查是否能够成功连接
+    """
+    try:
+        # 创建临时客户端
+        client = GeweClient(
+            base_url=bot_data.base_url,
+            app_id=bot_data.gewe_app_id,
+            token=bot_data.gewe_token,
+            debug=False,
+        )
+
+        # 调用account.check_online()方法检查连接
+        result = await client.account.check_online()
+
+        # 检查返回结果
+        if result.get("ret") == 200 and result.get("data") is True:
+            return {"ret": 200, "msg": "操作成功", "data": True}
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="连接测试失败: " + result.get("msg", "未知错误")
+            )
+    except Exception as e:
+        logger.error(f"机器人连接测试失败: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"连接测试失败: {str(e)}"
+        )
+
+
 @router.put("/{gewe_app_id}/update", response_model=BotResponse, summary="更新机器人个人信息")
 async def update_bot_profile(
     gewe_app_id: str,
@@ -380,7 +443,7 @@ async def update_bot_profile(
 ):
     """
     更新机器人个人信息
-    
+
     从GeWe服务器获取机器人的个人信息并更新到数据库
     """
     # 先验证机器人是否存在
@@ -396,36 +459,36 @@ async def update_bot_profile(
     try:
         # 获取机器人客户端管理器实例
         bot_manager = BotClientManager()
-        
+
         # 获取唯一的客户端实例
         client = await bot_manager.get_client(gewe_app_id, session)
-        
+
         if not client:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="无法获取机器人客户端"
             )
-        
+
         # 调用fetch_and_update_profile更新机器人信息
         profile_data = await BotProfileManager.fetch_and_update_profile(
             client, gewe_app_id, session
         )
-        
+
         if not profile_data:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="获取机器人个人信息失败"
             )
-        
+
         # 重新查询更新后的机器人信息
         await session.refresh(bot)
-        
+
         logger.info(
             f"机器人个人信息更新成功: {gewe_app_id} by {current_user['username']}"
         )
-        
+
         return BotResponse.model_validate(bot)
-        
+
     except HTTPException:
         raise
     except Exception as e:
