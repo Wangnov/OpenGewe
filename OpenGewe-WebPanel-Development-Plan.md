@@ -1,1246 +1,215 @@
-# OpenGewe 多微信机器人管理后台开发计划
-
-## 📋 项目概述
-
-### 项目目标
-开发一个现代化的、移动端兼容的多微信机器人管理后台，深度集成 OpenGewe 框架，提供全面的微信机器人管理功能。
-
-### 项目特点
-- **多机器人管理**：支持同时管理多个微信机器人实例
-- **现代化界面**：响应式设计，同时支持桌面端和移动端
-- **深度集成**：充分利用 OpenGewe 的异步特性、消息处理和插件系统
-- **实时通信**：WebSocket 支持实时消息展示
-
-## 🏗️ 系统架构设计
-
-### 整体架构图
-```
-┌──────────────────────────────────────────────────────────────┐
-│                        前端 (React + TS)                     │
-│  ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐ │
-│  │   管理员界面     │ │   机器人管理     │ │   聊天界面      │ │
-│  └─────────────────┘ └─────────────────┘ └─────────────────┘ │
-└──────────────────────────────────────────────────────────────┘
-                              │ HTTP/WebSocket
-┌──────────────────────────────────────────────────────────────┐
-│                     后端 (FastAPI)                           │
-│  ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐ │
-│  │  Webhook 接口    │ │  RESTful API   │ │  WebSocket 服务  │ │
-│  └─────────────────┘ └─────────────────┘ └─────────────────┘ │
-│  ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐ │
-│  │ GeweClient 池   │ │  插件管理器      │ │  消息处理器      │ │
-│  └─────────────────┘ └─────────────────┘ └─────────────────┘ │
-└──────────────────────────────────────────────────────────────┘
-                              │
-┌──────────────────────────────────────────────────────────────┐
-│                    数据库层 (MySQL)                           │
-│  ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐ │
-│  │   管理员数据     │ │ bot_app_id_abc  │ │  bot_app_id_xyz │ │
-│  │     Schema      │ │     Schema      │ │     Schema      │ │
-│  └─────────────────┘ └─────────────────┘ └─────────────────┘ │
-└──────────────────────────────────────────────────────────────┘
-                              │
-┌──────────────────────────────────────────────────────────────┐
-│                    外部服务集成                               │
-│  ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐ │
-│  │    GeWeAPI      │ │     Redis       │ │   RabbitMQ      │ │
-│  └─────────────────┘ └─────────────────┘ └─────────────────┘ │
-└──────────────────────────────────────────────────────────────┘
-```
-
-## 🛠️ 技术栈详细说明
-
-### 前端技术栈
-```typescript
-// 核心框架
-React 18+ + TypeScript 5+
-
-// UI 组件库
-Ant Design 5.25 (桌面端主要)
-Ant Design Mobile 5.x (移动端补充)
-
-// 状态管理
-Zustand 4.x (轻量级状态管理)
-
-// 数据请求
-React Query/TanStack Query 5.x (数据获取和缓存)
-
-// 路由
-React Router 6.x
-
-// 构建工具
-Vite 5.x + SWC
-
-// 代码质量
-ESLint + Prettier + Husky
-TypeScript strict mode
-
-// 样式方案
-CSS Modules + Tailwind CSS
-
-// 实时通信
-Socket.IO Client
-
-// 图表库
-Apache ECharts (消息统计图表)
-```
-
-### 后端技术栈
-```python
-# 核心框架
-FastAPI 0.115+ + Python 3.13+
-
-# 微信机器人框架
-OpenGewe 0.1.1+ (作为第三方库)
-
-# 数据库
-SQLAlchemy 2.x (异步模式)
-Pydantic 2.x (数据校验)
-MySQL 8+
-
-# 任务队列
-Celery + Redis + RabbitMQ
-
-# 认证授权
-python-jose (JWT)
-passlib (密码哈希)
-
-# WebSocket
-FastAPI WebSocket + Socket.IO
-
-# 配置管理
-python-decouple (环境变量)
-tomli (TOML 配置文件)
-
-# 日志
-Loguru (集成 OpenGewe 日志系统)
-
-# 其他工具
-aiofiles (异步文件操作)
-aioredis (异步 Redis 客户端)
-aiomysql (异步 MySQL 客户端)
-```
-
-## 🗄️ 数据库设计详解
-
-### 全局管理员数据库 (`admin_data`)
-
-#### 管理员表 (`admins`)
-```sql
-CREATE TABLE admins (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    username VARCHAR(50) UNIQUE NOT NULL,
-    hashed_password VARCHAR(255) NOT NULL,
-    full_name VARCHAR(100),
-    is_superadmin BOOLEAN DEFAULT FALSE,
-    is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    last_login_at TIMESTAMP NULL,
-    
-    INDEX idx_username (username),
-);
-```
-
-#### 管理员登录日志表 (`admin_login_logs`)
-```sql
-CREATE TABLE admin_login_logs (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    admin_id INT NOT NULL,
-    login_ip VARCHAR(45),
-    user_agent TEXT,
-    login_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    status ENUM('success', 'failed') NOT NULL,
-    failure_reason VARCHAR(255),
-    
-    FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE CASCADE,
-    INDEX idx_admin_id (admin_id),
-    INDEX idx_login_at (login_at)
-);
-```
-
-#### 全局插件配置表 (`global_plugins`)
-```sql
-CREATE TABLE global_plugins (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    plugin_name VARCHAR(100) UNIQUE NOT NULL,
-    is_globally_enabled BOOLEAN DEFAULT TRUE,
-    global_config_json JSON,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
-    INDEX idx_plugin_name (plugin_name)
-);
-```
-
-### 机器人实例数据库 (每个 Schema: `bot_{app_id}`)
-
-#### 机器人信息表 (`bot_info`)
-```sql
-CREATE TABLE bot_info (
-    bot_wxid VARCHAR(50) PRIMARY KEY,
-    gewe_app_id VARCHAR(100) UNIQUE NOT NULL,
-    gewe_token VARCHAR(255) NOT NULL,
-    nickname VARCHAR(100),
-    avatar_url TEXT,
-    qr_code_url TEXT,
-    is_online BOOLEAN DEFAULT FALSE,
-    last_seen_at TIMESTAMP NULL,
-    callback_url_override VARCHAR(500),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
-    INDEX idx_gewe_app_id (gewe_app_id),
-    INDEX idx_is_online (is_online)
-);
-```
-
-#### 原始回调消息表 (`raw_callback_log`)
-```sql
-CREATE TABLE raw_callback_log (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    received_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    bot_wxid VARCHAR(50),
-    gewe_appid VARCHAR(100) NOT NULL,
-    type_name VARCHAR(50) NOT NULL,
-    msg_id VARCHAR(100),
-    new_msg_id VARCHAR(100),
-    from_wxid VARCHAR(100),
-    to_wxid VARCHAR(100),
-    raw_json_data JSON NOT NULL,
-    processed BOOLEAN DEFAULT FALSE,
-    
-    INDEX idx_received_at (received_at),
-    INDEX idx_bot_wxid (bot_wxid),
-    INDEX idx_gewe_appid_type (gewe_appid, type_name),
-    INDEX idx_msg_id (msg_id),
-    INDEX idx_new_msg_id (new_msg_id),
-    INDEX idx_chat_pair (from_wxid, to_wxid),
-    INDEX idx_processed (processed)
-);
-```
-
-#### 联系人表 (`contacts`)
-```sql
-CREATE TABLE contacts (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    bot_wxid VARCHAR(50) NOT NULL,
-    contact_wxid VARCHAR(100) NOT NULL,
-    contact_type ENUM('friend', 'group', 'public_account', 'enterprise') NOT NULL,
-    nickname VARCHAR(200),
-    remark VARCHAR(200),
-    alias VARCHAR(100),
-    big_head_img_url TEXT,
-    small_head_img_url TEXT,
-    signature TEXT,
-    sex TINYINT,
-    country VARCHAR(50),
-    province VARCHAR(50),
-    city VARCHAR(50),
-    is_deleted BOOLEAN DEFAULT FALSE,
-    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    
-    UNIQUE KEY uk_bot_contact (bot_wxid, contact_wxid),
-    INDEX idx_contact_type (contact_type),
-    INDEX idx_nickname (nickname),
-    INDEX idx_is_deleted (is_deleted)
-);
-```
-
-#### 群成员表 (`group_members`)
-```sql
-CREATE TABLE group_members (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    bot_wxid VARCHAR(50) NOT NULL,
-    group_wxid VARCHAR(100) NOT NULL,
-    member_wxid VARCHAR(100) NOT NULL,
-    nickname VARCHAR(200),
-    display_name VARCHAR(200),
-    is_admin BOOLEAN DEFAULT FALSE,
-    is_owner BOOLEAN DEFAULT FALSE,
-    join_time TIMESTAMP NULL,
-    is_active BOOLEAN DEFAULT TRUE,
-    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
-    UNIQUE KEY uk_group_member (bot_wxid, group_wxid, member_wxid),
-    INDEX idx_group_wxid (group_wxid),
-    INDEX idx_member_wxid (member_wxid),
-    INDEX idx_is_admin (is_admin),
-    INDEX idx_is_active (is_active)
-);
-```
-
-#### 机器人插件配置表 (`bot_plugins`)
-```sql
-CREATE TABLE bot_plugins (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    bot_wxid VARCHAR(50) NOT NULL,
-    plugin_name VARCHAR(100) NOT NULL,
-    is_enabled BOOLEAN DEFAULT TRUE,
-    config_json JSON,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
-    UNIQUE KEY uk_bot_plugin (bot_wxid, plugin_name),
-    INDEX idx_plugin_name (plugin_name),
-    INDEX idx_is_enabled (is_enabled)
-);
-```
-
-#### 朋友圈记录表 (`sns_posts`)
-```sql
-CREATE TABLE sns_posts (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    bot_wxid VARCHAR(50) NOT NULL,
-    sns_id BIGINT NOT NULL,
-    author_wxid VARCHAR(100) NOT NULL,
-    content TEXT,
-    media_urls JSON,
-    post_type ENUM('text', 'image', 'video', 'link', 'finder') NOT NULL,
-    like_count INT DEFAULT 0,
-    comment_count INT DEFAULT 0,
-    create_time TIMESTAMP NOT NULL,
-    privacy_settings JSON,
-    raw_data JSON,
-    
-    UNIQUE KEY uk_bot_sns (bot_wxid, sns_id),
-    INDEX idx_author_wxid (author_wxid),
-    INDEX idx_create_time (create_time),
-    INDEX idx_post_type (post_type)
-);
-```
-
-## 📱 功能模块详细规划
-
-### 1. 认证与授权模块
-
-#### 1.1 管理员登录
-**前端实现：**
-```typescript
-// 登录表单组件
-interface LoginForm {
-  username: string;
-  password: string;
-  remember?: boolean;
-}
-
-// 认证状态管理
-interface AuthState {
-  isAuthenticated: boolean;
-  user: Admin | null;
-  token: string | null;
-}
-```
-
-**后端接口：**
-```python
-# 登录接口
-POST /api/auth/login
-{
-  "username": "admin",
-  "password": "password"
-}
-
-# 响应
-{
-  "access_token": "jwt_token",
-  "token_type": "bearer",
-  "expires_in": 3600,
-  "user": {
-    "id": 1,
-    "username": "admin",
-    "email": "admin@example.com",
-    "is_superadmin": true
-  }
-}
-```
-
-#### 1.2 权限控制
-- **超级管理员**：所有权限
-- **普通管理员**：只能管理指定的机器人实例
-- **JWT 中间件**：验证所有 API 请求
-- **路由守卫**：前端路由级别的权限控制
-
-### 2. 机器人实例管理模块
-
-#### 2.1 机器人列表页面
-**功能特性：**
-- 卡片式展示所有机器人实例
-- 实时显示在线状态（WebSocket 更新）
-- 搜索和筛选功能
-- 批量操作（启用/禁用）
-
-**前端组件结构：**
-```typescript
-interface BotInstance {
-  botWxid: string;
-  geweAppId: string;
-  nickname: string;
-  avatarUrl: string;
-  isOnline: boolean;
-  lastSeenAt: string;
-  messageCount24h: number;
-}
-
-// 机器人卡片组件
-const BotCard: React.FC<{ bot: BotInstance }> = ({ bot }) => {
-  // 实现卡片显示逻辑
-};
-```
-
-#### 2.2 添加机器人流程
-**步骤设计：**
-1. **输入基本信息**：`gewe_app_id` 和 `gewe_token`
-2. **验证连接**：测试与 GeWeAPI 的连接
-3. **获取机器人信息**：自动获取昵称、头像等
-4. **初始化数据库**：创建专属 Schema
-5. **同步联系人**：后台异步同步联系人和群聊数据
-
-**后端实现逻辑：**
-```python
-@router.post("/bots")
-async def create_bot(bot_data: BotCreateRequest):
-    # 1. 验证 GeweClient 连接
-    client = GeweClient(
-        base_url="http://www.geweapi.com/gewe/v2/api",
-        app_id=bot_data.gewe_app_id,
-        token=bot_data.gewe_token,
-        is_gewe=True
-    )
-    
-    # 2. 检查在线状态
-    online_status = await client.account.check_online()
-    if not online_status.get("data"):
-        raise HTTPException(400, "机器人离线或配置错误")
-    
-    # 3. 获取机器人信息
-    profile = await client.personal.get_profile()
-    
-    # 4. 创建数据库 Schema
-    await create_bot_schema(profile["data"]["wxid"])
-    
-    # 5. 保存机器人信息
-    bot_info = await save_bot_info(profile["data"])
-    
-    # 6. 启动后台同步任务
-    sync_contacts_task.delay(bot_info.bot_wxid)
-    
-    return bot_info
-```
-
-### 3. 聊天管理模块
-
-#### 3.1 聊天界面设计
-**布局结构：**
-```
-┌─────────────────────────────────────────────────────────────┐
-│                     聊天管理界面                            │
-├──────────────┬────────────────────────────────────────────┤
-│              │                聊天窗口                     │
-│   联系人列表  │  ┌──────────────────────────────────────┐   │
-│              │  │          消息历史记录                │   │
-│  🔍 搜索框    │  │                                      │   │
-│              │  └──────────────────────────────────────┘   │
-│  📱 张三      │  ┌──────────────────────────────────────┐   │
-│  🏢 工作群    │  │          消息输入框                  │   │
-│  👥 朋友群    │  │  📎 📷 🎤 😊              发送       │   │
-│  ...         │  └──────────────────────────────────────┘   │
-└──────────────┴────────────────────────────────────────────┘
-```
-
-#### 3.2 消息类型支持
-**支持的消息类型：**
-- ✅ 文本消息（支持 @ 功能）
-- ✅ 图片消息（支持拖拽上传）
-- ✅ 语音消息（录音功能）
-- ✅ 视频消息
-- ✅ 文件消息
-- ✅ 表情消息
-- ✅ 链接消息
-- ✅ 名片消息
-- ⭐ 引用回复
-- ⭐ 消息撤回
-
-**前端消息组件：**
-```typescript
-interface Message {
-  id: string;
-  type: MessageType;
-  content: string;
-  fromWxid: string;
-  toWxid: string;
-  timestamp: number;
-  isFromSelf: boolean;
-  status: 'sending' | 'sent' | 'failed';
-  media?: {
-    url: string;
-    thumbnail?: string;
-    size?: number;
-    duration?: number;
-  };
-}
-
-const MessageBubble: React.FC<{ message: Message }> = ({ message }) => {
-  // 根据消息类型渲染不同的气泡样式
-};
-```
-
-#### 3.3 实时消息处理
-**WebSocket 消息流：**
-```typescript
-// WebSocket 事件类型
-interface WebSocketEvents {
-  'new_message': Message;
-  'message_status_update': { messageId: string; status: string };
-  'bot_status_change': { botWxid: string; isOnline: boolean };
-  'typing_indicator': { chatId: string; userWxid: string; isTyping: boolean };
-}
-
-// WebSocket 连接管理
-class WebSocketManager {
-  private socket: Socket;
-  
-  connect(token: string) {
-    this.socket = io('/chat', {
-      auth: { token },
-      transports: ['websocket']
-    });
-  }
-  
-  subscribeToBot(botWxid: string) {
-    this.socket.emit('subscribe_bot', { botWxid });
-  }
-}
-```
-
-### 4. 朋友圈管理模块
-
-#### 4.1 朋友圈发布功能
-**发布类型：**
-- 纯文本朋友圈
-- 图片朋友圈（支持多图）
-- 视频朋友圈
-- 链接朋友圈
-
-**前端发布组件：**
-```typescript
-interface SnsPostData {
-  content: string;
-  type: 'text' | 'image' | 'video' | 'link';
-  mediaFiles?: File[];
-  privacy: {
-    allowWxids?: string[];
-    disableWxids?: string[];
-    allowTagIds?: string[];
-    disableTagIds?: string[];
-    isPrivate: boolean;
-  };
-  location?: string;
-  atWxids?: string[];
-}
-
-const SnsPublisher: React.FC = () => {
-  // 朋友圈发布组件实现
-};
-```
-
-#### 4.2 朋友圈浏览功能
-- 查看自己发布的朋友圈
-- 浏览好友朋友圈
-- 点赞和评论功能
-- 朋友圈数据同步
-
-### 5. 插件管理模块
-
-#### 5.1 全局插件管理
-**功能列表：**
-- 插件列表展示（从 `plugins` 目录扫描）
-- 全局启用/禁用插件
-- 插件配置管理
-- 插件上传功能（可选）
-
-**插件信息结构：**
-```typescript
-interface PluginInfo {
-  name: string;
-  description: string;
-  author: string;
-  version: string;
-  isGloballyEnabled: boolean;
-  configSchema?: JSONSchema;
-  globalConfig?: Record<string, any>;
-  enabledBots: string[];
-  totalBots: number;
-}
-```
-
-#### 5.2 机器人级别插件配置
-- 继承全局配置
-- 覆盖特定机器人配置
-- 插件配置验证
-- 配置变更实时生效
-
-### 6. 统计与监控模块
-
-#### 6.1 数据统计功能
-**统计维度：**
-- 消息量统计（24小时、7天、30天）
-- 活跃联系人统计
-- 插件使用统计
-- 错误日志统计
-
-**图表展示：**
-```typescript
-interface StatisticsData {
-  messageStats: {
-    total: number;
-    byType: Record<string, number>;
-    trend: Array<{ date: string; count: number }>;
-  };
-  contactStats: {
-    totalFriends: number;
-    totalGroups: number;
-    activeContacts: number;
-  };
-  pluginStats: {
-    enabledCount: number;
-    totalCount: number;
-    usage: Array<{ plugin: string; calls: number }>;
-  };
-}
-```
-
-#### 6.2 系统监控
-- 机器人在线状态监控
-- 消息处理延迟监控
-- 错误率监控
-- 系统资源使用监控
-
-## 🚀 开发阶段规划
-
-### 第一阶段：基础架构（4-6周）
-
-#### Week 1-2: 项目初始化与后端基础
-**任务清单：**
-- [ ] 创建项目仓库和目录结构
-- [ ] 配置开发环境（Docker Compose）
-- [ ] 搭建 FastAPI 基础框架
-- [ ] 实现数据库连接和模型定义
-- [ ] 完成 JWT 认证系统
-- [ ] 实现基础的 CRUD 操作
-
-**技术要点：**
-```python
-# 项目结构
-backend/
-├── app/
-│   ├── api/
-│   │   ├── auth.py
-│   │   ├── bots.py
-│   │   ├── webhooks.py
-│   │   └── __init__.py
-│   ├── core/
-│   │   ├── config.py
-│   │   ├── security.py
-│   │   └── database.py
-│   ├── models/
-│   ├── schemas/
-│   └── services/
-└── requirements.txt
-```
-
-#### Week 3-4: 前端基础与路由
-**任务清单：**
-- [ ] 创建 React + TypeScript 项目
-- [ ] 配置 Vite 构建工具
-- [ ] 搭建基础路由结构
-- [ ] 实现登录页面和认证流程
-- [ ] 创建主要页面框架
-- [ ] 配置状态管理（Zustand）
-
-**前端结构：**
-```typescript
-src/
-├── components/
-│   ├── common/
-│   ├── auth/
-│   └── layout/
-├── pages/
-│   ├── Login.tsx
-│   ├── Dashboard.tsx
-│   ├── BotManagement.tsx
-│   └── ChatInterface.tsx
-├── hooks/
-├── stores/
-├── utils/
-└── types/
-```
-
-### 第二阶段：核心功能开发（6-8周）
-
-#### Week 5-6: 机器人管理功能
-**后端任务：**
-- [ ] 实现 GeweClient 实例池管理
-- [ ] 完成机器人 CRUD 接口
-- [ ] 实现动态数据库 Schema 创建
-- [ ] 集成 OpenGewe 客户端
-
-**前端任务：**
-- [ ] 实现机器人列表页面
-- [ ] 创建添加机器人流程
-- [ ] 实现机器人状态监控
-- [ ] 添加机器人操作功能
-
-#### Week 7-8: Webhook 与消息处理
-**核心功能：**
-- [ ] 实现 Webhook 接收接口
-- [ ] 完成消息存储逻辑
-- [ ] 实现消息分发机制
-- [ ] 集成 OpenGewe MessageFactory
-
-**技术实现：**
-```python
-@app.post("/webhook/{bot_schema_id}")
-async def webhook_handler(
-    bot_schema_id: str,
-    payload: Dict[str, Any],
-    request: Request
-):
-    # 1. 验证来源
-    await verify_webhook_source(request)
-    
-    # 2. 存储原始消息
-    await store_raw_callback(bot_schema_id, payload)
-    
-    # 3. 分发给 MessageFactory
-    client = get_bot_client(bot_schema_id)
-    await client.message_factory.process(payload)
-    
-    return {"status": "ok"}
-```
-
-#### Week 9-10: 聊天界面基础
-**功能实现：**
-- [ ] 联系人列表组件
-- [ ] 聊天窗口布局
-- [ ] 消息气泡组件
-- [ ] 基础消息发送功能
-
-#### Week 11-12: 实时通信
-**WebSocket 实现：**
-- [ ] 搭建 WebSocket 服务
-- [ ] 实现消息实时推送
-- [ ] 添加在线状态同步
-- [ ] 实现消息状态更新
-
-### 第三阶段：高级功能（4-6周）
-
-#### Week 13-14: 朋友圈管理
-- [ ] 朋友圈发布功能
-- [ ] 朋友圈浏览界面
-- [ ] 媒体文件上传处理
-- [ ] 朋友圈数据同步
-
-#### Week 15-16: 插件管理系统
-- [ ] 插件扫描和加载
-- [ ] 插件配置界面
-- [ ] 全局和实例级配置
-- [ ] 插件状态管理
-
-#### Week 17-18: 统计与监控
-- [ ] 数据统计收集
-- [ ] 图表展示组件
-- [ ] 系统监控面板
-- [ ] 日志查看功能
-
-### 第四阶段：优化与部署（2-4周）
-
-#### Week 19-20: 性能优化
-- [ ] 前端代码分割和懒加载
-- [ ] 后端查询优化
-- [ ] 缓存策略实现
-- [ ] 内存和性能监控
-
-#### Week 21-22: 测试与部署
-- [ ] 单元测试和集成测试
-- [ ] 部署脚本编写
-- [ ] Docker 镜像构建
-- [ ] 生产环境配置
-
-## 🔧 关键技术实现要点
-
-### 1. GeweClient 实例池管理
-
-```python
-class BotClientManager:
-    def __init__(self):
-        self._clients: Dict[str, GeweClient] = {}
-        self._client_configs: Dict[str, Dict] = {}
-    
-    async def get_client(self, bot_wxid: str) -> GeweClient:
-        """获取或创建 GeweClient 实例"""
-        if bot_wxid not in self._clients:
-            config = await self._load_bot_config(bot_wxid)
-            client = GeweClient(**config)
-            self._clients[bot_wxid] = client
-            await self._initialize_client(client)
-        
-        return self._clients[bot_wxid]
-    
-    async def remove_client(self, bot_wxid: str):
-        """安全移除客户端实例"""
-        if bot_wxid in self._clients:
-            await self._clients[bot_wxid].close()
-            del self._clients[bot_wxid]
-    
-    async def reload_client(self, bot_wxid: str):
-        """重新加载客户端配置"""
-        await self.remove_client(bot_wxid)
-        return await self.get_client(bot_wxid)
-```
-
-### 2. 动态数据库 Schema 管理
-
-```python
-class DatabaseManager:
-    async def create_bot_schema(self, bot_wxid: str):
-        """为新机器人创建独立的数据库 Schema"""
-        schema_name = f"bot_{bot_wxid.replace('@', '_')}"
-        
-        # 创建 Schema
-        await self.execute(f"CREATE SCHEMA IF NOT EXISTS {schema_name}")
-        
-        # 创建表结构
-        await self._create_bot_tables(schema_name)
-        
-        return schema_name
-    
-    async def get_bot_engine(self, bot_wxid: str):
-        """获取特定机器人的数据库连接"""
-        schema_name = f"bot_{bot_wxid.replace('@', '_')}"
-        return create_async_engine(
-            f"mysql+aiomysql://user:pass@host:port/{schema_name}"
-        )
-```
-
-### 3. 消息处理管道
-
-```python
-class MessageProcessor:
-    def __init__(self, bot_manager: BotClientManager):
-        self.bot_manager = bot_manager
-    
-    async def process_webhook(self, bot_schema_id: str, payload: Dict):
-        """处理 Webhook 消息"""
-        # 1. 数据验证和清洗
-        validated_payload = await self._validate_payload(payload)
-        
-        # 2. 存储原始消息
-        message_id = await self._store_raw_message(
-            bot_schema_id, validated_payload
-        )
-        
-        # 3. 消息去重检查
-        if await self._is_duplicate_message(message_id):
-            return
-        
-        # 4. 分发给 OpenGewe
-        client = await self.bot_manager.get_client(bot_schema_id)
-        await client.message_factory.process(validated_payload)
-        
-        # 5. 实时推送给前端
-        await self._broadcast_message(bot_schema_id, validated_payload)
-```
-
-### 4. WebSocket 消息分发
-
-```python
-class WebSocketManager:
-    def __init__(self):
-        self.active_connections: Dict[str, List[WebSocket]] = {}
-    
-    async def connect(self, websocket: WebSocket, user_id: str):
-        """建立 WebSocket 连接"""
-        await websocket.accept()
-        if user_id not in self.active_connections:
-            self.active_connections[user_id] = []
-        self.active_connections[user_id].append(websocket)
-    
-    async def broadcast_to_bot_subscribers(
-        self, bot_wxid: str, message: Dict
-    ):
-        """向订阅特定机器人的用户广播消息"""
-        for user_id, connections in self.active_connections.items():
-            if await self._user_has_bot_access(user_id, bot_wxid):
-                for connection in connections:
-                    await connection.send_json(message)
-```
-
-### 5. 安全机制实现
-
-```python
-# JWT 认证中间件
-async def verify_token(request: Request):
-    """验证 JWT Token"""
-    token = request.headers.get("Authorization")
-    if not token or not token.startswith("Bearer "):
-        raise HTTPException(401, "未提供有效的认证令牌")
-    
-    try:
-        payload = jwt.decode(
-            token.replace("Bearer ", ""),
-            SECRET_KEY,
-            algorithms=[ALGORITHM]
-        )
-        user_id = payload.get("sub")
-        if not user_id:
-            raise HTTPException(401, "无效的令牌")
-        
-        return user_id
-    except JWTError:
-        raise HTTPException(401, "令牌验证失败")
-
-# Webhook 来源验证
-async def verify_webhook_source(request: Request):
-    """验证 Webhook 来源"""
-    # 1. IP 白名单检查
-    client_ip = request.client.host
-    if not await is_whitelisted_ip(client_ip):
-        raise HTTPException(403, "IP 地址未授权")
-    
-    # 2. 签名验证（如果 GeWeAPI 提供）
-    signature = request.headers.get("X-Gewe-Signature")
-    if signature:
-        body = await request.body()
-        expected_signature = generate_signature(body)
-        if not hmac.compare_digest(signature, expected_signature):
-            raise HTTPException(403, "签名验证失败")
-```
-
-## 📦 部署与运维策略
-
-### 1. Docker 容器化部署
-
-```dockerfile
-# 后端 Dockerfile
-FROM python:3.13-slim
-
-WORKDIR /app
-
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-COPY . .
-
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
-```
-
-```dockerfile
-# 前端 Dockerfile
-FROM node:20-alpine as builder
-
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci
-
-COPY . .
-RUN npm run build
-
-FROM nginx:alpine
-COPY --from=builder /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/nginx.conf
-```
-
-### 2. Docker Compose 配置
-
-```yaml
-version: '3.8'
-
-services:
-  backend:
-    build: ./backend
-    ports:
-      - "8000:8000"
-    environment:
-      - DATABASE_URL=mysql+aiomysql://user:pass@mysql:3306/opengewe
-      - REDIS_URL=redis://redis:6379/0
-    depends_on:
-      - mysql
-      - redis
-    volumes:
-      - ./logs:/app/logs
-      - ./plugins:/app/plugins
-
-  frontend:
-    build: ./frontend
-    ports:
-      - "80:80"
-    depends_on:
-      - backend
-
-  mysql:
-    image: mysql:9.3
-    environment:
-      - MYSQL_ROOT_PASSWORD=rootpass
-      - MYSQL_DATABASE=opengewe
-      - MYSQL_USER=user
-      - MYSQL_PASSWORD=pass
-    volumes:
-      - mysql_data:/var/lib/mysql
-      - ./mysql/init:/docker-entrypoint-initdb.d
-
-  redis:
-    image: redis:7-alpine
-    command: redis-server --appendonly yes
-    volumes:
-      - redis_data:/data
-
-  rabbitmq:
-    image: rabbitmq:3-management
-    environment:
-      - RABBITMQ_DEFAULT_USER=user
-      - RABBITMQ_DEFAULT_PASS=pass
-    ports:
-      - "15672:15672"
-    volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
-
-volumes:
-  mysql_data:
-  redis_data:
-  rabbitmq_data:
-```
-
-### 3. 监控与日志
-
-```python
-# 集成 OpenGewe 日志系统
-from opengewe.logger import get_logger, init_default_logger
-
-# 初始化日志系统
-init_default_logger(
-    level="INFO",
-    structured=True,
-    config_file="main_config.toml"
-)
-
-# 获取专用日志记录器
-logger = get_logger("WebPanel.Backend")
-
-# 添加自定义日志处理器
-logger.add(
-    "logs/webpanel_{time:YYYY-MM-DD}.log",
-    rotation="1 day",
-    retention="30 days",
-    level="INFO"
-)
-```
-
-### 4. 配置管理
-
-```toml
-# main_config.toml
-[webpanel]
-secret_key = "your-secret-key"
-debug = false
-cors_origins = ["http://localhost:3000"]
-
-[webpanel.database]
-url = "mysql+aiomysql://user:pass@localhost:3306/opengewe"
-pool_size = 10
-max_overflow = 20
-
-[webpanel.redis]
-url = "redis://localhost:6379/0"
-max_connections = 10
-
-[webpanel.security]
-jwt_expiration_hours = 24
-password_min_length = 8
-max_login_attempts = 5
-
-[logging]
-level = "INFO"
-format = "json"
-path = "./logs"
-stdout = true
-```
-
-## 🔍 测试策略
-
-### 1. 后端测试
-
-```python
-# 单元测试示例
-import pytest
-from fastapi.testclient import TestClient
-from app.main import app
-
-client = TestClient(app)
-
-def test_create_bot():
-    response = client.post(
-        "/api/bots",
-        json={
-            "gewe_app_id": "test_app_id",
-            "gewe_token": "test_token"
-        },
-        headers={"Authorization": "Bearer test_token"}
-    )
-    assert response.status_code == 200
-    assert "bot_wxid" in response.json()
-
-# 集成测试
-@pytest.mark.asyncio
-async def test_webhook_processing():
-    # 模拟 GeWeAPI 回调
-    webhook_payload = {
-        "Appid": "test_app_id",
-        "TypeName": "AddMsg",
-        "Data": {
-            "MsgType": 1,
-            "Content": {"string": "测试消息"},
-            # ... 其他字段
-        }
-    }
-    
-    response = await client.post(
-        "/webhook/test_bot_schema",
-        json=webhook_payload
-    )
-    
-    assert response.status_code == 200
-    # 验证消息是否正确存储
-    # 验证是否正确分发给 MessageFactory
-```
-
-### 2. 前端测试
-
-```typescript
-// 组件测试
-import { render, screen, fireEvent } from '@testing-library/react';
-import { BotCard } from '@/components/BotCard';
-
-test('displays bot information correctly', () => {
-  const bot = {
-    botWxid: 'test_wxid',
-    nickname: '测试机器人',
-    isOnline: true,
-    lastSeenAt: '2024-01-01T00:00:00Z'
-  };
-
-  render(<BotCard bot={bot} />);
-  
-  expect(screen.getByText('测试机器人')).toBeInTheDocument();
-  expect(screen.getByText('在线')).toBeInTheDocument();
-});
-
-// API 测试
-import { rest } from 'msw';
-import { setupServer } from 'msw/node';
-
-const server = setupServer(
-  rest.get('/api/bots', (req, res, ctx) => {
-    return res(ctx.json({ bots: [] }));
-  })
-);
-
-beforeAll(() => server.listen());
-afterEach(() => server.resetHandlers());
-afterAll(() => server.close());
-```
-
-## 📈 性能优化策略
-
-### 1. 数据库优化
-- **索引策略**：为常用查询字段添加合适的索引
-- **分页查询**：大数据量列表使用游标分页
-- **连接池**：使用数据库连接池避免频繁连接
-- **读写分离**：考虑读写分离提高查询性能
-
-### 2. 缓存策略
-```python
-# Redis 缓存实现
-from aioredis import Redis
-
-class CacheService:
-    def __init__(self, redis: Redis):
-        self.redis = redis
-    
-    async def get_bot_info(self, bot_wxid: str):
-        """获取机器人信息（带缓存）"""
-        cache_key = f"bot_info:{bot_wxid}"
-        cached = await self.redis.get(cache_key)
-        
-        if cached:
-            return json.loads(cached)
-        
-        # 从数据库获取
-        bot_info = await fetch_bot_info_from_db(bot_wxid)
-        
-        # 缓存 1 小时
-        await self.redis.setex(
-            cache_key, 3600, json.dumps(bot_info)
-        )
-        
-        return bot_info
-```
-
-### 3. 前端优化
-- **代码分割**：按路由进行代码分割
-- **虚拟滚动**：长列表使用虚拟滚动
-- **图片懒加载**：聊天记录中的图片懒加载
-- **防抖节流**：搜索和输入框使用防抖
-
-## 🔒 安全考虑
-
-### 1. 数据安全
-- **数据加密**：敏感数据加密存储
-- **输入验证**：严格的输入数据验证
-- **SQL 注入防护**：使用参数化查询
-- **XSS 防护**：前端输出转义
-
-### 2. 接口安全
-- **认证授权**：JWT + RBAC 权限控制
-- **HTTPS**：强制使用 HTTPS
-- **CORS 配置**：严格的跨域配置
-- **API 限流**：防止接口滥用
-
-### 3. Webhook 安全
-- **IP 白名单**：限制 Webhook 来源 IP
-- **签名验证**：验证请求签名
-- **重放攻击防护**：使用时间戳和随机数
-- **数据校验**：严格校验 Webhook 数据格式
-
-## 📖 文档与维护
-
-### 1. 开发文档
-- **API 文档**：使用 FastAPI 自动生成
-- **组件文档**：使用 Storybook 管理组件
-- **部署文档**：详细的部署和配置说明
-- **故障排除**：常见问题和解决方案
-
-### 2. 代码规范
-- **Python**：遵循 PEP 8 + Black 格式化
-- **TypeScript**：使用 ESLint + Prettier
-- **Git 规范**：Conventional Commits
-- **代码审查**：Pull Request 必须审查
-
-### 3. 监控维护
-- **健康检查**：定期检查服务状态
-- **性能监控**：监控关键指标
-- **日志分析**：定期分析日志发现问题
-- **备份策略**：定期备份数据库
-
----
-
-## 总结
-
-这份开发计划涵盖了 OpenGewe 多微信机器人管理后台的完整开发流程，从技术选型到具体实现，从数据库设计到部署运维。通过分阶段的开发方式，确保项目能够稳步推进，同时保证代码质量和系统安全性。
-
-项目的核心价值在于深度集成 OpenGewe 框架，提供现代化的 Web 界面来管理多个微信机器人实例，让用户能够方便地进行聊天、朋友圈管理、插件配置等操作。
-
-**项目估计总开发时间：20-22周**
-**建议团队规模：2-3名全栈开发工程师**
-**技术难点：GeweClient 实例管理、实时消息处理、多租户数据库设计** 
+# OpenGewe-WebPanel 未来开发计划 (v2.0)
+
+> **文档状态**: 草案
+> **最后更新**: 2025-06-11 14:46:00
+> **作者**: wangnov (项目经理 & 资深软件架构师)
+
+## 1. 项目现状评估 (Current Status Assessment)
+
+### 1.1. 功能完整度
+
+经过对代码库的全面分析，项目当前已实现以下核心功能：
+
+- **用户认证**:
+  - [x] 基于JWT的管理员登录、登出、令牌刷新机制。
+  - [x] 密码修改功能。
+  - [x] 登录速率限制和日志记录。
+- **机器人管理**:
+  - [x] 机器人的增、删、改、查 (CRUD) 功能。
+  - [x] 机器人列表展示，包含在线状态、昵称、头像等基本信息。
+  - [x] 机器人连接测试功能。
+  - [x] 机器人个人资料的自动获取与手动更新。
+- **数据隔离**:
+  - [x] 为每个机器人实例创建独立的数据库 Schema，实现多租户数据隔离。
+- **消息回调处理**:
+  - [x] 统一的 Webhook 入口，用于接收 GeWeAPI 的消息回调。
+  - [x] 能够解析多种消息类型（文本、图片、系统消息等）。
+  - [x] 原始回调消息的日志记录。
+- **插件系统**:
+  - [x] 动态加载 `plugins` 目录下的插件。
+  - [x] 基于装饰器的事件注册机制 (`@on_text_message`, `@schedule` 等)。
+  - [x] 全局和机器人级别的插件启用/禁用配置。
+- **前端界面**:
+  - [x] 响应式的登录页面和主布局。
+  - [x] 机器人列表的卡片式展示。
+  - [x] 创建和编辑机器人的模态框。
+  - [x] 完善的全局通知系统（成功、失败、信息等）。
+- **开发环境**:
+  - [x] 提供一键式 `start.sh` 脚本，用于并发启动前后端开发服务器。
+
+### 1.2. 架构分析
+
+#### 优点 (Strengths)
+
+1.  **现代化的技术栈**: 采用了 FastAPI, React 19, SQLAlchemy 2.0, Pydantic V2 等现代、高性能的框架和库，为项目未来的发展奠定了良好基础。
+2.  **清晰的前后端分离**: 前后端职责明确，通过 RESTful API 进行通信，有利于并行开发和独立部署。
+3.  **优秀的数据库设计**: 采用多 Schema 的方式为每个机器人实例提供数据隔离，设计清晰且可扩展性强。
+4.  **异步优先**: 后端广泛使用 `async/await`，充分利用了 FastAPI 和 SQLAlchemy 的异步特性，适合处理高并发的IO密集型任务。
+5.  **可扩展的插件系统**: 基于装饰器的插件系统设计优雅，易于扩展新功能。
+
+#### 待改进之处 (Areas for Improvement)
+
+1.  **状态管理耦合**: 前端部分业务逻辑（如加载状态、错误处理）散布在组件中，可以进一步抽象到自定义 Hooks 或专用的状态管理库中，以降低组件复杂度。
+2.  **API 设计**: 部分 API（如机器人列表）返回的数据结构层级较深 (`response.data.data`)，可以优化为更扁平的结构。
+3.  **配置管理**: 后端配置初始化逻辑（`config_initializer`）与 `get_settings` 函数耦合较紧，可以进一步解耦，使配置加载更灵活。
+4.  **样式方案**: 前端目前主要依赖全局 CSS，缺乏组件级别的样式隔离，容易产生样式冲突和维护困难。
+
+### 1.3. 技术债识别 (Technical Debt Identification)
+
+- **[P0] 核心安全风险 - Celery 任务序列化**:
+  - **问题**: [`src/opengewe/queue/advanced.py`](src/opengewe/queue/advanced.py) 中使用 `joblib` 序列化整个函数对象并传递给 Celery worker。这是一种非常危险且不稳定的做法，强依赖于两端环境完全一致，并有潜在的安全漏洞。
+  - **影响**: 极易因环境差异导致任务失败，难以调试，且存在远程代码执行风险。
+  - **建议**: **立即重构**。应改为传递任务名称和简单的可序列化参数（如JSON），由 worker 端根据任务名称查找并执行相应的函数。
+
+- **[P1] 过时的依赖与用法**:
+  - **问题**:
+    - **Pydantic V1 风格**: 部分模型仍在使用 `class Config` 而非 V2 的 `ConfigDict`；自定义验证未使用推荐的 `@field_validator`。
+    - **React 19 特性未使用**: 项目已升级到 React 19，但未利用 `ref` as a prop, `use` hook 等新特性简化代码。
+  - **影响**: 代码风格不统一，未能充分利用新版库的性能和开发体验优势。
+  - **建议**: 在后续迭代中逐步迁移到新的 API 和模式。
+
+- **[P1] 缺乏自动化测试**:
+  - **问题**: 项目几乎完全没有单元测试、集成测试或端到端测试。
+  - **影响**: 难以保证代码质量，重构和添加新功能时容易引入回归性 bug。
+  - **建议**: 立即引入 `pytest` (后端) 和 `Vitest`/`React Testing Library` (前端)，并为新功能编写测试用例，逐步为核心模块补充测试覆盖。
+
+- **[P2] 文档缺失与过时**:
+  - **问题**: 缺乏核心模块的设计文档和 API 文档。
+  - **影响**: 新成员上手困难，项目维护成本高。
+  - **建议**: 开始补全关键模块的 README 和 API 文档。
+
+- **[P2] 前端样式管理混乱**:
+  - **问题**: 主要依赖单个全局 CSS 文件 (`index.css`)，缺乏组件级别的样式封装。
+  - **影响**: 样式容易互相污染，难以维护和扩展。
+  - **建议**: 引入 `Tailwind CSS` 或 `CSS-in-JS` 方案，对现有组件进行样式重构。
+
+## 2. 历史进度整合 (Integration of Past Progress)
+
+根据 `CHANGELOG.md` 和代码现状，以下为项目已完成的关键里程碑。
+
+### ✅ 里程碑 1: 核心框架与基础功能 (v0.0.1 - v0.0.6)
+- **交付物**:
+  - 后端 FastAPI 基础架构。
+  - 前端 React + Vite 基础架构。
+  - 基于 JWT 的用户认证系统。
+  - 实现了 `opengewe` 核心库与 GeWeAPI 的对接。
+  - 实现了基础的消息回调处理和插件加载机制。
+
+### ✅ 里程碑 2: 队列系统与依赖优化 (v0.1.0 - v0.1.1)
+- **交付物**:
+  - 引入了基于 Celery 的高级消息队列。
+  - 使用 `joblib` 解决了函数序列化问题（*注：此为待重构的技术债*）。
+  - 实现了队列状态监控和管理接口。
+  - 优化了项目依赖，分离出 `[advanced]` 可选依赖，实现了轻量化安装。
+
+## 3. 未来发展蓝图 (Future Development Blueprint)
+
+### 3.1. 核心目标与愿景
+
+**核心目标 (v1.1 - v1.2):**
+在现有基础上，**偿还关键技术债**，**提升系统稳定性和可维护性**，并**补全核心的用户交互功能**，使用户能够真正脱离命令行，在 Web 界面上完成大部分日常管理操作。
+
+**长期愿景 (v2.0+):**
+将 OpenGewe-WebPanel 打造成一个**企业级的、高度可扩展的微信生态自动化管理平台**。它不仅是机器人的管理后台，更是一个集成了数据分析、智能营销、开放API和开发者生态的综合性解决方案。
+
+### 3.2. 重构与优化计划 (Refactoring & Optimization)
+
+- **[P0] Celery 任务重构 (v1.1)**
+  - **任务**: 废弃 `joblib` 序列化函数对象的方案。
+  - **方案**: 改为注册任务函数，通过网络传递 `task_name` 和 `args/kwargs`。
+  - **负责人**: wangnov
+  - **预计时间**: 1-2 天
+
+- **[P1] 引入自动化测试 (v1.1 开始，持续进行)**
+  - **任务**: 为后端 API 和核心 Service 配置 `pytest`；为前端核心组件和 Hooks 配置 `Vitest`。
+  - **方案**: 新功能要求测试覆盖率 > 80%。逐步为现有模块补充测试。
+  - **负责人**: wangnov
+  - **预计时间**: 持续性任务
+
+- **[P1] 事务管理优化 (v1.1)**
+  - **任务**: 在后端的数据库操作中，广泛使用 `async with session.begin():` 模式。
+  - **方案**: 审查所有 `session.commit()` 的使用场景，并进行重构。
+  - **负责人**: wangnov
+  - **预计时间**: 2-3 天
+
+- **[P2] Pydantic 模型现代化 (v1.2)**
+  - **任务**: 将所有 `class Config` 迁移到 `ConfigDict`，将自定义验证迁移到 `@field_validator`。
+  - **方案**: 全局搜索并替换。
+  - **负责人**: wangnov
+  - **预计时间**: 1 天
+
+- **[P2] 前端样式方案引入 (v1.2)**
+  - **任务**: 引入 `Tailwind CSS`。
+  - **方案**: 配置 `tailwind.config.js`，并逐步将 `index.css` 中的样式迁移到组件中，使用 Tailwind 的功能类。
+  - **负责人**: wangnov
+  - **预计时间**: 3-5 天
+
+### 3.3. 新功能路线图 (Roadmap)
+
+#### v1.1: "稳定与易用" (预计 2-3 周)
+- **[P0] 聊天界面**:
+  - **功能**: 实现基础的私聊和群聊界面，支持收发文本、图片消息。
+  - **目的**: 提供核心的聊天交互能力。
+- **[P1] 插件管理界面**:
+  - **功能**: 在前端提供插件列表，支持查看插件信息、全局启用/禁用插件。
+  - **目的**: 简化插件管理操作。
+- **[P1] 联系人与群聊管理**:
+  - **功能**: 在前端展示好友和群聊列表，支持查看详情。
+  - **目的**: 提供基础的通讯录管理能力。
+
+#### v1.2: "功能完善" (预计 3-4 周)
+- **[P1] 朋友圈管理**:
+  - **功能**: 实现朋友圈发布界面（支持文本、图片），查看自己和好友的朋友圈列表。
+  - **目的**: 补全核心的社交功能。
+- **[P1] 机器人级插件配置**:
+  - **功能**: 在机器人详情页中，可以独立配置该机器人的插件启用状态和参数。
+  - **目的**: 实现更精细化的插件控制。
+- **[P2] 数据统计面板**:
+  - **功能**: 实现一个简单的仪表盘，展示机器人总数、在线率、24小时消息量等基本指标。
+  - **目的**: 提供系统概览。
+
+#### v2.0: "生态与智能" (长期规划)
+- **[P1] 开放 API**:
+  - **功能**: 提供一套独立的 API，允许第三方应用通过 API Key 与机器人进行交互（如发送消息）。
+- **[P2] 智能问答与RAG**:
+  - **功能**: 集成大型语言模型（LLM），为机器人提供智能问答、知识库检索（RAG）等能力。
+- **[P2] 营销自动化**:
+  - **功能**: 提供群发、定时任务、关键词回复等营销自动化工具。
+- **[P3] 插件市场**:
+  - **功能**: 建立一个社区驱动的插件市场，允许用户分享和下载插件。
+
+### 3.4. 里程碑规划
+
+- **M1: v1.1 Release (预计 2025 Q3 初)**
+  - **交付物**: 可用的聊天界面、插件管理界面、完成 Celery 重构和测试框架引入。
+- **M2: v1.2 Release (预计 2025 Q3 末)**
+  - **交付物**: 可用的朋友圈管理、机器人级插件配置、数据统计面板、完成样式方案引入。
+- **M3: v2.0 Kick-off (预计 2025 Q4)**
+  - **交付物**: 完成 v2.0 的详细设计，并开始开放 API 功能的开发。
+
+## 4. 协作与质量保障 (Collaboration & Quality Assurance)
+
+1.  **Git 工作流**:
+    - 采用 **Git Flow** 的变种：
+      - `main`: 稳定的发布分支。
+      - `develop`: 日常开发的主分支。
+      - `feature/<feature-name>`: 新功能开发分支。
+      - `fix/<issue-number>`: Bug 修复分支。
+    - 所有合并到 `develop` 和 `main` 的请求都必须通过 **Pull Request (PR)**。
+
+2.  **代码审查 (Code Review)**:
+    - 每个 PR 必须至少有 **一名** 其他团队成员审查通过。
+    - 审查重点：代码风格、逻辑正确性、测试覆盖率、文档完整性。
+    - 使用 GitHub 的 PR 模板，要求提交者填写改动背景、实现方案和测试说明。
+
+3.  **自动化测试**:
+    - **CI/CD**: 集成 GitHub Actions。
+    - **后端**: 每次提交自动运行 `pytest`，确保所有测试通过。
+    - **前端**: 每次提交自动运行 `vitest` 和 `eslint`。
+    - **测试覆盖率**: 目标是核心模块达到 85% 以上的测试覆盖率。
+
+4.  **文档规范**:
+    - **代码注释**: 核心函数、类和复杂逻辑必须有清晰的 Docstrings (Python) 或 JSDoc (TS)。
+    - **API 文档**: FastAPI 自动生成的 OpenAPI 文档应保持最新，并为关键接口添加详细描述。
+    - **设计文档**: 重大功能或重构前，需在 `docs` 目录下编写简要的设计文档。
+    - **用户手册**: 随着功能的完善，逐步编写和更新用户使用手册。

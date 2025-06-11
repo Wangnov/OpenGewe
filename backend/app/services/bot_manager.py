@@ -17,6 +17,7 @@ from ..models.bot import BotInfo, BotPlugin
 from ..core.session_manager import admin_session
 from .bot_profile_manager import BotProfileManager
 from ..core.session_manager import session_manager
+from ..services.config_manager import config_manager
 from opengewe.logger import init_default_logger, get_logger
 
 init_default_logger()
@@ -70,12 +71,24 @@ class BotClientManager:
             logger.warning(f"未找到机器人信息: gewe_app_id={gewe_app_id}")
             return None
 
+        # 从配置中获取队列设置
+        queue_config = await config_manager.get_config("queue") or {}
+        queue_type = queue_config.get("queue_type", "simple")
+        queue_options = {
+            "broker": queue_config.get("broker"),
+            "backend": queue_config.get("backend"),
+            "queue_name": queue_config.get("name"),
+            "concurrency": queue_config.get("concurrency"),
+        }
+
         # 创建GeweClient实例
         client = GeweClient(
             base_url=bot.base_url,
             app_id=gewe_app_id,
             token=bot.gewe_token,
             debug=False,
+            queue_type=queue_type,
+            **queue_options,
         )
 
         # 加载插件
@@ -220,7 +233,8 @@ class BotClientManager:
             bot_plugins = {
                 plugin.plugin_name: plugin for plugin in bot_result.scalars().all()
             }
-        logger.debug(f"机器人 {bot.gewe_app_id} 启用的插件: {list(bot_plugins.keys())}")
+        logger.debug(
+            f"机器人 {bot.gewe_app_id} 启用的插件: {list(bot_plugins.keys())}")
 
         loaded_count = 0
 
@@ -385,7 +399,8 @@ class BotClientManager:
 
                 # 重新加载
                 async with admin_session() as session:
-                    stmt = select(BotInfo).where(BotInfo.gewe_app_id == gewe_app_id)
+                    stmt = select(BotInfo).where(
+                        BotInfo.gewe_app_id == gewe_app_id)
                     result = await session.execute(stmt)
                     bot = result.scalar_one_or_none()
                     if bot:
@@ -399,7 +414,8 @@ class BotClientManager:
             for gewe_app_id, client in self._clients.items():
                 await client.plugin_manager.stop_all_plugins()
                 async with admin_session() as session:
-                    stmt = select(BotInfo).where(BotInfo.gewe_app_id == gewe_app_id)
+                    stmt = select(BotInfo).where(
+                        BotInfo.gewe_app_id == gewe_app_id)
                     result = await session.execute(stmt)
                     bot = result.scalar_one_or_none()
                     if bot:

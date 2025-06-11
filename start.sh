@@ -98,13 +98,14 @@ kill_process_on_port() {
     local pid=$(lsof -t -i:$port)
 
     if [ -n "$pid" ]; then
-        warn "端口 $port 已被进程 PID: $pid 占用。正在终止该进程..."
-        # 强制终止进程
-        if kill -9 "$pid"; then
-            info "进程 $pid 已被成功终止。"
+        warn "端口 $port 已被进程 PID(s): $pid 占用。正在终止这些进程..."
+        # 使用 xargs 逐个终止所有找到的PID
+        echo "$pid" | xargs kill -9
+        if [ $? -eq 0 ]; then
+            info "占用端口 $port 的进程已成功终止。"
         else
-            error "终止进程 $pid 失败。请手动终止它。"
-            exit 1
+            error "终止占用端口 $port 的部分或全部进程失败。请手动检查并终止它们。"
+            # 即使终止失败，也尝试继续，而不是直接退出
         fi
     else
         info "端口 $port 未被占用。"

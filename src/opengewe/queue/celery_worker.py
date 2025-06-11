@@ -142,7 +142,8 @@ def get_effective_config(args):
 
     # 3. 确定队列名称 (命令行 > 环境变量 > 默认值)
     config["queue_name"] = (
-        args.queue or os.environ.get("OPENGEWE_QUEUE_NAME") or "opengewe_messages"
+        args.queue or os.environ.get(
+            "OPENGEWE_QUEUE_NAME") or "opengewe_messages"
     )
 
     # 4. 确定并发数 (命令行 > 环境变量 > 默认值)
@@ -162,63 +163,8 @@ def main():
     """主函数，解析命令行参数并启动Celery worker"""
     logger = get_logger("CeleryWorker")
 
-    parser = argparse.ArgumentParser(description="启动OpenGewe Celery Worker")
-    parser.add_argument(
-        "type",
-        choices=["redis", "rabbitmq"],
-        help="消息代理类型",
-    )
-    parser.add_argument(
-        "--host",
-        default="localhost",
-        help="代理主机地址",
-    )
-    parser.add_argument(
-        "--port",
-        type=int,
-        help="代理端口",
-    )
-    parser.add_argument(
-        "--username",
-        help="代理用户名（仅RabbitMQ）",
-    )
-    parser.add_argument(
-        "--password",
-        help="代理密码（仅RabbitMQ）",
-    )
-    parser.add_argument(
-        "--database",
-        type=int,
-        default=0,
-        help="Redis数据库编号（仅Redis）",
-    )
-    parser.add_argument(
-        "--queue",
-        default="opengewe_messages",
-        help="队列名称",
-    )
-    parser.add_argument(
-        "--concurrency",
-        type=int,
-        default=4,
-        help="并发数",
-    )
-    parser.add_argument(
-        "--loglevel",
-        choices=["DEBUG", "INFO", "WARNING", "ERROR"],
-        default="INFO",
-        help="日志级别",
-    )
-    parser.add_argument(
-        "--config",
-        help="自定义配置文件路径",
-    )
-
+    parser = create_argument_parser()
     args = parser.parse_args()
-
-    # 根据类型设置默认端口
-    if args.port is None:
-        args.port = 6379 if args.type == "redis" else 5672
 
     # 构建配置
     config = get_effective_config(args)
@@ -232,32 +178,18 @@ def main():
     logger.info(f"日志级别: {config['log_level']}")
     logger.info("-" * 50)
 
-    # 重新创建Celery应用（如果有自定义配置）
-    global celery_app
-    if args.config or any([args.username, args.password]):
-        logger.info("检测到自定义配置，重新创建Celery应用...")
-
-        # 更新broker配置
-        broker_url = config["broker"]
-        backend_url = config["backend"]
-
-        # 重新创建Celery应用
-        celery_app.conf.update(
-            broker_url=broker_url,
-            result_backend=backend_url,
-            task_routes={
-                "opengewe.queue.advanced.process_message": {
-                    "queue": config["queue_name"]
-                },
-            },
-        )
-        logger.info("Celery应用重新创建完成")
+    # 动态导入celery_app，确保它在配置后创建
+    from opengewe.queue.app import create_celery_app
+    celery_app = create_celery_app(
+        broker=config["broker"],
+        backend=config["backend"],
+        queue_name=config["queue_name"],
+    )
 
     try:
         # 构建启动参数
         argv = [
             "worker",
-            "--app=opengewe.queue.celery_worker:celery_app",
             f"--loglevel={config['log_level']}",
             f"--concurrency={config['concurrency']}",
             f"--queues={config['queue_name']}",

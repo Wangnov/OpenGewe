@@ -32,7 +32,8 @@ class ConfigInitializer:
         if config_file_path is None:
             # 默认配置文件路径
             self.config_file_path = (
-                Path(__file__).parent.parent.parent.parent.parent / "main_config.toml"
+                Path(__file__).parent.parent.parent.parent.parent /
+                "main_config.toml"
             )
         else:
             self.config_file_path = Path(config_file_path)
@@ -76,7 +77,7 @@ class ConfigInitializer:
                 return True
 
             # 获取现有数据库配置
-            existing_configs = await config_manager.get_all_configs()
+            await config_manager.get_all_configs()
 
             success_count = 0
             total_count = 0
@@ -89,19 +90,13 @@ class ConfigInitializer:
                     logger.debug(f"TOML文件中没有配置段: {section_name}")
                     continue
 
-                # 检查数据库中是否已存在该配置
-                if section_name in existing_configs:
-                    logger.debug(f"配置段已存在于数据库中，跳过迁移: {section_name}")
-                    success_count += 1
-                    continue
-
-                # 迁移配置段到数据库
+                # 强制从TOML文件更新配置到数据库
                 section_config = toml_config[section_name]
                 if await config_manager.set_config(section_name, section_config):
-                    logger.info(f"成功迁移配置段到数据库: {section_name}")
+                    logger.info(f"成功从TOML文件更新配置到数据库: {section_name}")
                     success_count += 1
                 else:
-                    logger.error(f"迁移配置段失败: {section_name}")
+                    logger.error(f"从TOML文件更新配置失败: {section_name}")
 
             logger.info(
                 f"配置初始化完成，成功迁移 {success_count}/{total_count} 个配置段"

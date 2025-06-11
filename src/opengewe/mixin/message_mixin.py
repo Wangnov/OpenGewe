@@ -23,6 +23,22 @@ class MessageMixin:
         self._message_module = message_module
         self._message_queue = create_message_queue(queue_type, **queue_options)
 
+    def _get_client_config(self) -> Dict[str, Any]:
+        """获取GeweClient的配置字典"""
+        client = self._message_module.client
+        config = {
+            "base_url": client.base_url,
+            "download_url": client.download_url,
+            "callback_url": client.callback_url,
+            "app_id": client.app_id,
+            "token": client.token,
+            "debug": client.debug,
+            "is_gewe": client.is_gewe,
+            "queue_type": client.queue_type,
+        }
+        config.update(client.queue_options)
+        return config
+
     async def revoke_message(
         self, wxid: str, client_msg_id: int, create_time: int, new_msg_id: int
     ) -> bool:
@@ -37,9 +53,9 @@ class MessageMixin:
         Returns:
             bool: 成功返回True，失败返回False
         """
-        return await self._message_queue.enqueue(
-            self._revoke_message, wxid, client_msg_id, create_time, new_msg_id
-        )
+        # 注意：撤回消息通常需要立即执行，不适合放入可能延迟的队列
+        # 这里我们直接调用，但保留队列模式以备将来扩展
+        return await self._revoke_message(wxid, client_msg_id, create_time, new_msg_id)
 
     async def _revoke_message(
         self, wxid: str, client_msg_id: int, create_time: int, new_msg_id: int
@@ -73,9 +89,20 @@ class MessageMixin:
         Returns:
             tuple[int, int, int]: 返回(ClientMsgid, CreateTime, NewMsgId)
         """
-        return await self._message_queue.enqueue(
-            self._send_text_message, wxid, content, at
-        )
+        from ..queue.simple import SimpleMessageQueue
+
+        if isinstance(self._message_queue, SimpleMessageQueue):
+            return await self._message_queue.enqueue(
+                self._send_text_message, wxid, content, at
+            )
+        else:
+            return await self._message_queue.enqueue(
+                "opengewe.queue.tasks.send_text_message_task",
+                self._get_client_config(),
+                wxid,
+                content,
+                at,
+            )
 
     async def _send_text_message(
         self, wxid: str, content: str, at: Union[list, str] = ""
@@ -124,7 +151,17 @@ class MessageMixin:
         Returns:
             dict: 返回响应结果
         """
-        return await self._message_queue.enqueue(self._send_image_message, wxid, image)
+        from ..queue.simple import SimpleMessageQueue
+
+        if isinstance(self._message_queue, SimpleMessageQueue):
+            return await self._message_queue.enqueue(self._send_image_message, wxid, image)
+        else:
+            return await self._message_queue.enqueue(
+                "opengewe.queue.tasks.send_image_message_task",
+                self._get_client_config(),
+                wxid,
+                image,
+            )
 
     async def _send_image_message(self, wxid: str, image: Union[str, bytes]) -> dict:
         """实际发送图片消息的方法"""
@@ -154,9 +191,21 @@ class MessageMixin:
         Returns:
             tuple[int, int]: 返回(ClientMsgid, NewMsgId)
         """
-        return await self._message_queue.enqueue(
-            self._send_video_message, wxid, video, image, duration
-        )
+        from ..queue.simple import SimpleMessageQueue
+
+        if isinstance(self._message_queue, SimpleMessageQueue):
+            return await self._message_queue.enqueue(
+                self._send_video_message, wxid, video, image, duration
+            )
+        else:
+            return await self._message_queue.enqueue(
+                "opengewe.queue.tasks.send_video_message_task",
+                self._get_client_config(),
+                wxid,
+                video,
+                image,
+                duration,
+            )
 
     async def _send_video_message(
         self, wxid: str, video: str, image: str = None, duration: Optional[int] = None
@@ -201,9 +250,20 @@ class MessageMixin:
         Returns:
             tuple[int, int, int]: 返回(ClientMsgid, CreateTime, NewMsgId)
         """
-        return await self._message_queue.enqueue(
-            self._send_voice_message, wxid, voice, format
-        )
+        from ..queue.simple import SimpleMessageQueue
+
+        if isinstance(self._message_queue, SimpleMessageQueue):
+            return await self._message_queue.enqueue(
+                self._send_voice_message, wxid, voice, format
+            )
+        else:
+            return await self._message_queue.enqueue(
+                "opengewe.queue.tasks.send_voice_message_task",
+                self._get_client_config(),
+                wxid,
+                voice,
+                format,
+            )
 
     async def _send_voice_message(
         self, wxid: str, voice: str, format: str = "amr"
@@ -261,9 +321,22 @@ class MessageMixin:
         Returns:
             tuple[int, int, int]: 返回(ClientMsgid, CreateTime, NewMsgId)
         """
-        return await self._message_queue.enqueue(
-            self._send_link_message, wxid, url, title, description, thumb_url
-        )
+        from ..queue.simple import SimpleMessageQueue
+
+        if isinstance(self._message_queue, SimpleMessageQueue):
+            return await self._message_queue.enqueue(
+                self._send_link_message, wxid, url, title, description, thumb_url
+            )
+        else:
+            return await self._message_queue.enqueue(
+                "opengewe.queue.tasks.send_link_message_task",
+                self._get_client_config(),
+                wxid,
+                url,
+                title,
+                description,
+                thumb_url,
+            )
 
     async def _send_link_message(
         self,
@@ -323,9 +396,21 @@ class MessageMixin:
         Returns:
             tuple[int, int, int]: 返回(ClientMsgid, CreateTime, NewMsgId)
         """
-        return await self._message_queue.enqueue(
-            self._send_card_message, wxid, card_wxid, card_nickname, card_alias
-        )
+        from ..queue.simple import SimpleMessageQueue
+
+        if isinstance(self._message_queue, SimpleMessageQueue):
+            return await self._message_queue.enqueue(
+                self._send_card_message, wxid, card_wxid, card_nickname, card_alias
+            )
+        else:
+            return await self._message_queue.enqueue(
+                "opengewe.queue.tasks.send_card_message_task",
+                self._get_client_config(),
+                wxid,
+                card_wxid,
+                card_nickname,
+                card_alias,
+            )
 
     async def _send_card_message(
         self, wxid: str, card_wxid: str, card_nickname: str, card_alias: str = ""
@@ -379,9 +464,20 @@ class MessageMixin:
         Returns:
             tuple[int, int, int]: 返回(ClientMsgid, CreateTime, NewMsgId)
         """
-        return await self._message_queue.enqueue(
-            self._send_app_message, wxid, xml, type
-        )
+        from ..queue.simple import SimpleMessageQueue
+
+        if isinstance(self._message_queue, SimpleMessageQueue):
+            return await self._message_queue.enqueue(
+                self._send_app_message, wxid, xml, type
+            )
+        else:
+            return await self._message_queue.enqueue(
+                "opengewe.queue.tasks.send_app_message_task",
+                self._get_client_config(),
+                wxid,
+                xml,
+                type,
+            )
 
     async def _send_app_message(
         self, wxid: str, xml: str, type: int
@@ -425,9 +521,22 @@ class MessageMixin:
         Returns:
             dict: 返回响应结果
         """
-        return await self._message_queue.enqueue(
-            self._send_emoji_message, wxid, md5, total_len
-        )
+        from ..queue.simple import SimpleMessageQueue
+
+        if isinstance(self._message_queue, SimpleMessageQueue):
+            return await self._message_queue.enqueue(
+                self._send_emoji_message, wxid, md5, total_len
+            )
+        else:
+            return await self._message_queue.enqueue(
+                "opengewe.queue.tasks.send_emoji_message_task",
+                self._get_client_config(),
+                wxid,
+                md5,
+                total_len,
+            )
+
+    # 下面是对message.py中有但advanced_message_example.py中没有的方法的包装
 
     async def _send_emoji_message(self, wxid: str, md5: str, total_len: int) -> dict:
         """实际发送表情消息的方法"""
@@ -439,8 +548,6 @@ class MessageMixin:
         logger.info("发送表情消息: 对方wxid:{} MD5:{} 大小:{}", wxid, md5, total_len)
 
         return response
-
-    # 下面是对message.py中有但advanced_message_example.py中没有的方法的包装
 
     async def send_file_message(
         self, wxid: str, file_url: str, file_name: str
@@ -455,9 +562,20 @@ class MessageMixin:
         Returns:
             Dict[str, Any]: 返回响应结果
         """
-        return await self._message_queue.enqueue(
-            self._send_file_message, wxid, file_url, file_name
-        )
+        from ..queue.simple import SimpleMessageQueue
+
+        if isinstance(self._message_queue, SimpleMessageQueue):
+            return await self._message_queue.enqueue(
+                self._send_file_message, wxid, file_url, file_name
+            )
+        else:
+            return await self._message_queue.enqueue(
+                "opengewe.queue.tasks.send_file_message_task",
+                self._get_client_config(),
+                wxid,
+                file_url,
+                file_name,
+            )
 
     async def _send_file_message(
         self, wxid: str, file_url: str, file_name: str
@@ -497,43 +615,31 @@ class MessageMixin:
         Returns:
             Dict[str, Any]: 返回响应结果
         """
-        return await self._message_queue.enqueue(
-            self._send_mini_app,
-            wxid,
-            title,
-            username,
-            path,
-            description,
-            thumb_url,
-            app_id,
-        )
+        from ..queue.simple import SimpleMessageQueue
 
-    async def _send_mini_app(
-        self,
-        wxid: str,
-        title: str,
-        username: str,
-        path: str,
-        description: str,
-        thumb_url: str,
-        app_id: str,
-    ) -> Dict[str, Any]:
-        """实际发送小程序消息的方法"""
-        response = await self._message_module.post_mini_app(
-            to_wxid=wxid,
-            title=title,
-            username=username,
-            path=path,
-            description=description,
-            thumb_url=thumb_url,
-            app_id=app_id,
-        )
-
-        logger.info(
-            "发送小程序消息: 对方wxid:{} 标题:{} username:{}", wxid, title, username
-        )
-
-        return response
+        if isinstance(self._message_queue, SimpleMessageQueue):
+            return await self._message_queue.enqueue(
+                self._send_mini_app,
+                wxid,
+                title,
+                username,
+                path,
+                description,
+                thumb_url,
+                app_id,
+            )
+        else:
+            return await self._message_queue.enqueue(
+                "opengewe.queue.tasks.send_mini_app_task",
+                self._get_client_config(),
+                wxid,
+                title,
+                username,
+                path,
+                description,
+                thumb_url,
+                app_id,
+            )
 
     # 以下是转发消息的方法
 
@@ -548,18 +654,11 @@ class MessageMixin:
             Dict[str, Any]: 返回响应结果
         """
         return await self._message_queue.enqueue(
-            self._forward_file_message, wxid, file_id
+            "opengewe.queue.tasks.forward_file_message_task",
+            self._get_client_config(),
+            wxid,
+            file_id,
         )
-
-    async def _forward_file_message(self, wxid: str, file_id: str) -> Dict[str, Any]:
-        """实际转发文件消息的方法"""
-        response = await self._message_module.forward_file(
-            to_wxid=wxid, file_id=file_id
-        )
-
-        logger.info("转发文件消息: 对方wxid:{} 文件ID:{}", wxid, file_id)
-
-        return response
 
     async def forward_image_message(self, wxid: str, file_id: str) -> Dict[str, Any]:
         """转发图片消息。
@@ -572,18 +671,11 @@ class MessageMixin:
             Dict[str, Any]: 返回响应结果
         """
         return await self._message_queue.enqueue(
-            self._forward_image_message, wxid, file_id
+            "opengewe.queue.tasks.forward_image_message_task",
+            self._get_client_config(),
+            wxid,
+            file_id,
         )
-
-    async def _forward_image_message(self, wxid: str, file_id: str) -> Dict[str, Any]:
-        """实际转发图片消息的方法"""
-        response = await self._message_module.forward_image(
-            to_wxid=wxid, file_id=file_id
-        )
-
-        logger.info("转发图片消息: 对方wxid:{} 图片ID:{}", wxid, file_id)
-
-        return response
 
     async def forward_video_message(self, wxid: str, file_id: str) -> Dict[str, Any]:
         """转发视频消息。
@@ -596,7 +688,10 @@ class MessageMixin:
             Dict[str, Any]: 返回响应结果
         """
         return await self._message_queue.enqueue(
-            self._forward_video_message, wxid, file_id
+            "opengewe.queue.tasks.forward_video_message_task",
+            self._get_client_config(),
+            wxid,
+            file_id,
         )
 
     async def _forward_video_message(self, wxid: str, file_id: str) -> Dict[str, Any]:
@@ -619,9 +714,19 @@ class MessageMixin:
         Returns:
             Dict[str, Any]: 返回响应结果
         """
-        return await self._message_queue.enqueue(
-            self._forward_url_message, wxid, url_id
-        )
+        from ..queue.simple import SimpleMessageQueue
+
+        if isinstance(self._message_queue, SimpleMessageQueue):
+            return await self._message_queue.enqueue(
+                self._forward_url_message, wxid, url_id
+            )
+        else:
+            return await self._message_queue.enqueue(
+                "opengewe.queue.tasks.forward_url_message_task",
+                self._get_client_config(),
+                wxid,
+                url_id,
+            )
 
     async def _forward_url_message(self, wxid: str, url_id: str) -> Dict[str, Any]:
         """实际转发链接消息的方法"""
@@ -643,9 +748,19 @@ class MessageMixin:
         Returns:
             Dict[str, Any]: 返回响应结果
         """
-        return await self._message_queue.enqueue(
-            self._forward_mini_app_message, wxid, mini_app_id
-        )
+        from ..queue.simple import SimpleMessageQueue
+
+        if isinstance(self._message_queue, SimpleMessageQueue):
+            return await self._message_queue.enqueue(
+                self._forward_mini_app_message, wxid, mini_app_id
+            )
+        else:
+            return await self._message_queue.enqueue(
+                "opengewe.queue.tasks.forward_mini_app_message_task",
+                self._get_client_config(),
+                wxid,
+                mini_app_id,
+            )
 
     async def _forward_mini_app_message(
         self, wxid: str, mini_app_id: str
