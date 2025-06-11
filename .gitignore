@@ -53,6 +53,7 @@ logs/
 .cursor/
 .cursorignore
 .trae/
+.roo/
 
 # macOS
 .DS_Store
