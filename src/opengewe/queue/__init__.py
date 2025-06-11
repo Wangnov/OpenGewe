@@ -17,7 +17,8 @@ logger = get_logger("opengewe.queue")
 
 # 尝试导入高级队列相关功能
 try:
-    from .advanced import AdvancedMessageQueue, create_celery_app, celery
+    from .advanced import AdvancedMessageQueue
+    from .app import create_celery_app, celery_app as celery
     from celery import Celery
 
     ADVANCED_AVAILABLE = True
@@ -109,6 +110,6 @@ if ADVANCED_AVAILABLE:
         [
             "AdvancedMessageQueue",
             "create_celery_app",
-            "celery",
+            "celery_app",
         ]
     )

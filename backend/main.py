@@ -10,6 +10,8 @@ from fastapi.exceptions import RequestValidationError
 from sqlalchemy.exc import SQLAlchemyError
 import traceback
 
+import subprocess
+import sys
 from app.core.config import get_settings
 from app.core.session_manager import session_manager
 from app.api import api_router
@@ -19,10 +21,13 @@ import os
 
 # 获取正确的配置文件路径（相对于backend目录的上级目录）
 config_file_path = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "main_config.toml"
+    os.path.dirname(os.path.dirname(
+        os.path.abspath(__file__))), "main_config.toml"
 )
 init_default_logger(config_file=config_file_path)
 logger = get_logger(__name__)
+
+celery_worker_process = None
 
 
 @asynccontextmanager
@@ -32,6 +37,7 @@ async def lifespan(app: FastAPI):
 
     启动时执行初始化操作，关闭时执行清理操作
     """
+    global celery_worker_process
     settings = get_settings()
 
     # 启动时的初始化操作
@@ -63,6 +69,7 @@ async def lifespan(app: FastAPI):
         # 初始化配置系统（将TOML配置迁移到数据库）
         try:
             from app.services.initializers.config_initializer import config_initializer
+            from app.services.config_manager import config_manager
 
             logger.info("初始化配置系统...")
             config_init_success = await config_initializer.initialize_config()
@@ -71,6 +78,32 @@ async def lifespan(app: FastAPI):
                 logger.info("配置系统初始化完成")
             else:
                 logger.warning("配置系统初始化部分失败，将使用文件配置作为回退")
+
+            # 检查是否需要启动Celery worker
+            queue_config = await config_manager.get_config("queue")
+            if queue_config and queue_config.get("queue_type") == "advanced":
+                logger.info("检测到高级队列配置，尝试启动Celery worker...")
+                try:
+                    # 使用subprocess在后台启动worker
+                    # 注意：这里的python路径可能需要根据实际环境调整
+                    python_executable = sys.executable
+                    command = [
+                        python_executable,
+                        "-m",
+                        "opengewe.queue.celery_worker",
+                        "--type",
+                        "redis",  # 或者从配置中读取
+                    ]
+                    celery_worker_process = subprocess.Popen(
+                        command,
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                    )
+                    logger.info(
+                        f"Celery worker已启动，进程ID: {celery_worker_process.pid}"
+                    )
+                except Exception as e:
+                    logger.error(f"启动Celery worker失败: {e}", exc_info=True)
 
         except Exception as e:
             logger.error(f"配置系统初始化失败: {e}", exc_info=True)
@@ -157,6 +190,18 @@ async def lifespan(app: FastAPI):
 
     # 关闭时的清理操作
     logger.info("========== OpenGewe WebPanel 关闭中 ==========")
+
+    # 停止Celery worker子进程
+    if celery_worker_process:
+        logger.info(
+            f"正在停止Celery worker进程 (PID: {celery_worker_process.pid})...")
+        celery_worker_process.terminate()
+        try:
+            celery_worker_process.wait(timeout=5)
+            logger.info("Celery worker进程已成功终止")
+        except subprocess.TimeoutExpired:
+            logger.warning("Celery worker进程终止超时，强制终止")
+            celery_worker_process.kill()
 
     try:
         # 关闭数据库连接

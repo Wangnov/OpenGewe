@@ -1,14 +1,13 @@
 """简单消息队列实现"""
 
+from .base import BaseMessageQueue, QueueError
 import asyncio
-import time
 from asyncio import Future, Queue, sleep
-from typing import Any, Awaitable, Callable, Dict, Optional
+from typing import Any, Awaitable, Callable, Dict
 
 from opengewe.logger import init_default_logger, get_logger
 
 init_default_logger()
-from .base import BaseMessageQueue, QueueError
 
 logger = get_logger("Queue.Simple")
 
@@ -16,16 +15,19 @@ logger = get_logger("Queue.Simple")
 class SimpleMessageQueue(BaseMessageQueue):
     """基于asyncio.Queue的简单消息队列实现"""
 
-    def __init__(self, delay: float = 1.0):
+    def __init__(self, delay: float = 1.0, **kwargs: Any):
         """初始化消息队列
 
         Args:
             delay: 消息处理间隔，单位为秒
+            **kwargs: 接受并忽略其他未使用的关键字参数
         """
         self._queue = Queue()
         self._is_processing = False
         self._delay = delay
         self._processed_messages = 0
+        if kwargs:
+            logger.debug(f"SimpleMessageQueue忽略了未使用的参数: {kwargs}")
 
     @property
     def is_processing(self) -> bool:
