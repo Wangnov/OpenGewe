@@ -7,7 +7,7 @@ base_url = "https://x666.me/v1"
 api_key = "sk-wcXOyo56UIy81JH3NHWPinY9AC0BinFDLJraXzqSK0svbxLD"
 
 # 使用的模型名称
-model = "gemini-2.5-pro-preview-06-05"
+model = "gemini-2.5-pro-preview-05-06"
 
 # 系统提示词，用于设定AI的角色和行为
 system_prompt = "你是一个专业的文件分析助手，你的任务是根据用户提供的文本内容，进行简洁、清晰、专业的总结，但是请注意：你的分析报告是在微信发送给用户的，所以要尽可能的精简，否则会超出微信字数限制。另外，不要使用带有*号、#号之类的符号的Markdown格式，微信无法渲染Markdown。"

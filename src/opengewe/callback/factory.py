@@ -473,6 +473,7 @@ class MessageFactory:
             logger.debug(f"消息回调函数执行完成: {message.type.name}")
         except Exception as e:
             logger.error(f"处理消息回调时出错: {e}", exc_info=True)
+            # 确保异常被正确记录，避免"Task exception was never retrieved"错误
 
     async def process_json(self, json_data: str) -> Optional[BaseMessage]:
         """处理JSON格式的消息
