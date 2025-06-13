@@ -13,12 +13,13 @@ from datetime import datetime, timezone
 
 import subprocess
 import sys
+import os
+import signal
 from app.core.config import get_settings
 from app.core.session_manager import session_manager
 from app.api import api_router
 from sqlalchemy import text
 from opengewe.logger import init_default_logger, get_logger
-import os
 
 # 获取正确的配置文件路径（相对于backend目录的上级目录）
 config_file_path = os.path.join(
@@ -95,13 +96,16 @@ async def lifespan(app: FastAPI):
                         "--type",
                         "redis",  # 或者从配置中读取
                     ]
+                    # 使用preexec_fn=os.setsid在新的进程会话中启动Celery
+                    # 这样可以确保在主进程退出时，能够终止整个进程组
                     celery_worker_process = subprocess.Popen(
                         command,
                         stdout=subprocess.DEVNULL,
                         stderr=subprocess.DEVNULL,
+                        preexec_fn=os.setsid,
                     )
                     logger.info(
-                        f"Celery worker已启动，进程ID: {celery_worker_process.pid}"
+                        f"Celery worker已在新的进程组中启动，PGID: {os.getpgid(celery_worker_process.pid)}"
                     )
                 except Exception as e:
                     logger.error(f"启动Celery worker失败: {e}", exc_info=True)
@@ -192,17 +196,21 @@ async def lifespan(app: FastAPI):
     # 关闭时的清理操作
     logger.info("========== OpenGewe WebPanel 关闭中 ==========")
 
-    # 停止Celery worker子进程
+    # 停止Celery worker子进程组
     if celery_worker_process:
-        logger.info(
-            f"正在停止Celery worker进程 (PID: {celery_worker_process.pid})...")
-        celery_worker_process.terminate()
+        pgid = os.getpgid(celery_worker_process.pid)
+        logger.info(f"正在停止Celery worker进程组 (PGID: {pgid})...")
         try:
+            os.killpg(pgid, signal.SIGTERM)
             celery_worker_process.wait(timeout=5)
-            logger.info("Celery worker进程已成功终止")
+            logger.info("Celery worker进程组已成功终止")
+        except ProcessLookupError:
+            logger.warning(f"Celery worker进程组 (PGID: {pgid}) 已不存在，可能已手动关闭")
         except subprocess.TimeoutExpired:
-            logger.warning("Celery worker进程终止超时，强制终止")
-            celery_worker_process.kill()
+            logger.warning(f"Celery worker进程组 (PGID: {pgid}) 终止超时，强制终止")
+            os.killpg(pgid, signal.SIGKILL)
+        except Exception as e:
+            logger.error(f"停止Celery worker进程组时出错: {e}", exc_info=True)
 
     try:
         # 关闭数据库连接
