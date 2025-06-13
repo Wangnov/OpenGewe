@@ -2,8 +2,7 @@
 try:
     import tomllib
 except ImportError:
-    import tomli as tomllib
-import os
+    import tomli as tomllib  # noqa: F401
 import traceback
 from loguru import logger
 from datetime import datetime
@@ -31,31 +30,10 @@ class ExamplePlugin(PluginBase):
     version = "1.0.0"
 
     # 同步初始化
-    def __init__(self):
-        super().__init__()
-
-        # 默认启用插件，即使读取配置文件失败
-        self.enable = True
-
-        # 获取配置文件路径
-        config_path = os.path.join(os.path.dirname(__file__), "config.toml")
-
-        try:
-            with open(config_path, "rb") as f:
-                config = tomllib.load(f)
-
-            # 读取基本配置
-            basic_config = config.get("basic", {})
-            config_enable = basic_config.get("enable", True)  # 默认为True
-
-            self.enable = config_enable
-
-        except Exception as e:
-            logger.error(f"加载ExamplePlugin配置文件失败: {e}")
-            logger.error(traceback.format_exc())
-            # 如果配置文件读取失败，仍然启用插件
-            self.enable = True
-            logger.warning("配置读取失败，默认启用插件")
+    def __init__(self, config: dict):
+        super().__init__(config)
+        # 从传递的配置中获取启用状态
+        self.enable = self.config.get("basic", {}).get("enable", True)
 
     # 异步初始化
     async def async_init(self):

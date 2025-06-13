@@ -3,9 +3,11 @@
 """
 
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, Any, Dict
+import json
 from sqlalchemy import String, Boolean, Text, DateTime, Integer, Enum, BigInteger
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.ext.hybrid import hybrid_property
 import enum
 
 from ..core.bases import BotBase, AdminBase
@@ -83,14 +85,17 @@ class RawCallbackLog(BotBase):
 
     __tablename__ = "raw_callback_log"
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(
+        BigInteger, primary_key=True, autoincrement=True)
     received_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=lambda: to_app_timezone(datetime.now(timezone.utc)),
         index=True,
     )
-    gewe_appid: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
-    type_name: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    gewe_appid: Mapped[str] = mapped_column(
+        String(100), nullable=False, index=True)
+    type_name: Mapped[str] = mapped_column(
+        String(50), nullable=False, index=True)
     msg_id: Mapped[Optional[str]] = mapped_column(String(100), index=True)
     new_msg_id: Mapped[Optional[str]] = mapped_column(String(100), index=True)
     from_wxid: Mapped[Optional[str]] = mapped_column(String(100), index=True)
@@ -107,9 +112,12 @@ class Contact(BotBase):
 
     __tablename__ = "contacts"
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    gewe_app_id: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
-    contact_wxid: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    id: Mapped[int] = mapped_column(
+        BigInteger, primary_key=True, autoincrement=True)
+    gewe_app_id: Mapped[str] = mapped_column(
+        String(100), nullable=False, index=True)
+    contact_wxid: Mapped[str] = mapped_column(
+        String(100), nullable=False, index=True)
     contact_type: Mapped[ContactType] = mapped_column(
         Enum(ContactType), nullable=False, index=True
     )
@@ -123,7 +131,8 @@ class Contact(BotBase):
     country: Mapped[Optional[str]] = mapped_column(String(50))
     province: Mapped[Optional[str]] = mapped_column(String(50))
     city: Mapped[Optional[str]] = mapped_column(String(50))
-    is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    is_deleted: Mapped[bool] = mapped_column(
+        Boolean, default=False, index=True)
     last_updated: Mapped[datetime] = mapped_column(
         DateTime,
         default=lambda: to_app_timezone(datetime.now(timezone.utc)),
@@ -142,10 +151,14 @@ class GroupMember(BotBase):
 
     __tablename__ = "group_members"
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    gewe_app_id: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
-    group_wxid: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
-    member_wxid: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    id: Mapped[int] = mapped_column(
+        BigInteger, primary_key=True, autoincrement=True)
+    gewe_app_id: Mapped[str] = mapped_column(
+        String(100), nullable=False, index=True)
+    group_wxid: Mapped[str] = mapped_column(
+        String(100), nullable=False, index=True)
+    member_wxid: Mapped[str] = mapped_column(
+        String(100), nullable=False, index=True)
     nickname: Mapped[Optional[str]] = mapped_column(String(200))
     display_name: Mapped[Optional[str]] = mapped_column(String(200))
     big_head_img_url: Mapped[Optional[str]] = mapped_column(Text)
@@ -169,9 +182,12 @@ class BotPlugin(BotBase):
 
     __tablename__ = "bot_plugins"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    gewe_app_id: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
-    plugin_name: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    id: Mapped[int] = mapped_column(
+        Integer, primary_key=True, autoincrement=True)
+    gewe_app_id: Mapped[str] = mapped_column(
+        String(100), nullable=False, index=True)
+    plugin_name: Mapped[str] = mapped_column(
+        String(100), nullable=False, index=True)
     is_enabled: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
     config_json: Mapped[Optional[str]] = mapped_column(Text)  # JSON配置
     created_at: Mapped[datetime] = mapped_column(
@@ -183,6 +199,24 @@ class BotPlugin(BotBase):
         onupdate=lambda: to_app_timezone(datetime.now(timezone.utc)),
     )
 
+    @hybrid_property
+    def config(self) -> Optional[Dict[str, Any]]:
+        """获取解析后的插件配置字典"""
+        if self.config_json:
+            try:
+                return json.loads(self.config_json)
+            except json.JSONDecodeError:
+                return None
+        return None
+
+    @config.setter
+    def config(self, value: Optional[Dict[str, Any]]) -> None:
+        """设置并序列化插件配置字典"""
+        if value is None:
+            self.config_json = None
+        else:
+            self.config_json = json.dumps(value, ensure_ascii=False)
+
     def __repr__(self) -> str:
         return f"<BotPlugin(gewe_app_id='{self.gewe_app_id}', plugin_name='{self.plugin_name}')>"
 
@@ -192,10 +226,13 @@ class SnsPost(BotBase):
 
     __tablename__ = "sns_posts"
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    gewe_app_id: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    id: Mapped[int] = mapped_column(
+        BigInteger, primary_key=True, autoincrement=True)
+    gewe_app_id: Mapped[str] = mapped_column(
+        String(100), nullable=False, index=True)
     sns_id: Mapped[int] = mapped_column(BigInteger, nullable=False, index=True)
-    author_wxid: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    author_wxid: Mapped[str] = mapped_column(
+        String(100), nullable=False, index=True)
     content: Mapped[Optional[str]] = mapped_column(Text)
     media_urls: Mapped[Optional[str]] = mapped_column(Text)  # JSON数组
     post_type: Mapped[PostType] = mapped_column(
@@ -203,7 +240,8 @@ class SnsPost(BotBase):
     )
     like_count: Mapped[int] = mapped_column(Integer, default=0)
     comment_count: Mapped[int] = mapped_column(Integer, default=0)
-    create_time: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
+    create_time: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, index=True)
     privacy_settings: Mapped[Optional[str]] = mapped_column(Text)  # JSON配置
     raw_data: Mapped[Optional[str]] = mapped_column(Text)  # 原始JSON数据
 

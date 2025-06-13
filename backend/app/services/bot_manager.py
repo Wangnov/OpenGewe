@@ -239,16 +239,30 @@ class BotClientManager:
         loaded_count = 0
 
         # 为每个启用的插件创建实例
-        for plugin_name in bot_plugins.keys():
-            if plugin_name in self._available_plugins and plugin_name in global_plugins:
+        for plugin_name, bot_plugin in bot_plugins.items():
+            if (
+                plugin_name in self._available_plugins
+                and plugin_name in global_plugins
+            ):
                 try:
                     plugin_cls = self._available_plugins[plugin_name]
+                    global_plugin = global_plugins[plugin_name]
+
+                    # 合并配置：机器人配置 > 全局配置
+                    override_config = {}
+                    if global_plugin.global_config:
+                        override_config.update(global_plugin.global_config)
+                    if bot_plugin.config_json:
+                        override_config.update(bot_plugin.config_json)
+
                     logger.info(
                         f"正在为机器人 {bot.gewe_app_id} 注册插件: {plugin_name}"
                     )
 
-                    # 注册插件到客户端
-                    await client.plugin_manager.register_plugin(plugin_cls)
+                    # 注册插件到客户端，并传入覆盖配置
+                    await client.plugin_manager.register_plugin(
+                        plugin_cls, override_config=override_config
+                    )
                     loaded_count += 1
 
                     logger.info(
@@ -488,6 +502,36 @@ class BotClientManager:
             finally:
                 del self._clients[gewe_app_id]
                 logger.info(f"已关闭机器人客户端: {gewe_app_id}")
+
+    async def reload_all_clients_plugins_config(self) -> Dict[str, Any]:
+        """
+        热重载所有机器人客户端的插件配置。
+
+        遍历所有客户端，调用其插件管理器的 reload_configuration 方法。
+        """
+        logger.info("开始热重载所有客户端的插件配置...")
+        results = {}
+        for gewe_app_id, client in self._clients.items():
+            try:
+                if hasattr(client.plugin_manager, "reload_configuration"):
+                    loaded, failed = await client.plugin_manager.reload_configuration()
+                    results[gewe_app_id] = {
+                        "status": "success",
+                        "loaded": loaded,
+                        "failed": failed,
+                    }
+                    logger.info(f"客户端 {gewe_app_id} 插件配置重载成功。")
+                else:
+                    results[gewe_app_id] = {
+                        "status": "error", "message": "PluginManager缺少reload_configuration方法"}
+                    logger.warning(
+                        f"客户端 {gewe_app_id} 的PluginManager缺少reload_configuration方法。")
+            except Exception as e:
+                logger.error(f"客户端 {gewe_app_id} 插件配置重载失败: {e}", exc_info=True)
+                results[gewe_app_id] = {"status": "error", "message": str(e)}
+
+        logger.info("所有客户端插件配置热重载完成。")
+        return results
 
 
 # 创建全局单例实例

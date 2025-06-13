@@ -21,6 +21,7 @@ class GlobalPluginInfo(PluginMetadata):
     """全局插件信息模型（包含启用状态）"""
     plugin_id: str = Field(..., description="插件的唯一标识符（即文件夹名）")
     is_globally_enabled: bool = Field(..., description="是否全局启用")
+    global_config: Optional[Dict[str, Any]] = Field(None, description="全局插件配置")
 
 
 class GlobalPluginInfoResponse(BaseModel):

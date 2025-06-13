@@ -3,9 +3,11 @@
 """
 
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, Any, Dict
+import json
 from sqlalchemy import String, Boolean, Text, DateTime, Integer, Enum
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.ext.hybrid import hybrid_property
 import enum
 
 from ..core.bases import AdminBase
@@ -24,7 +26,8 @@ class Admin(AdminBase):
 
     __tablename__ = "admins"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(
+        Integer, primary_key=True, autoincrement=True)
     username: Mapped[str] = mapped_column(
         String(50), unique=True, nullable=False, index=True
     )
@@ -51,7 +54,8 @@ class AdminLoginLog(AdminBase):
 
     __tablename__ = "admin_login_logs"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(
+        Integer, primary_key=True, autoincrement=True)
     admin_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     login_ip: Mapped[Optional[str]] = mapped_column(String(45))
     user_agent: Mapped[Optional[str]] = mapped_column(Text)
@@ -60,7 +64,8 @@ class AdminLoginLog(AdminBase):
         default=lambda: to_app_timezone(datetime.now(timezone.utc)),
         index=True,
     )
-    status: Mapped[LoginStatus] = mapped_column(Enum(LoginStatus), nullable=False)
+    status: Mapped[LoginStatus] = mapped_column(
+        Enum(LoginStatus), nullable=False)
     failure_reason: Mapped[Optional[str]] = mapped_column(String(255))
 
     def __repr__(self) -> str:
@@ -72,7 +77,8 @@ class GlobalPlugin(AdminBase):
 
     __tablename__ = "global_plugins"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(
+        Integer, primary_key=True, autoincrement=True)
     plugin_name: Mapped[str] = mapped_column(
         String(100), unique=True, nullable=False, index=True
     )
@@ -86,6 +92,24 @@ class GlobalPlugin(AdminBase):
         default=lambda: to_app_timezone(datetime.now(timezone.utc)),
         onupdate=lambda: to_app_timezone(datetime.now(timezone.utc)),
     )
+
+    @hybrid_property
+    def global_config(self) -> Optional[Dict[str, Any]]:
+        """获取解析后的全局配置字典"""
+        if self.global_config_json:
+            try:
+                return json.loads(self.global_config_json)
+            except json.JSONDecodeError:
+                return None
+        return None
+
+    @global_config.setter
+    def global_config(self, value: Optional[Dict[str, Any]]) -> None:
+        """设置并序列化全局配置字典"""
+        if value is None:
+            self.global_config_json = None
+        else:
+            self.global_config_json = json.dumps(value, ensure_ascii=False)
 
     def __repr__(self) -> str:
         return f"<GlobalPlugin(id={self.id}, name='{self.plugin_name}')>"

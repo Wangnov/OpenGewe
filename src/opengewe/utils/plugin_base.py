@@ -54,8 +54,13 @@ class PluginBase(ABC):
     author: str = "未知"
     version: str = "1.0.0"
 
-    def __init__(self):
-        """初始化插件实例"""
+    def __init__(self, config: dict = None):
+        """初始化插件实例
+
+        Args:
+            config (dict, optional): 插件的配置字典. Defaults to None.
+        """
+        self.config = config or {}
         self.enabled: bool = False
         self._scheduled_jobs: Set[str] = set()
 
@@ -106,7 +111,8 @@ class PluginBase(ABC):
                 trigger = getattr(method, "_schedule_trigger")
                 trigger_args = getattr(method, "_schedule_args")
 
-                add_job_safe(scheduler, job_id, method, client, trigger, **trigger_args)
+                add_job_safe(scheduler, job_id, method,
+                             client, trigger, **trigger_args)
                 self._scheduled_jobs.add(job_id)
 
         if self._scheduled_jobs:
