@@ -1,0 +1,8 @@
+# BotStatus 插件配置
+[BotStatus]
+# 是否启用插件
+enable = true
+# 触发命令
+commands = ["status", "bot", "机器人状态", "状态"]
+# 状态消息
+status_message = "OpenGewe Bot is Running! 😊"

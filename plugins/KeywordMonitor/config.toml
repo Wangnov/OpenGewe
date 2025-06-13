@@ -1,0 +1,8 @@
+# KeywordMonitor 插件的配置文件
+
+# 接收警报的微信ID（个人或群聊）
+# 请务必修改为实际的微信号或群ID
+alert_to_wxid = "wxid_mly499mvz23o21"
+
+# 要监控的关键词列表
+keywords = ["bug", "崩溃", "无法使用", "投诉", "CEO", "老板"]

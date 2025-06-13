@@ -81,6 +81,10 @@ class BotClientManager:
             "concurrency": queue_config.get("concurrency"),
         }
 
+        # 从配置中获取插件目录
+        plugins_config = await config_manager.get_config("plugins") or {}
+        plugins_dir = plugins_config.get("plugins_dir", "plugins")
+
         # 创建GeweClient实例
         client = GeweClient(
             base_url=bot.base_url,
@@ -88,6 +92,7 @@ class BotClientManager:
             token=bot.gewe_token,
             debug=False,
             queue_type=queue_type,
+            plugins_dir=plugins_dir,
             **queue_options,
         )
 
@@ -423,10 +428,14 @@ class BotClientManager:
             # 重新加载所有插件
             self._plugins_loaded = False
             self._available_plugins.clear()
+            await self._load_available_plugins()  # 重新扫描插件目录
 
             # 重新初始化所有客户端的插件
             for gewe_app_id, client in self._clients.items():
-                await client.plugin_manager.stop_all_plugins()
+                # 先卸载所有旧插件
+                await client.plugin_manager.unload_plugins()
+
+                # 然后像首次加载一样，重新加载所有插件并注入配置
                 async with admin_session() as session:
                     stmt = select(BotInfo).where(
                         BotInfo.gewe_app_id == gewe_app_id)
@@ -506,26 +515,56 @@ class BotClientManager:
     async def reload_all_clients_plugins_config(self) -> Dict[str, Any]:
         """
         热重载所有机器人客户端的插件配置。
-
-        遍历所有客户端，调用其插件管理器的 reload_configuration 方法。
+        这将重新从数据库加载配置并应用到每个客户端。
         """
         logger.info("开始热重载所有客户端的插件配置...")
+
+        # 1. 强制重新扫描插件目录，刷新可用的插件类定义
+        self._plugins_loaded = False
+        self._available_plugins.clear()
+        await self._load_available_plugins()
+
         results = {}
+        # 2. 遍历所有客户端，重新加载它们的插件
         for gewe_app_id, client in self._clients.items():
             try:
-                if hasattr(client.plugin_manager, "reload_configuration"):
-                    loaded, failed = await client.plugin_manager.reload_configuration()
-                    results[gewe_app_id] = {
-                        "status": "success",
-                        "loaded": loaded,
-                        "failed": failed,
-                    }
-                    logger.info(f"客户端 {gewe_app_id} 插件配置重载成功。")
-                else:
-                    results[gewe_app_id] = {
-                        "status": "error", "message": "PluginManager缺少reload_configuration方法"}
-                    logger.warning(
-                        f"客户端 {gewe_app_id} 的PluginManager缺少reload_configuration方法。")
+                logger.info(f"正在为客户端 {gewe_app_id} 重载插件...")
+
+                # a. 卸载当前客户端的所有插件
+                unloaded, failed_unloads = await client.plugin_manager.unload_plugins()
+                logger.info(
+                    f"客户端 {gewe_app_id}: 已卸载 {len(unloaded)} 个插件, "
+                    f"失败 {len(failed_unloads)} 个。"
+                )
+                if failed_unloads:
+                    logger.warning(f"卸载失败的插件: {failed_unloads}")
+
+                # b. 像首次加载一样，重新从数据库加载配置并加载插件
+                async with admin_session() as session:
+                    stmt = select(BotInfo).where(
+                        BotInfo.gewe_app_id == gewe_app_id)
+                    result = await session.execute(stmt)
+                    bot = result.scalar_one_or_none()
+
+                    if bot:
+                        await self._load_plugins_for_bot(client, bot, session)
+                        loaded_plugins = list(
+                            client.plugin_manager.plugins.keys())
+                        results[gewe_app_id] = {
+                            "status": "success",
+                            "loaded": len(loaded_plugins),
+                            "loaded_plugins": loaded_plugins,
+                        }
+                        logger.info(f"客户端 {gewe_app_id} 插件配置重载成功。")
+                    else:
+                        results[gewe_app_id] = {
+                            "status": "error",
+                            "message": f"未在数据库中找到机器人信息: {gewe_app_id}",
+                        }
+                        logger.error(
+                            f"无法重载客户端 {gewe_app_id} 的插件，因为在数据库中找不到它。"
+                        )
+
             except Exception as e:
                 logger.error(f"客户端 {gewe_app_id} 插件配置重载失败: {e}", exc_info=True)
                 results[gewe_app_id] = {"status": "error", "message": str(e)}

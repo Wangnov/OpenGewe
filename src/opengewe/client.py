@@ -51,7 +51,7 @@ class GeweClient:
         debug: bool = False,
         is_gewe: bool = False,
         queue_type: Literal["simple", "advanced"] = "simple",
-        **queue_options: Any,
+        **kwargs: Any,
     ):
         self.base_url = base_url
         self.download_url = download_url
@@ -68,7 +68,8 @@ class GeweClient:
 
         # 保存队列配置
         self.queue_type = queue_type
-        self.queue_options = queue_options
+        self.queue_options = kwargs
+        self.plugins_dir = kwargs.get("plugins_dir")
 
         # 创建HTTP会话
         self._session: Optional[aiohttp.ClientSession] = None
@@ -87,13 +88,13 @@ class GeweClient:
 
         # 创建并集成MessageMixin
         self._message_mixin = MessageMixin(
-            self.message, queue_type, **queue_options)
+            self.message, queue_type, **self.queue_options)
 
         # 将MessageMixin的方法注册到Client实例
         self._register_message_methods()
 
         # 初始化插件管理器
-        self.plugin_manager = PluginManager()
+        self.plugin_manager = PluginManager(plugins_dir=self.plugins_dir)
         self.plugin_manager.set_client(self)
 
         # 初始化消息工厂

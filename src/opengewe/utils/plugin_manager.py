@@ -41,7 +41,7 @@ class PluginManager(metaclass=Singleton):
     使用单例模式确保全局只有一个插件管理器实例。
     """
 
-    def __init__(self):
+    def __init__(self, plugins_dir: Optional[str] = None):
         """初始化插件管理器"""
         # 已启用的插件实例
         self.plugins: Dict[str, PluginBase] = {}
@@ -49,6 +49,9 @@ class PluginManager(metaclass=Singleton):
         self.plugin_classes: Dict[str, Type[PluginBase]] = {}
         # 插件信息
         self.plugin_info: Dict[str, Dict[str, Any]] = {}
+        # 插件目录
+        self.plugins_dir = Path(
+            plugins_dir) if plugins_dir else self._find_project_root() / "plugins"
 
         # 客户端实例
         self.client = None
@@ -121,7 +124,7 @@ class PluginManager(metaclass=Singleton):
         self._ensure_plugin_paths()
 
         if isinstance(plugin, str):
-            return await self._load_plugin_name(plugin, override_config)
+            return await self._load_plugin_name(plugin, override_config=override_config)
         elif isinstance(plugin, type) and issubclass(plugin, PluginBase):
             return await self._load_plugin_class(plugin, override_config=override_config)
         return False
@@ -133,19 +136,16 @@ class PluginManager(metaclass=Singleton):
         使插件可以通过'utils'模块名称直接导入桥接层
         """
         # 获取项目根目录（从当前文件向上4级目录）
-        # 当前文件路径: src/opengewe/utils/plugin_manager.py
-        # 项目根目录: ../../../../
-        project_root = Path(__file__).parent.parent.parent.parent
-        plugins_dir = project_root / "plugins"
-        plugins_dir_str = str(plugins_dir.absolute())
+        # 使用 self.plugins_dir
+        plugins_dir_str = str(self.plugins_dir.absolute())
 
         # 确保plugins目录存在
-        if not plugins_dir.exists():
+        if not self.plugins_dir.exists():
             try:
-                plugins_dir.mkdir(parents=True, exist_ok=True)
+                self.plugins_dir.mkdir(parents=True, exist_ok=True)
                 logger.info(f"插件目录不存在，已创建: {plugins_dir_str}")
                 # 创建__init__.py文件以使其成为有效的Python包
-                init_file = plugins_dir / "__init__.py"
+                init_file = self.plugins_dir / "__init__.py"
                 if not init_file.exists():
                     with open(init_file, "w", encoding="utf-8") as f:
                         f.write("# 插件目录\n")
@@ -160,7 +160,7 @@ class PluginManager(metaclass=Singleton):
 
         # 确保plugins的父目录也在搜索路径中
         # 这样插件可以通过相对导入找到utils包
-        parent_dir = str(project_root.absolute())
+        parent_dir = str(self.plugins_dir.parent.absolute())
         if parent_dir not in sys.path:
             sys.path.insert(0, parent_dir)
 
@@ -700,7 +700,7 @@ class PluginManager(metaclass=Singleton):
         Returns:
             bool: 是否成功加载插件
         """
-        return await self.load_plugin(plugin, override_config)
+        return await self.load_plugin(plugin, override_config=override_config)
 
     async def load_plugins_from_directory(
         self, directory: str, prefix: str = ""
@@ -844,15 +844,21 @@ class PluginManager(metaclass=Singleton):
         """
         logger.info("开始热重载插件配置...")
 
-        # 1. 重新读取配置
+        # 1. 重新读取 main_config.toml 的禁用列表
         self._load_config()
 
-        # 2. 卸载所有插件
+        # 2. 保存当前所有插件的配置
+        current_plugins_config = {
+            name: plugin.config for name, plugin in self.plugins.items()
+        }
+        logger.debug(f"已保存当前运行的 {len(current_plugins_config)} 个插件的配置。")
+
+        # 3. 卸载所有插件
         unloaded_plugins, failed_unloads = await self.unload_plugins()
         if failed_unloads:
             logger.warning(f"部分插件卸载失败: {failed_unloads}")
 
-        # 3. 清除模块缓存，确保插件代码也是最新的
+        # 4. 清除模块缓存，确保插件代码也是最新的
         for module_name in list(sys.modules.keys()):
             if module_name.startswith("plugins."):
                 try:
@@ -861,8 +867,11 @@ class PluginManager(metaclass=Singleton):
                     pass
         logger.debug("已清除插件相关的模块缓存。")
 
-        # 4. 根据新配置重新加载所有插件
-        loaded_plugins = await self.load_plugins()
+        # 5. 根据新配置和保存的配置重新加载所有插件
+        loaded_plugins = await self.load_plugins(
+            load_disabled=False,  # 确保我们尝试加载所有应该加载的插件
+            bots_plugins_override_config=current_plugins_config
+        )
         failed_plugins_dict = await self.get_failed_plugins()
         failed_plugins_list = list(failed_plugins_dict.keys())
 
