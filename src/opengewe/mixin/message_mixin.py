@@ -653,12 +653,27 @@ class MessageMixin:
         Returns:
             Dict[str, Any]: 返回响应结果
         """
-        return await self._message_queue.enqueue(
-            "opengewe.queue.tasks.forward_file_message_task",
-            self._get_client_config(),
-            wxid,
-            file_id,
+        from ..queue.simple import SimpleMessageQueue
+
+        if isinstance(self._message_queue, SimpleMessageQueue):
+            return await self._message_queue.enqueue(
+                self._forward_file_message, wxid, file_id
+            )
+        else:
+            return await self._message_queue.enqueue(
+                "opengewe.queue.tasks.forward_file_message_task",
+                self._get_client_config(),
+                wxid,
+                file_id,
+            )
+
+    async def _forward_file_message(self, wxid: str, file_id: str) -> Dict[str, Any]:
+        """实际转发文件消息的方法"""
+        response = await self._message_module.forward_file(
+            to_wxid=wxid, file_id=file_id
         )
+        logger.info("转发文件消息: 对方wxid:{} 文件ID:{}", wxid, file_id)
+        return response
 
     async def forward_image_message(self, wxid: str, file_id: str) -> Dict[str, Any]:
         """转发图片消息。
@@ -670,12 +685,27 @@ class MessageMixin:
         Returns:
             Dict[str, Any]: 返回响应结果
         """
-        return await self._message_queue.enqueue(
-            "opengewe.queue.tasks.forward_image_message_task",
-            self._get_client_config(),
-            wxid,
-            file_id,
+        from ..queue.simple import SimpleMessageQueue
+
+        if isinstance(self._message_queue, SimpleMessageQueue):
+            return await self._message_queue.enqueue(
+                self._forward_image_message, wxid, file_id
+            )
+        else:
+            return await self._message_queue.enqueue(
+                "opengewe.queue.tasks.forward_image_message_task",
+                self._get_client_config(),
+                wxid,
+                file_id,
+            )
+
+    async def _forward_image_message(self, wxid: str, file_id: str) -> Dict[str, Any]:
+        """实际转发图片消息的方法"""
+        response = await self._message_module.forward_image(
+            to_wxid=wxid, file_id=file_id
         )
+        logger.info("转发图片消息: 对方wxid:{} 图片ID:{}", wxid, file_id)
+        return response
 
     async def forward_video_message(self, wxid: str, file_id: str) -> Dict[str, Any]:
         """转发视频消息。
@@ -687,12 +717,19 @@ class MessageMixin:
         Returns:
             Dict[str, Any]: 返回响应结果
         """
-        return await self._message_queue.enqueue(
-            "opengewe.queue.tasks.forward_video_message_task",
-            self._get_client_config(),
-            wxid,
-            file_id,
-        )
+        from ..queue.simple import SimpleMessageQueue
+
+        if isinstance(self._message_queue, SimpleMessageQueue):
+            return await self._message_queue.enqueue(
+                self._forward_video_message, wxid, file_id
+            )
+        else:
+            return await self._message_queue.enqueue(
+                "opengewe.queue.tasks.forward_video_message_task",
+                self._get_client_config(),
+                wxid,
+                file_id,
+            )
 
     async def _forward_video_message(self, wxid: str, file_id: str) -> Dict[str, Any]:
         """实际转发视频消息的方法"""
