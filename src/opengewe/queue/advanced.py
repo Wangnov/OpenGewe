@@ -127,21 +127,12 @@ class AdvancedMessageQueue(BaseMessageQueue):
         self.broker = broker
         self.backend = backend
         self.queue_name = queue_name
-        from .app import celery_app
-        self.celery_app = celery_app
-        # 如果需要，可以根据传入的参数重新配置共享的app实例
-        if (
-            broker != DEFAULT_BROKER
-            or backend != DEFAULT_BACKEND
-            or queue_name != DEFAULT_QUEUE_NAME
-        ):
-            self.celery_app.conf.update(
-                broker_url=broker,
-                result_backend=backend,
-                task_routes={
-                    "opengewe.queue.tasks.*": {"queue": queue_name},
-                },
-            )
+        # 为每个实例创建独立的Celery应用，避免配置冲突
+        self.celery_app = create_celery_app(
+            broker=self.broker,
+            backend=self.backend,
+            queue_name=self.queue_name,
+        )
         self._task_futures = {}
         self._futures: Dict[str, Future] = {}
         self._processed_messages = 0
@@ -356,7 +347,7 @@ class AdvancedMessageQueue(BaseMessageQueue):
         self,
         task_id: str,
         async_result: AsyncResult,
-        timeout: float = 30.0,  # type: ignore
+        timeout: float = 30.0,
     ) -> None:
         """等待Celery任务结果并设置到Future
 
