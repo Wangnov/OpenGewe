@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from sqlalchemy.exc import SQLAlchemyError
 import traceback
+from datetime import datetime, timezone
 
 import subprocess
 import sys
@@ -319,7 +320,7 @@ def setup_health_check(app: FastAPI):
 
             return {
                 "status": "healthy",
-                "timestamp": "2024-01-01T00:00:00Z",  # 实际使用时应该使用当前时间
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "services": {
                     "database": db_status,
                     "redis": redis_status,
