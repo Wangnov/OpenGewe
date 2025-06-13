@@ -76,13 +76,6 @@ class LoginModule:
         Returns:
             Tuple[Dict[str, Any], bool]: 结果和成功标志
         """
-        if not self.client.is_gewe:
-            return {
-                "ret": 403,
-                "msg": "该接口仅限付费版gewe调用，详情请见gewe文档：http://doc.geweapi.com/",
-                "data": None,
-            }, False
-
         data = {"appId": self.client.app_id, "regionId": region_id, "proxyIp": proxy_ip}
 
         response = await self.client.request("/login/dialogLogin", data)

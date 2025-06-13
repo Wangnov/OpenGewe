@@ -36,7 +36,6 @@ class GeweClient:
         app_id: 在Gewe镜像内登录的设备ID
         token: 登录token
         debug: 是否开启调试模式，默认关闭
-        is_gewe: 是否使用付费版gewe，默认为False
         queue_type: 消息队列类型，"simple"或"advanced"，默认为"simple"
         queue_options: 消息队列选项，根据队列类型不同而不同，如高级队列需要broker、backend等参数
     """
@@ -49,7 +48,6 @@ class GeweClient:
         app_id: str = "",
         token: str = "",
         debug: bool = False,
-        is_gewe: bool = False,
         queue_type: Literal["simple", "advanced"] = "simple",
         **kwargs: Any,
     ):
@@ -63,8 +61,6 @@ class GeweClient:
         self.uuid: Optional[str] = None
         self.login_url: Optional[str] = None
         self.captch_code: Optional[str] = None
-        # 判断是否为付费版gewe
-        self.is_gewe = is_gewe or base_url == "http://www.geweapi.com/gewe/v2/api"
 
         # 保存队列配置
         self.queue_type = queue_type

@@ -4,7 +4,7 @@ from typing import Dict, List, Any
 class SnsModule:
     """异步朋友圈模块
 
-    朋友圈相关接口，包括朋友圈发布、点赞、评论等功能。注意：该模块为付费功能，需要判断is_gewe才能使用。
+    朋友圈相关接口，包括朋友圈发布、点赞、评论等功能。
 
     在新设备登录后的1-3天内，您将无法使用朋友圈发布、点赞、评论等功能。在此期间，如果尝试进行这些操作，您将收到来自微信团队的提醒。请注意遵守相关规定。
 
@@ -14,17 +14,6 @@ class SnsModule:
 
     def __init__(self, client):
         self.client = client
-
-    def _check_is_gewe(self) -> bool:
-        """检查是否为付费版gewe
-
-        Returns:
-            bool: 是否为付费版gewe
-        """
-        # if not self.client.is_gewe:
-        #     print("朋友圈模块为付费功能，需要付费版gewe才能使用")
-        #     return False
-        return True
 
     async def like_sns(self, sns_id: int, oper_type: int, wxid: str) -> Dict[str, Any]:
         """点赞/取消点赞
@@ -40,9 +29,6 @@ class SnsModule:
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "朋友圈模块为付费功能，需要付费版gewe才能使用"}
-
         data = {
             "appId": self.client.app_id,
             "snsId": sns_id,
@@ -60,9 +46,6 @@ class SnsModule:
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "朋友圈模块为付费功能，需要付费版gewe才能使用"}
-
         data = {"appId": self.client.app_id, "snsId": sns_id}
         return await self.client.request("/sns/delSns", data)
 
@@ -79,9 +62,6 @@ class SnsModule:
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "朋友圈模块为付费功能，需要付费版gewe才能使用"}
-
         data = {"appId": self.client.app_id, "option": option}
         return await self.client.request("/sns/snsVisibleScope", data)
 
@@ -94,9 +74,6 @@ class SnsModule:
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "朋友圈模块为付费功能，需要付费版gewe才能使用"}
-
         data = {"appId": self.client.app_id, "open": open}
         return await self.client.request("/sns/strangerVisibilityEnabled", data)
 
@@ -110,9 +87,6 @@ class SnsModule:
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "朋友圈模块为付费功能，需要付费版gewe才能使用"}
-
         data = {"appId": self.client.app_id, "snsId": sns_id, "privacy": privacy}
         return await self.client.request("/sns/snsSetPrivacy", data)
 
@@ -125,9 +99,6 @@ class SnsModule:
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "朋友圈模块为付费功能，需要付费版gewe才能使用"}
-
         data = {"appId": self.client.app_id, "xml": xml}
         return await self.client.request("/sns/downloadSnsVideo", data)
 
@@ -158,9 +129,6 @@ class SnsModule:
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "朋友圈模块为付费功能，需要付费版gewe才能使用"}
-
         data = {
             "appId": self.client.app_id,
             "content": content,
@@ -202,9 +170,6 @@ class SnsModule:
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "朋友圈模块为付费功能，需要付费版gewe才能使用"}
-
         data = {
             "appId": self.client.app_id,
             "content": content,
@@ -249,9 +214,6 @@ class SnsModule:
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "朋友圈模块为付费功能，需要付费版gewe才能使用"}
-
         data = {
             "appId": self.client.app_id,
             "content": content,
@@ -297,9 +259,6 @@ class SnsModule:
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "朋友圈模块为付费功能，需要付费版gewe才能使用"}
-
         data = {
             "appId": self.client.app_id,
             "content": content,
@@ -323,9 +282,6 @@ class SnsModule:
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "朋友圈模块为付费功能，需要付费版gewe才能使用"}
-
         data = {"appId": self.client.app_id, "imageUrl": image_url}
         return await self.client.request("/sns/uploadSnsImage", data)
 
@@ -339,9 +295,6 @@ class SnsModule:
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "朋友圈模块为付费功能，需要付费版gewe才能使用"}
-
         data = {
             "appId": self.client.app_id,
             "videoUrl": video_url,
@@ -359,9 +312,6 @@ class SnsModule:
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "朋友圈模块为付费功能，需要付费版gewe才能使用"}
-
         data = {"appId": self.client.app_id, "snsId": sns_id, "wxid": wxid}
         return await self.client.request("/sns/forwardSns", data)
 
@@ -378,9 +328,6 @@ class SnsModule:
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "朋友圈模块为付费功能，需要付费版gewe才能使用"}
-
         data = {
             "appId": self.client.app_id,
             "maxId": max_id,
@@ -403,9 +350,6 @@ class SnsModule:
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "朋友圈模块为付费功能，需要付费版gewe才能使用"}
-
         data = {
             "appId": self.client.app_id,
             "wxid": wxid,
@@ -425,9 +369,6 @@ class SnsModule:
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "朋友圈模块为付费功能，需要付费版gewe才能使用"}
-
         data = {"appId": self.client.app_id, "snsId": sns_id, "wxid": wxid}
         return await self.client.request("/sns/snsDetails", data)
 
@@ -446,9 +387,6 @@ class SnsModule:
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "朋友圈模块为付费功能，需要付费版gewe才能使用"}
-
         data = {
             "appId": self.client.app_id,
             "snsId": sns_id,
@@ -488,9 +426,6 @@ class SnsModule:
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "朋友圈模块为付费功能，需要付费版gewe才能使用"}
-
         data = {
             "appId": self.client.app_id,
             "content": content,
