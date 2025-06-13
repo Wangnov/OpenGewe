@@ -7,7 +7,7 @@ base_url = "https://x666.me/v1"
 api_key = "sk-wcXOyo56UIy81JH3NHWPinY9AC0BinFDLJraXzqSK0svbxLD"
 
 # 使用的模型名称
-model = "gemini-2.5-pro-preview-06-05"
+model = "gemini-2.5-pro-preview-05-06"
 
 # 用于开启和关闭对话模式的触发词
 trigger_word = "AI"

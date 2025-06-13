@@ -30,11 +30,11 @@ class FileAnalyzerAssistant(PluginBase):
     @on_file_message
     async def handle_file_analysis(self, client: GeweClient, message: FileMessage):
         if message.is_group_message or self.ai_client is None:
-            return {'success': True}
+            return True
 
         if not message.file_name.lower().endswith(".txt"):
             await client.send_text_message(message.from_wxid, "抱歉，目前我只支持分析 .txt 格式的文件。")
-            return {'success': True}
+            return True
 
         await client.send_text_message(message.from_wxid, f"收到文件: {message.file_name}，正在为您分析，请稍候...")
 
@@ -57,7 +57,7 @@ class FileAnalyzerAssistant(PluginBase):
 
             if not file_content:
                 await client.send_text_message(message.from_wxid, "文件内容为空，无需分析。")
-                return {'success': True}
+                return True
 
             # 3. 调用AI进行分析
             messages_to_send = [
@@ -76,9 +76,9 @@ class FileAnalyzerAssistant(PluginBase):
             # 4. 发送分析结果
             reply_content = f"【文件分析报告】\n文件名: {message.file_name}\n\n摘要:\n{summary}"
             await client.send_text_message(message.from_wxid, reply_content)
-            return {'success': True}
+            return True
 
         except Exception as e:
             self.logger.error(f"处理文件分析任务失败: {e}", exc_info=True)
             await client.send_text_message(message.from_wxid, f"处理文件 '{message.file_name}' 时出错，请稍后再试。")
-            return {'success': False, 'error': str(e)}
+            return False

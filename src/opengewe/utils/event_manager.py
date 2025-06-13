@@ -7,6 +7,9 @@ import copy
 from typing import Callable, Dict, List, Tuple
 
 from opengewe.callback.types import MessageType
+from opengewe.logger import get_logger
+
+logger = get_logger("EventManager")
 
 
 class EventManager:
@@ -54,34 +57,53 @@ class EventManager:
                 remaining_args = args[2:]
                 
                 for handler, instance, priority in cls._handlers[message_type]:
-                    # 检查是否为@消息处理器，如果是则跳过（会在下面专门处理）
-                    if hasattr(handler, "_is_at_message"):
-                        continue
+                    try:
+                        # 检查是否为@消息处理器，如果是则跳过（会在下面专门处理）
+                        if hasattr(handler, "_is_at_message"):
+                            continue
+                            
+                        # 只对message进行深拷贝，client保持不变
+                        handler_args = (client, copy.deepcopy(message)) + tuple(
+                            copy.deepcopy(arg) for arg in remaining_args
+                        )
+                        new_kwargs = {k: copy.deepcopy(v) for k, v in kwargs.items()}
                         
-                    # 只对message进行深拷贝，client保持不变
-                    handler_args = (client, copy.deepcopy(message)) + tuple(
-                        copy.deepcopy(arg) for arg in remaining_args
-                    )
-                    new_kwargs = {k: copy.deepcopy(v) for k, v in kwargs.items()}
-                    
-                    result = await handler(*handler_args, **new_kwargs)
-                    
-                    if isinstance(result, bool) and not result:
-                        # 处理函数返回False时，停止后续处理
-                        break
+                        result = await handler(*handler_args, **new_kwargs)
+                        
+                        if isinstance(result, bool) and not result:
+                            # 处理函数返回False时，停止后续处理
+                            break
+                    except Exception as e:
+                        # 捕获插件执行过程中的异常，记录日志但不中断其他插件的执行
+                        plugin_name = getattr(instance.__class__, '__name__', 'Unknown')
+                        handler_name = getattr(handler, '__name__', 'unknown_handler')
+                        logger.error(
+                            f"插件 {plugin_name} 的处理方法 {handler_name} 执行失败: {e}",
+                            exc_info=True
+                        )
+                        continue
             else:
                 # 处理参数不足的情况
                 for handler, instance, priority in cls._handlers[message_type]:
-                    if hasattr(handler, "_is_at_message"):
-                        continue
+                    try:
+                        if hasattr(handler, "_is_at_message"):
+                            continue
+                            
+                        handler_args = tuple(copy.deepcopy(arg) for arg in args)
+                        new_kwargs = {k: copy.deepcopy(v) for k, v in kwargs.items()}
                         
-                    handler_args = tuple(copy.deepcopy(arg) for arg in args)
-                    new_kwargs = {k: copy.deepcopy(v) for k, v in kwargs.items()}
-                    
-                    result = await handler(*handler_args, **new_kwargs)
-                    
-                    if isinstance(result, bool) and not result:
-                        break
+                        result = await handler(*handler_args, **new_kwargs)
+                        
+                        if isinstance(result, bool) and not result:
+                            break
+                    except Exception as e:
+                        plugin_name = getattr(instance.__class__, '__name__', 'Unknown')
+                        handler_name = getattr(handler, '__name__', 'unknown_handler')
+                        logger.error(
+                            f"插件 {plugin_name} 的处理方法 {handler_name} 执行失败: {e}",
+                            exc_info=True
+                        )
+                        continue
         
         # 处理@消息
         if message_type == MessageType.TEXT and len(args) >= 2:
@@ -93,21 +115,30 @@ class EventManager:
             
             if is_at and MessageType.TEXT in cls._handlers:
                 for handler, instance, priority in cls._handlers[MessageType.TEXT]:
-                    # 只处理被标记为@消息处理器的处理器
-                    if not hasattr(handler, "_is_at_message"):
-                        continue
+                    try:
+                        # 只处理被标记为@消息处理器的处理器
+                        if not hasattr(handler, "_is_at_message"):
+                            continue
+                            
+                        # 只对message进行深拷贝，client保持不变
+                        handler_args = (client, copy.deepcopy(message)) + tuple(
+                            copy.deepcopy(arg) for arg in remaining_args
+                        )
+                        new_kwargs = {k: copy.deepcopy(v) for k, v in kwargs.items()}
                         
-                    # 只对message进行深拷贝，client保持不变
-                    handler_args = (client, copy.deepcopy(message)) + tuple(
-                        copy.deepcopy(arg) for arg in remaining_args
-                    )
-                    new_kwargs = {k: copy.deepcopy(v) for k, v in kwargs.items()}
-                    
-                    result = await handler(*handler_args, **new_kwargs)
-                    
-                    if isinstance(result, bool) and not result:
-                        # 处理函数返回False时，停止后续处理
-                        break
+                        result = await handler(*handler_args, **new_kwargs)
+                        
+                        if isinstance(result, bool) and not result:
+                            # 处理函数返回False时，停止后续处理
+                            break
+                    except Exception as e:
+                        plugin_name = getattr(instance.__class__, '__name__', 'Unknown')
+                        handler_name = getattr(handler, '__name__', 'unknown_handler')
+                        logger.error(
+                            f"插件 {plugin_name} 的@消息处理方法 {handler_name} 执行失败: {e}",
+                            exc_info=True
+                        )
+                        continue
 
     @classmethod
     def unbind_instance(cls, instance: object) -> None:
