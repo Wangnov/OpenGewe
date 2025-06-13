@@ -115,10 +115,17 @@ kill_process_on_port() {
 # 清理函数，用于终止所有子进程
 cleanup() {
     info "\n接收到退出信号... 开始清理子进程..."
-    # jobs -p 列出所有后台任务的PID
-    # xargs kill -9 确保所有进程都被终止
-    if jobs -p | xargs kill -9 &> /dev/null; then
+    # 获取所有后台作业的PID
+    pids_to_kill=$(jobs -p)
+    if [ -n "$pids_to_kill" ]; then
+        # 向所有子进程发送SIGTERM信号，允许它们优雅地关闭
+        kill $pids_to_kill
+        info "已向子进程 ($pids_to_kill) 发送终止信号，等待它们退出..."
+        # 等待所有后台作业完成，这是关键步骤
+        wait
         info "所有子进程已成功终止。"
+    else
+        info "没有活动的子进程需要清理。"
     fi
     exit 0
 }
