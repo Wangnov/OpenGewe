@@ -4,7 +4,7 @@ from typing import Dict, List, Any
 class FinderModule:
     """异步视频号模块
 
-    视频号相关接口，包括视频号关注、评论、浏览、发布等功能。注意：该模块为付费功能，需要判断is_gewe才能使用。
+    视频号相关接口，包括视频号关注、评论、浏览、发布等功能。
 
     Args:
         client: GeweClient实例
@@ -12,17 +12,6 @@ class FinderModule:
 
     def __init__(self, client):
         self.client = client
-
-    def _check_is_gewe(self) -> bool:
-        """检查是否为付费版gewe
-
-        Returns:
-            bool: 是否为付费版gewe
-        """
-        # if not self.client.is_gewe:
-        #     print("视频号模块为付费功能，需要付费版gewe才能使用")
-        #     return False
-        return True
 
     async def follow(
         self,
@@ -44,9 +33,6 @@ class FinderModule:
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
-
         data = {
             "appId": self.client.app_id,
             "myUserName": my_username,
@@ -55,7 +41,6 @@ class FinderModule:
             "opType": op_type
         }
         
-        # 如果提供了搜索信息，添加到请求数据中
         if search_info:
             data["searchInfo"] = search_info
             
@@ -71,9 +56,6 @@ class FinderModule:
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
-
         data = {"appId": self.client.app_id, "vid": vid, "content": content}
         return await self.client.request("/finder/comment", data)
 
@@ -86,9 +68,6 @@ class FinderModule:
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
-
         data = {"appId": self.client.app_id, "vid": vid}
         return await self.client.request("/finder/browse", data)
 
@@ -118,9 +97,6 @@ class FinderModule:
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
-
         data = {
             "appId": self.client.app_id,
             "videoUrl": video_url,
@@ -143,9 +119,6 @@ class FinderModule:
         Returns:
             Dict[str, Any]: 接口返回结果，包含用户信息和视频列表
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
-
         data = {"appId": self.client.app_id, "finderUsername": finder_username}
         return await self.client.request("/finder/userPage", data)
 
@@ -161,9 +134,6 @@ class FinderModule:
         Returns:
             Dict[str, Any]: 接口返回结果，包含关注的视频号列表
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
-
         data = {"appId": self.client.app_id, "page": page, "pageSize": page_size}
         return await self.client.request("/finder/followList", data)
 
@@ -179,9 +149,6 @@ class FinderModule:
         Returns:
             Dict[str, Any]: 接口返回结果，包含视频号消息列表
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
-
         data = {"appId": self.client.app_id, "page": page, "pageSize": page_size}
         return await self.client.request("/finder/mentionList", data)
 
@@ -198,9 +165,6 @@ class FinderModule:
         Returns:
             Dict[str, Any]: 接口返回结果，包含视频评论列表
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
-
         data = {
             "appId": self.client.app_id,
             "vid": vid,
@@ -222,9 +186,6 @@ class FinderModule:
         Returns:
             Dict[str, Any]: 接口返回结果，包含列表
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
-
         data = {
             "appId": self.client.app_id,
             "option": option,
@@ -246,9 +207,6 @@ class FinderModule:
         Returns:
             Dict[str, Any]: 接口返回结果，包含搜索结果列表
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
-
         data = {
             "appId": self.client.app_id,
             "keyword": keyword,
@@ -267,9 +225,6 @@ class FinderModule:
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
-
         data = {
             "appId": self.client.app_id,
             "nickname": nickname,
@@ -286,9 +241,6 @@ class FinderModule:
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
-
         data = {"appId": self.client.app_id, "username": username}
         return await self.client.request("/finder/syncPrivateLetterMsg", data)
 
@@ -303,9 +255,6 @@ class FinderModule:
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
-
         data = {"appId": self.client.app_id, "id": id, "vid": vid, "status": status}
         return await self.client.request("/finder/idFav", data)
 
@@ -320,9 +269,6 @@ class FinderModule:
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
-
         data = {"appId": self.client.app_id, "id": id, "vid": vid, "status": status}
         return await self.client.request("/finder/idLike", data)
 
@@ -332,9 +278,6 @@ class FinderModule:
         Returns:
             Dict[str, Any]: 接口返回结果，包含视频号信息
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
-
         data = {"appId": self.client.app_id}
         return await self.client.request("/finder/getProfile", data)
 
@@ -351,9 +294,6 @@ class FinderModule:
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
-
         data = {
             "appId": self.client.app_id,
             "nickname": nickname,
@@ -372,9 +312,6 @@ class FinderModule:
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
-
         data = {"appId": self.client.app_id, "page": page, "pageSize": page_size}
         return await self.client.request("/finder/contactList", data)
 
@@ -390,9 +327,6 @@ class FinderModule:
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
-
         data = {
             "appId": self.client.app_id,
             "username": username,
@@ -412,9 +346,6 @@ class FinderModule:
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
-
         data = {"appId": self.client.app_id, "username": username, "imgUrl": img_url}
         return await self.client.request("/finder/postPrivateLetterImg", data)
 
@@ -427,9 +358,6 @@ class FinderModule:
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
-
         data = {"appId": self.client.app_id, "url": url}
         return await self.client.request("/finder/scanFollow", data)
 
@@ -442,9 +370,6 @@ class FinderModule:
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
-
         data = {"appId": self.client.app_id, "keyword": keyword}
         return await self.client.request("/finder/searchFollow", data)
 
@@ -457,9 +382,6 @@ class FinderModule:
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
-
         data = {"appId": self.client.app_id, "url": url}
         return await self.client.request("/finder/scanBrowse", data)
 
@@ -473,9 +395,6 @@ class FinderModule:
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
-
         data = {"appId": self.client.app_id, "url": url, "content": content}
         return await self.client.request("/finder/scanComment", data)
 
@@ -488,9 +407,6 @@ class FinderModule:
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
-
         data = {"appId": self.client.app_id, "url": url}
         return await self.client.request("/finder/scanFav", data)
 
@@ -503,9 +419,6 @@ class FinderModule:
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
-
         data = {"appId": self.client.app_id, "url": url}
         return await self.client.request("/finder/scanLike", data)
 
@@ -524,9 +437,6 @@ class FinderModule:
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
-
         data = {
             "appId": self.client.app_id,
             "vid": vid,
@@ -546,9 +456,6 @@ class FinderModule:
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
-
         data = {"appId": self.client.app_id, "url": url}
         return await self.client.request("/finder/scanLoginChannels", data)
 
@@ -561,9 +468,6 @@ class FinderModule:
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
-
         data = {"appId": self.client.app_id, "url": url}
         return await self.client.request("/finder/scanQrCode", data)
 
@@ -573,9 +477,6 @@ class FinderModule:
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
-
         data = {"appId": self.client.app_id}
         return await self.client.request("/finder/getQrCode", data)
 
@@ -591,9 +492,6 @@ class FinderModule:
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
-
         data = {
             "appId": self.client.app_id,
             "videoUrl": video_url,
@@ -625,9 +523,6 @@ class FinderModule:
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        if not self._check_is_gewe():
-            return {"ret": 500, "msg": "视频号模块为付费功能，需要付费版gewe才能使用"}
-
         data = {
             "appId": self.client.app_id,
             "finderMediaId": finder_media_id,
@@ -639,4 +534,3 @@ class FinderModule:
             "webviewUrlHash": webview_url_hash,
         }
         return await self.client.request("/finder/publishFinderCdn", data)
-        

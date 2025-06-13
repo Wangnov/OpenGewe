@@ -19,12 +19,6 @@ class MessageModule:
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        if not self.client.is_gewe:
-            return {
-                "ret": 403,
-                "msg": "该接口仅限付费版gewe调用，详情请见gewe文档：http://doc.geweapi.com/",
-                "data": None,
-            }
         data = {"appId": self.client.app_id, "xml": xml}
         return await self.client.request("/message/downloadFile", data)
 
@@ -57,12 +51,6 @@ class MessageModule:
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        if not self.client.is_gewe:
-            return {
-                "ret": 403,
-                "msg": "该接口仅限付费版gewe调用，详情请见gewe文档：http://doc.geweapi.com/",
-                "data": None,
-            }
         data = {"appId": self.client.app_id, "xml": xml, "msgId": msg_id}
         return await self.client.request("/message/downloadVoice", data)
 
@@ -78,12 +66,6 @@ class MessageModule:
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        if not self.client.is_gewe:
-            return {
-                "ret": 403,
-                "msg": "该接口仅限付费版gewe调用，详情请见gewe文档：http://doc.geweapi.com/",
-                "data": None,
-            }
         data = {"appId": self.client.app_id, "xml": xml}
         return await self.client.request("/message/downloadVideo", data)
 
@@ -99,12 +81,6 @@ class MessageModule:
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        if not self.client.is_gewe:
-            return {
-                "ret": 403,
-                "msg": "该接口仅限付费版gewe调用，详情请见gewe文档：http://doc.geweapi.com/",
-                "data": None,
-            }
         data = {"appId": self.client.app_id, "xml": xml}
         return await self.client.request("/message/downloadEmojiMd5", data)
 
@@ -120,12 +96,6 @@ class MessageModule:
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        if not self.client.is_gewe:
-            return {
-                "ret": 403,
-                "msg": "该接口仅限付费版gewe调用，详情请见gewe文档：http://doc.geweapi.com/",
-                "data": None,
-            }
         data = {"appId": self.client.app_id, "url": url}
         return await self.client.request("/message/downloadCdn", data)
 
@@ -506,12 +476,6 @@ class MessageModule:
         Returns:
             Dict[str, Any]: 接口返回结果
         """
-        if not self.client.is_gewe:
-            return {
-                "ret": 403,
-                "msg": "该接口仅限付费版gewe调用，详情请见gewe文档：http://doc.geweapi.com/",
-                "data": None,
-            }
         data = {
             "appId": self.client.app_id,
             "finderUsername": finder_username,
