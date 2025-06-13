@@ -151,7 +151,7 @@ const BotDetailModal = ({ bot, isOpen, onClose, onUpdate, onDelete }) => {
         } else if (error.message) {
           errorMessage = error.message;
         }
-      } catch (parseError) {
+      } catch {
         errorMessage = '连接测试失败，请检查控制台获取详细信息';
       }
 
@@ -192,25 +192,22 @@ const BotDetailModal = ({ bot, isOpen, onClose, onUpdate, onDelete }) => {
     }
 
     try {
-      await executeWithLoading(async () => {
-        await botService.updateBot(bot.gewe_app_id, {
+      const response = await executeWithLoading(async () => {
+        return await botService.updateBot(bot.gewe_app_id, {
           gewe_token: editForm.gewe_token,
           base_url: editForm.base_url
         });
       });
 
+      const updatedBotData = response.data;
+
       setIsEditing(false);
       setTestPassed(false);
-      setGeneralError(''); // 清除错误状态
+      setGeneralError('');
 
-      success('保存成功', `机器人 "${bot.nickname || 'Unknown'}" 信息已更新`, {
-        duration: 3000,
-        metadata: { botId: bot.gewe_app_id, botName: bot.nickname }
-      });
-
-      // 调用更新回调
+      // 调用更新回调，并传递更新后的数据
       if (onUpdate) {
-        onUpdate();
+        onUpdate(updatedBotData);
       }
     } catch (error) {
       let errorMessage = '保存失败，请重试';

@@ -171,35 +171,22 @@ const Bots = () => {
     };
 
     // 机器人更新成功回调
-    const handleBotUpdated = async () => {
-        success('更新成功', '机器人信息已成功更新', {
-            duration: 3000
+    const handleBotUpdated = (updatedBotData) => {
+        success('更新成功', `机器人 "${updatedBotData.nickname || 'Unknown'}" 信息已成功更新`, {
+            duration: 3000,
+            metadata: { botId: updatedBotData.gewe_app_id, botName: updatedBotData.nickname }
         });
 
-        // 重新获取列表数据
-        try {
-            setLoading(true);
-            const response = await executeWithLoading(async () => {
-                return await botService.getBots();
-            });
+        // 直接更新列表中的机器人数据
+        setBots(prevBots =>
+            prevBots.map(bot =>
+                bot.gewe_app_id === updatedBotData.gewe_app_id ? updatedBotData : bot
+            )
+        );
 
-            const botsData = response.data?.data || response.data?.bots || response.data || [];
-            setBots(Array.isArray(botsData) ? botsData : []);
-
-            // 如果当前有选中的机器人，更新selectedBot数据
-            if (selectedBot) {
-                const updatedBot = botsData.find(bot => bot.gewe_app_id === selectedBot.gewe_app_id);
-                if (updatedBot) {
-                    setSelectedBot(updatedBot); // 更新selectedBot为最新数据，包含时间戳
-                }
-            }
-        } catch (error) {
-            console.error('获取更新后的机器人数据失败:', error);
-            notifyError('数据同步失败', '无法获取最新的机器人信息', {
-                duration: 3000
-            });
-        } finally {
-            setLoading(false);
+        // 如果当前选中的机器人是更新的机器人，也更新它
+        if (selectedBot && selectedBot.gewe_app_id === updatedBotData.gewe_app_id) {
+            setSelectedBot(updatedBotData);
         }
     };
 
