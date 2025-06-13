@@ -1,0 +1,10 @@
+# DailyQuote 插件配置
+[DailyQuote]
+# 是否启用插件
+enable = true
+# 触发命令
+commands = ["一言", "每日一言"]
+# 定时任务配置
+schedule_enable = true
+schedule_cron = "0 8 * * *" # 每天早上8点执行
+schedule_chat_ids = []      # 留空表示不主动推送，可以填入群ID或用户ID
