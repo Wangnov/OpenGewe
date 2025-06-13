@@ -349,6 +349,13 @@ html, body {
   }
 }
 
+/* Markdown 样式修复 */
+.markdown-body ul,
+.markdown-body ol {
+  list-style: revert;
+  padding-left: 2rem;
+}
+
 @keyframes motion-slide-up {
   from {
     opacity: 0;

@@ -6,6 +6,8 @@ import AuthLayout from './layouts/AuthLayout';
 import MainLayout from './layouts/MainLayout';
 import Login from './pages/Login';
 import Bots from './pages/Bots';
+import Settings from './pages/Settings';
+import Plugins from './pages/Plugins';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 
 /**
@@ -34,10 +36,10 @@ function App() {
                 <Route path="/bots/:botId" element={<div>机器人详情页面（待实现）</div>} />
 
                 {/* 插件管理 */}
-                <Route path="/plugins" element={<div>插件管理页面（待实现）</div>} />
+                <Route path="/plugins" element={<Plugins />} />
 
                 {/* 系统设置 */}
-                <Route path="/settings" element={<div>系统设置页面（待实现）</div>} />
+                <Route path="/settings" element={<Settings />} />
               </Route>
             </Route>
 

@@ -2,7 +2,7 @@
 
 # FastAPI 框架
 fastapi>=0.115.0
-uvicorn[standard]>=0.30.0
+uvicorn[standard]>=0.34.3
 
 # 数据库
 sqlalchemy>=2.0.0
@@ -10,13 +10,13 @@ alembic>=1.13.0
 aiomysql>=0.2.0
 
 # 认证和安全
-python-jose[cryptography]>=3.3.0
+python-jose[cryptography]>=3.5.0
 passlib>=1.7.4
 bcrypt<=3.2.2  # 限制bcrypt版本，避免与passlib不兼容
 python-multipart>=0.0.9
 
 # 配置管理
-pydantic>=2.0.0
+pydantic>=2.11.6
 pydantic-settings>=2.0.0
 
 # 日志
@@ -27,15 +27,15 @@ python-dateutil>=2.9.0
 aiofiles>=24.0.0
 
 # 开发和测试
-pytest>=8.0.0
-pytest-asyncio>=0.24.0
+pytest>=8.4.0
+pytest-asyncio>=0.26.0
 httpx>=0.27.0
 
 # Redis（可选）
-redis>=6.1.0
+redis>=6.2.0
 
 # 原项目依赖
 qrcode>=8.1.0
-aiohttp>=3.9.2
+aiohttp>=3.12.12
 pytz>=2024.1
 apscheduler>=3.10.0

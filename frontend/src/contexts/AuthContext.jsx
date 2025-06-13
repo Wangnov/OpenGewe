@@ -1,9 +1,11 @@
-import React, { createContext, useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, createContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 import authService from '../services/authService';
 import useNotification from '../hooks/useNotification';
 
 // 创建认证上下文
-export const AuthContext = createContext();
+// eslint-disable-next-line react-refresh/only-export-components
+export const AuthContext = createContext(null);
 
 /**
  * 认证上下文提供者组件
@@ -17,29 +19,60 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
     // 错误状态
     const [error, setError] = useState(null);
+    const navigate = useNavigate();
 
     // 通知系统
     const { success, error: notifyError, info } = useNotification();
 
-    // 初始化时检查用户是否已登录
+    /**
+     * 用户登出
+     * @returns {Promise} - 登出结果
+     */
+    const logout = useCallback(async () => {
+        setLoading(true);
+        try {
+            await authService.logout();
+            // 仅在成功时显示成功通知
+            info('已退出登录', '您已安全退出系统，感谢使用！', {
+                duration: 2000
+            });
+        } catch (err) {
+            console.error('登出失败', err);
+            setError('登出失败');
+            notifyError('登出失败', '登出过程中出现错误，请刷新页面重试', {
+                duration: 5000
+            });
+        } finally {
+            // 无论成功与否，都清除本地认证信息
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            localStorage.removeItem('user');
+            setUser(null);
+            setLoading(false);
+        }
+    }, [info, notifyError]);
+
+    // 登出并重定向
+    const logoutAndRedirect = useCallback(async () => {
+        await logout();
+        navigate('/login');
+    }, [logout, navigate]);
+
+    // 初始化和事件监听
     useEffect(() => {
         const initAuth = async () => {
             try {
-                // 检查是否有访问令牌
                 if (authService.isAuthenticated()) {
-                    // 获取本地存储的用户信息
                     const storedUser = authService.getUser();
                     if (storedUser) {
                         setUser(storedUser);
                     } else {
-                        // 如果没有用户信息，尝试从API获取
                         try {
                             const response = await authService.getCurrentUser();
                             setUser(response.data);
                         } catch (err) {
                             console.error('获取用户信息失败', err);
-                            // 认证失败，清除令牌
-                            await logout();
+                            await logoutAndRedirect();
                         }
                     }
                 }
@@ -52,7 +85,15 @@ export const AuthProvider = ({ children }) => {
         };
 
         initAuth();
-    }, []);
+
+        // 监听认证错误事件
+        window.addEventListener('auth-error', logoutAndRedirect);
+
+        // 清理事件监听器
+        return () => {
+            window.removeEventListener('auth-error', logoutAndRedirect);
+        };
+    }, [logoutAndRedirect]);
 
     /**
      * 用户登录
@@ -61,7 +102,7 @@ export const AuthProvider = ({ children }) => {
      * @param {boolean} remember - 是否记住登录状态
      * @returns {Promise} - 登录结果
      */
-    const login = async (username, password, remember = false) => {
+    const login = useCallback(async (username, password, remember = false) => {
         setLoading(true);
         setError(null);
         try {
@@ -86,47 +127,15 @@ export const AuthProvider = ({ children }) => {
 
             // 显示登录失败通知
             notifyError('登录失败', errorMessage, {
-                duration: 0, // 错误通知不自动消失
-                actions: [{
-                    label: '重试',
-                    onClick: () => window.location.reload(),
-                    variant: 'primary'
-                }]
+                duration: 5000,
             });
 
             throw err;
         } finally {
             setLoading(false);
         }
-    };
+    }, [success, notifyError]);
 
-    /**
-     * 用户登出
-     * @returns {Promise} - 登出结果
-     */
-    const logout = async () => {
-        setLoading(true);
-        try {
-            await authService.logout();
-            setUser(null);
-
-            // 显示登出成功通知
-            info('已退出登录', '您已安全退出系统，感谢使用！', {
-                duration: 2000
-            });
-
-        } catch (err) {
-            console.error('登出失败', err);
-            setError('登出失败');
-
-            // 显示登出失败通知
-            notifyError('登出失败', '登出过程中出现错误，请刷新页面重试', {
-                duration: 5000
-            });
-        } finally {
-            setLoading(false);
-        }
-    };
 
     /**
      * 修改密码
@@ -135,7 +144,7 @@ export const AuthProvider = ({ children }) => {
      * @param {string} confirmPassword - 确认新密码
      * @returns {Promise} - 修改密码结果
      */
-    const changePassword = async (oldPassword, newPassword, confirmPassword) => {
+    const changePassword = useCallback(async (oldPassword, newPassword, confirmPassword) => {
         setLoading(true);
         setError(null);
         try {
@@ -175,7 +184,7 @@ export const AuthProvider = ({ children }) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [success, notifyError, logout]);
 
     // 上下文值
     const value = {
