@@ -178,20 +178,20 @@ def main():
     logger.info(f"日志级别: {config['log_level']}")
     logger.info("-" * 50)
 
-    # 动态导入celery_app和任务注册函数
-    from opengewe.queue.app import create_celery_app
-    from opengewe.queue.tasks import register_tasks
-
-    celery_app = create_celery_app(
-        broker=config["broker"],
-        backend=config["backend"],
-        queue_name=config["queue_name"],
-    )
-
-    # 注册任务
-    register_tasks(celery_app)
-
     try:
+        # 动态导入celery_app和任务注册函数
+        from opengewe.queue.app import create_celery_app
+        from opengewe.queue.tasks import register_tasks
+
+        celery_app = create_celery_app(
+            broker=config["broker"],
+            backend=config["backend"],
+            queue_name=config["queue_name"],
+        )
+
+        # 注册任务，如果失败会抛出ValueError
+        register_tasks(celery_app)
+
         # 构建启动参数
         argv = [
             "worker",
@@ -203,10 +203,15 @@ def main():
         # 启动worker
         logger.info(f"启动Celery worker，参数: {' '.join(argv)}")
         celery_app.worker_main(argv)
+
+    except ValueError as e:
+        logger.error(f"Celery任务注册失败: {e}")
+        logger.error("Worker启动中止。")
+        sys.exit(1)
     except KeyboardInterrupt:
         logger.info("正在关闭Celery worker...")
     except Exception as e:
-        logger.error(f"启动Celery worker时出错: {e}")
+        logger.error(f"启动Celery worker时发生未知错误: {e}", exc_info=True)
         sys.exit(1)
 
 
