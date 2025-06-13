@@ -1,4 +1,6 @@
 # OpenGewe配置文件
+# 注意：此部分仅在系统首次启动且数据库为空时用于初始化机器人。
+# 初始化完成后，所有机器人管理都应通过Web管理后台进行，修改此文件将不会生效。
 [gewe_apps]
 # 默认设备配置
 [gewe_apps.1]
@@ -32,6 +34,8 @@ app_id = "wx_private_device_id"
 token = "private-token-value"
 is_gewe = false
 
+# 注意：此部分配置在系统首次启动时会迁移到数据库。
+# 后续的插件管理请在Web管理后台的“插件管理”和每个单独机器人的“插件管理”中进行。
 [plugins]
 plugins_dir = "plugins"             # 插件目录
 enabled_plugins = ["ExamplePlugin"] # 全局启用的插件列表，全局启用则全部设备都会加载并启用该插件

@@ -1,6 +1,6 @@
 [project]
 name = "opengewe"
-version = "0.2.0"
+version = "0.2.1"
 description = "基于Gewe和Gewechat的开源微信机器人异步框架，提供高性能的微信自动化解决方案"
 readme = "README.md"
 requires-python = ">=3.9"
