@@ -9,15 +9,18 @@ from typing import Literal, Optional, Any
 
 from .base import BaseMessageQueue, QueueError, WorkerNotFoundError
 from .simple import SimpleMessageQueue
-from opengewe.logger import get_logger
+from opengewe.logger import init_default_logger, get_logger
 
+init_default_logger()
 # 获取队列日志记录器
 logger = get_logger("opengewe.queue")
 
 # 尝试导入高级队列相关功能
 try:
-    from .advanced import AdvancedMessageQueue, create_celery_app, celery
+    from .advanced import AdvancedMessageQueue
+    from .app import create_celery_app, celery_app as celery
     from celery import Celery
+
     ADVANCED_AVAILABLE = True
     logger.debug("高级消息队列功能可用")
 except ImportError as e:
@@ -74,7 +77,7 @@ def create_message_queue(
                 )
                 logger.error(error_msg)
                 raise ImportError(error_msg)
-            
+
             logger.info(f"创建高级队列，消息代理: {broker}, 队列名: {queue_name}")
             return AdvancedMessageQueue(
                 broker=broker,
@@ -95,7 +98,7 @@ def create_message_queue(
 # 动态构建__all__列表
 __all__ = [
     "BaseMessageQueue",
-    "SimpleMessageQueue", 
+    "SimpleMessageQueue",
     "create_message_queue",
     "QueueError",
     "WorkerNotFoundError",
@@ -103,8 +106,10 @@ __all__ = [
 
 # 只有在高级功能可用时才导出相关符号
 if ADVANCED_AVAILABLE:
-    __all__.extend([
-        "AdvancedMessageQueue",
-        "create_celery_app", 
-        "celery",
-    ])
+    __all__.extend(
+        [
+            "AdvancedMessageQueue",
+            "create_celery_app",
+            "celery_app",
+        ]
+    )

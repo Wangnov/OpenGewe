@@ -10,6 +10,8 @@ import inspect
 import os
 import sys
 import asyncio
+from pathlib import Path
+
 # 根据Python版本导入不同的TOML解析库
 try:
     import tomllib
@@ -21,8 +23,9 @@ from typing import Dict, List, Type, Union, Tuple, Optional, Any, TYPE_CHECKING
 from opengewe.utils.singleton import Singleton
 from opengewe.utils.event_manager import EventManager
 from opengewe.utils.plugin_base import PluginBase
-from opengewe.logger import get_logger
+from opengewe.logger import init_default_logger, get_logger
 
+init_default_logger()
 if TYPE_CHECKING:
     from opengewe.client import GeweClient
     from opengewe.callback.models.base import BaseMessage
@@ -50,19 +53,41 @@ class PluginManager(metaclass=Singleton):
         # 客户端实例
         self.client = None
 
+        # 初始化事件管理器
+        self.event_manager = EventManager()
+
         # 读取配置文件中的禁用插件列表
+        # 在 __init__ 方法中
+        config_path = self._find_project_root() / "main_config.toml"
         try:
-            with open("main_config.toml", "rb") as f:
+            with open(config_path, "rb") as f:
                 main_config = tomllib.load(f)
                 self.excluded_plugins = main_config.get("plugins", {}).get(
                     "disabled_plugins", []
                 )
         except FileNotFoundError:
-            logger.warning("未找到配置文件 main_config.toml，使用空的禁用插件列表")
+            logger.warning(f"未找到配置文件 {config_path}，使用空的禁用插件列表")
             self.excluded_plugins = []
         except Exception:
             logger.error(f"读取配置文件失败: {traceback.format_exc()}")
             self.excluded_plugins = []
+
+    # 新增的方法
+    def _find_project_root(self) -> Path:
+        """查找项目根目录"""
+        current_path = Path(__file__).parent
+
+        while current_path != current_path.parent:
+            if (
+                (current_path / "main_config.toml").exists()
+                or (current_path / "pyproject.toml").exists()
+                or (current_path / "main_config_example.toml").exists()
+            ):
+                return current_path
+            current_path = current_path.parent
+
+        logger.warning("未找到项目根目录，使用当前工作目录")
+        return Path.cwd()
 
     def set_client(self, client: "GeweClient") -> None:
         """设置客户端实例
@@ -96,16 +121,22 @@ class PluginManager(metaclass=Singleton):
         将plugins目录和plugins/utils目录添加到Python的模块搜索路径中，
         使插件可以通过'utils'模块名称直接导入桥接层
         """
+        # 获取项目根目录（从当前文件向上4级目录）
+        # 当前文件路径: src/opengewe/utils/plugin_manager.py
+        # 项目根目录: ../../../../
+        project_root = Path(__file__).parent.parent.parent.parent
+        plugins_dir = project_root / "plugins"
+        plugins_dir_str = str(plugins_dir.absolute())
+
         # 确保plugins目录存在
-        plugins_dir = os.path.abspath("plugins")
-        if not os.path.exists(plugins_dir):
+        if not plugins_dir.exists():
             try:
-                os.makedirs(plugins_dir, exist_ok=True)
-                logger.info(f"插件目录不存在，已创建: {plugins_dir}")
+                plugins_dir.mkdir(parents=True, exist_ok=True)
+                logger.info(f"插件目录不存在，已创建: {plugins_dir_str}")
                 # 创建__init__.py文件以使其成为有效的Python包
-                init_file = os.path.join(plugins_dir, "__init__.py")
-                if not os.path.exists(init_file):
-                    with open(init_file, "w") as f:
+                init_file = plugins_dir / "__init__.py"
+                if not init_file.exists():
+                    with open(init_file, "w", encoding="utf-8") as f:
                         f.write("# 插件目录\n")
                     logger.info(f"创建了插件包初始化文件: {init_file}")
             except Exception as e:
@@ -113,12 +144,12 @@ class PluginManager(metaclass=Singleton):
                 logger.warning("将使用内存中的插件，不会加载文件系统中的插件")
 
         # 确保plugins目录在搜索路径中
-        if plugins_dir not in sys.path:
-            sys.path.insert(0, plugins_dir)
+        if plugins_dir_str not in sys.path:
+            sys.path.insert(0, plugins_dir_str)
 
         # 确保plugins的父目录也在搜索路径中
         # 这样插件可以通过相对导入找到utils包
-        parent_dir = os.path.dirname(plugins_dir)
+        parent_dir = str(project_root.absolute())
         if parent_dir not in sys.path:
             sys.path.insert(0, parent_dir)
 
@@ -130,7 +161,10 @@ class PluginManager(metaclass=Singleton):
         logger.debug(f"已设置插件搜索路径: {sys.path[:5]}...")
 
     async def _load_plugin_class(
-        self, plugin_class: Type[PluginBase], is_disabled: bool = False, retry_count: int = 0
+        self,
+        plugin_class: Type[PluginBase],
+        is_disabled: bool = False,
+        retry_count: int = 0,
     ) -> bool:
         """加载单个插件类
 
@@ -149,7 +183,7 @@ class PluginManager(metaclass=Singleton):
         """
         max_retries = 1  # 最大重试次数
         plugin_name = plugin_class.__name__
-        
+
         try:
             # 防止重复加载插件
             if plugin_name in self.plugins:
@@ -189,17 +223,21 @@ class PluginManager(metaclass=Singleton):
                 error_msg = f"初始化插件 {plugin_name} 实例时出错: {e}"
                 logger.error(error_msg)
                 logger.error(traceback.format_exc())
-                
+
                 # 记录错误信息
                 if plugin_name in self.plugin_info:
                     self.plugin_info[plugin_name]["error"] = error_msg
-                
+
                 # 如果未达到最大重试次数，尝试重新加载
                 if retry_count < max_retries:
-                    logger.warning(f"尝试重新加载插件 {plugin_name}，第 {retry_count + 1} 次重试")
+                    logger.warning(
+                        f"尝试重新加载插件 {plugin_name}，第 {retry_count + 1} 次重试"
+                    )
                     # 短暂延迟后重试
                     await asyncio.sleep(0.5)
-                    return await self._load_plugin_class(plugin_class, is_disabled, retry_count + 1)
+                    return await self._load_plugin_class(
+                        plugin_class, is_disabled, retry_count + 1
+                    )
                 return False
 
             # 如果插件被外部禁用或自身配置为禁用，则跳过加载
@@ -211,7 +249,7 @@ class PluginManager(metaclass=Singleton):
 
             # 绑定事件处理方法
             EventManager.bind_instance(plugin)
-            
+
             try:
                 # 启用插件
                 await plugin.on_enable(self.client)
@@ -221,30 +259,34 @@ class PluginManager(metaclass=Singleton):
                 error_msg = f"启用插件 {plugin_name} 时出错: {e}"
                 logger.error(error_msg)
                 logger.error(traceback.format_exc())
-                
+
                 # 记录错误信息
                 if plugin_name in self.plugin_info:
                     self.plugin_info[plugin_name]["error"] = error_msg
-                
+
                 # 尝试解绑事件，确保不会留下部分绑定的事件
                 try:
                     EventManager.unbind_instance(plugin)
                 except Exception:
                     pass
-                
+
                 # 如果未达到最大重试次数，尝试重新加载
                 if retry_count < max_retries:
-                    logger.warning(f"尝试重新加载插件 {plugin_name}，第 {retry_count + 1} 次重试")
+                    logger.warning(
+                        f"尝试重新加载插件 {plugin_name}，第 {retry_count + 1} 次重试"
+                    )
                     # 短暂延迟后重试
                     await asyncio.sleep(0.5)
-                    return await self._load_plugin_class(plugin_class, is_disabled, retry_count + 1)
+                    return await self._load_plugin_class(
+                        plugin_class, is_disabled, retry_count + 1
+                    )
                 return False
 
             # 记录插件实例和类
             self.plugins[plugin_name] = plugin
             self.plugin_classes[plugin_name] = plugin_class
             self.plugin_info[plugin_name]["enabled"] = True
-            
+
             # 清除错误信息（如果之前有的话）
             if "error" in self.plugin_info[plugin_name]:
                 self.plugin_info[plugin_name]["error"] = None
@@ -255,17 +297,21 @@ class PluginManager(metaclass=Singleton):
             error_msg = f"加载插件 {plugin_name} 时发生错误: {e}"
             logger.error(error_msg)
             logger.error(traceback.format_exc())
-            
+
             # 记录错误信息
             if plugin_name in self.plugin_info:
                 self.plugin_info[plugin_name]["error"] = error_msg
-            
+
             # 如果未达到最大重试次数，尝试重新加载
             if retry_count < max_retries:
-                logger.warning(f"尝试重新加载插件 {plugin_name}，第 {retry_count + 1} 次重试")
+                logger.warning(
+                    f"尝试重新加载插件 {plugin_name}，第 {retry_count + 1} 次重试"
+                )
                 # 短暂延迟后重试
                 await asyncio.sleep(0.5)
-                return await self._load_plugin_class(plugin_class, is_disabled, retry_count + 1)
+                return await self._load_plugin_class(
+                    plugin_class, is_disabled, retry_count + 1
+                )
             return False
 
     async def _load_plugin_name(self, plugin_name: str) -> bool:
@@ -702,13 +748,13 @@ class PluginManager(metaclass=Singleton):
 
     async def disable_plugin_in_config(self, plugin_name: str) -> bool:
         """在内存中禁用插件
-        
+
         将插件添加到内存中的禁用列表，但不修改配置文件
         请注意：此更改仅在当前运行期间有效，重启后将从配置文件重新加载
-        
+
         Args:
             plugin_name: 插件名称
-            
+
         Returns:
             bool: 是否成功禁用插件
         """
@@ -717,12 +763,14 @@ class PluginManager(metaclass=Singleton):
             if plugin_name in self.excluded_plugins:
                 logger.info(f"插件 {plugin_name} 已经在禁用列表中")
                 return True
-            
+
             # 添加到内存中的禁用列表
             self.excluded_plugins.append(plugin_name)
-            
+
             logger.info(f"已在内存中禁用插件 {plugin_name}，但此更改不会保存到配置文件")
-            logger.info(f"若要永久禁用插件，请手动编辑 main_config.toml 文件中的 plugins.disabled_plugins 列表")
+            logger.info(
+                "若要永久禁用插件，请手动编辑 main_config.toml 文件中的 plugins.disabled_plugins 列表"
+            )
             return True
         except Exception as e:
             logger.error(f"禁用插件 {plugin_name} 时出错: {e}")

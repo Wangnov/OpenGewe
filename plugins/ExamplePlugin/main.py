@@ -72,6 +72,9 @@ class ExamplePlugin(PluginBase):
         try:
             logger.info(f"收到了文本消息。消息对象: {message}")
             # 这里可以添加具体的消息处理逻辑
+            # await client.send_text_message(message.sender_wxid, f"收到了文本消息。消息对象: {message}")
+            # if message.content == "测试":
+            #     await client.send_text_message(message.sender_wxid, f"收到了测试文本消息。消息对象: {message}")
         except Exception as e:
             logger.error(f"处理文本消息时出错: {e}")
             logger.error(traceback.format_exc())
@@ -130,14 +133,16 @@ class ExamplePlugin(PluginBase):
             return
         logger.info("收到了表情消息")
 
-    @schedule("interval", seconds=5)
+    @schedule("interval", seconds=10)
     async def periodic_task(self, client):
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         if not self.enable:
             logger.debug(f"[{current_time}] 插件已禁用，跳过定时任务")
             return
         try:
-            logger.info(f"[{current_time}] 我每5秒执行一次")
+            # 尝试发送文本消息
+            # await client.send_text_message("wxid_mly499mvz23o21", f"[{current_time}] 我每10秒执行一次")
+            logger.info(f"[{current_time}] 我每10秒执行一次")
         except Exception as e:
             logger.error(f"执行定时任务出错: {e}")
             logger.error(traceback.format_exc())
@@ -154,7 +159,7 @@ class ExamplePlugin(PluginBase):
             logger.error(f"执行每日任务出错: {e}")
             logger.error(traceback.format_exc())
 
-    @schedule("date", run_date="2025-05-15 16:54:00")
+    @schedule("date", run_date="2025-05-27 21:31:00")
     async def new_year_task(self, client):
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         if not self.enable:
