@@ -127,11 +127,37 @@ class SessionManager:
             await conn.run_sync(BotBase.metadata.create_all)
             logger.info(f"机器人表结构已创建: {schema_name}")
 
+    async def drop_bot_schema(self, gewe_app_id: str) -> bool:
+        """删除机器人专用的数据库Schema"""
+        schema_name = self._get_bot_schema_name(gewe_app_id)
+        logger.info(f"准备删除机器人数据库Schema: {schema_name}")
+
+        # 先关闭并移除该bot的引擎和session maker，防止连接占用
+        if schema_name in self._engines:
+            engine = self._engines.pop(schema_name)
+            await engine.dispose()
+            logger.info(f"已关闭并移除机器人 {gewe_app_id} 的数据库引擎")
+        if schema_name in self._session_makers:
+            self._session_makers.pop(schema_name)
+
+        # 使用主数据库连接执行删除操作
+        try:
+            async with self.get_admin_session() as session:
+                # 使用参数化查询防止SQL注入
+                await session.execute(text(f"DROP DATABASE IF EXISTS `{schema_name}`"))
+                await session.commit()
+                logger.info(f"成功删除数据库Schema: {schema_name}")
+                return True
+        except Exception as e:
+            logger.error(
+                f"删除数据库Schema失败: {schema_name}, 错误: {e}", exc_info=True)
+            return False
+
     def _get_bot_schema_name(self, gewe_app_id: str) -> str:
         """获取机器人Schema名称"""
-        return (
-            f"bot_{gewe_app_id.replace('@', '_').replace('.', '_').replace('-', '_')}"
-        )
+        # 确保schema名称对于数据库是安全的
+        safe_id = "".join(c if c.isalnum() else '_' for c in gewe_app_id)
+        return f"bot_{safe_id}"
 
     # FastAPI依赖注入专用函数
     async def get_admin_session_dependency(self) -> AsyncGenerator[AsyncSession, None]:

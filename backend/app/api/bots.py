@@ -261,12 +261,20 @@ async def delete_bot(
         await session.delete(bot)
         await session.commit()
 
+        logger.info(f"机器人记录已从数据库删除: {gewe_app_id}")
+
+        # 删除机器人专用的数据库Schema
+        schema_deleted = await session_manager.drop_bot_schema(gewe_app_id)
+        if not schema_deleted:
+            # 即使schema删除失败，也认为机器人删除成功，但记录一个警告
+            logger.warning(f"机器人 {gewe_app_id} 的数据库Schema删除失败，请手动清理")
+
         logger.info(f"机器人删除成功: {gewe_app_id} by {current_user['username']}")
 
         return {"message": "机器人删除成功"}
 
     except Exception as e:
-        logger.error(f"删除机器人失败: {e}")
+        logger.error(f"删除机器人失败: {e}", exc_info=True)
         await session.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="删除机器人失败"
@@ -436,7 +444,8 @@ async def check_bot_online(
                 bot = db_result.scalar_one_or_none()
 
                 if bot:
-                    bot.last_seen_at = to_app_timezone(datetime.now(timezone.utc))
+                    bot.last_seen_at = to_app_timezone(
+                        datetime.now(timezone.utc))
                     if not bot.is_online:
                         bot.is_online = True
                     await session.commit()
