@@ -157,8 +157,10 @@ class AdvancedMessageQueue(BaseMessageQueue):
             tuple[bool, int]: (是否有可用worker, worker数量)
         """
         try:
-            # 使用ping检测worker
-            ping_result = self.celery_app.control.ping(timeout=timeout)
+            # 使用ping检测worker，在线程池中执行避免阻塞事件循环
+            ping_result = await asyncio.to_thread(
+                self.celery_app.control.ping, timeout=timeout
+            )
             if ping_result:
                 worker_count = len(ping_result)
                 logger.debug(f"检测到 {worker_count} 个活跃的Celery worker")
@@ -189,14 +191,14 @@ class AdvancedMessageQueue(BaseMessageQueue):
             # 获取Celery inspect对象
             inspect_obj = self.celery_app.control.inspect()
 
-            # 获取活跃任务
-            active_tasks = inspect_obj.active() or {}
+            # 获取活跃任务，在线程池中执行避免阻塞事件循环
+            active_tasks = await asyncio.to_thread(inspect_obj.active) or {}
 
-            # 获取预约任务
-            scheduled_tasks = inspect_obj.scheduled() or {}
+            # 获取预约任务，在线程池中执行避免阻塞事件循环
+            scheduled_tasks = await asyncio.to_thread(inspect_obj.scheduled) or {}
 
-            # 获取保留任务
-            reserved_tasks = inspect_obj.reserved() or {}
+            # 获取保留任务，在线程池中执行避免阻塞事件循环
+            reserved_tasks = await asyncio.to_thread(inspect_obj.reserved) or {}
 
             # 计算总任务数
             total_active = sum(len(tasks) for tasks in active_tasks.values())
@@ -205,8 +207,8 @@ class AdvancedMessageQueue(BaseMessageQueue):
             total_reserved = sum(len(tasks)
                                  for tasks in reserved_tasks.values())
 
-            # 获取worker状态
-            worker_stats = inspect_obj.stats() or {}
+            # 获取worker状态，在线程池中执行避免阻塞事件循环
+            worker_stats = await asyncio.to_thread(inspect_obj.stats) or {}
             worker_count = len(worker_stats)
 
             return {
@@ -250,9 +252,9 @@ class AdvancedMessageQueue(BaseMessageQueue):
             # 获取Celery inspect对象
             inspect_obj = self.celery_app.control.inspect()
 
-            # 获取预约和保留的任务
-            scheduled_tasks = inspect_obj.scheduled() or {}
-            reserved_tasks = inspect_obj.reserved() or {}
+            # 获取预约和保留的任务，在线程池中执行避免阻塞事件循环
+            scheduled_tasks = await asyncio.to_thread(inspect_obj.scheduled) or {}
+            reserved_tasks = await asyncio.to_thread(inspect_obj.reserved) or {}
 
             # 计算待清除的任务数
             scheduled_count = sum(len(tasks)
@@ -261,8 +263,8 @@ class AdvancedMessageQueue(BaseMessageQueue):
                                  for tasks in reserved_tasks.values())
             total_count = scheduled_count + reserved_count
 
-            # 清空队列
-            self.celery_app.control.purge()
+            # 清空队列，在线程池中执行避免阻塞事件循环
+            await asyncio.to_thread(self.celery_app.control.purge)
 
             # 取消所有待处理的Future
             cancelled_futures = 0
@@ -447,7 +449,8 @@ class AdvancedMessageQueue(BaseMessageQueue):
         # 检查worker状态
         try:
             inspect_obj = self.celery_app.control.inspect()
-            worker_stats = inspect_obj.stats() or {}
+            # 在线程池中执行stats调用避免阻塞事件循环
+            worker_stats = await asyncio.to_thread(inspect_obj.stats) or {}
             if worker_stats:
                 logger.info(
                     f"发现 {len(worker_stats)} 个活跃的Celery worker: {list(worker_stats.keys())}"
