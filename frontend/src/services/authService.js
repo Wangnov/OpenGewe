@@ -41,15 +41,11 @@ const authService = {
      */
     logout: async () => {
         try {
-            // 调用登出API
+            // 只调用登出API，不清除本地存储
             await api.post('/auth/logout');
         } catch (error) {
+            // 即使失败也继续，让上层处理
             console.error('登出API调用失败', error);
-        } finally {
-            // 无论API调用成功与否，都清除本地存储的认证信息
-            localStorage.removeItem('access_token');
-            localStorage.removeItem('refresh_token');
-            localStorage.removeItem('user');
         }
     },
 

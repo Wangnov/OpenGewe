@@ -1,5 +1,7 @@
-import { useContext } from 'react';
-import { AuthContext } from '../contexts/AuthContext';
+import { createContext, useContext } from 'react';
+
+// 创建认证上下文
+export const AuthContext = createContext(null);
 
 /**
  * 认证钩子，用于在组件中访问认证上下文

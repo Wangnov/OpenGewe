@@ -41,11 +41,8 @@ api.interceptors.response.use(
                 // 尝试使用刷新令牌获取新的访问令牌
                 const refreshToken = localStorage.getItem('refresh_token');
                 if (!refreshToken) {
-                    // 如果没有刷新令牌，清除认证状态并跳转到登录页
-                    localStorage.removeItem('access_token');
-                    localStorage.removeItem('refresh_token');
-                    localStorage.removeItem('user');
-                    window.location.href = '/login';
+                    // 如果没有刷新令牌，分发认证错误事件，由UI层处理跳转
+                    window.dispatchEvent(new Event('auth-error'));
                     return Promise.reject(error);
                 }
 
@@ -63,11 +60,8 @@ api.interceptors.response.use(
                 originalRequest.headers.Authorization = `Bearer ${access_token}`;
                 return axios(originalRequest);
             } catch (refreshError) {
-                // 刷新令牌失败，清除认证状态并跳转到登录页
-                localStorage.removeItem('access_token');
-                localStorage.removeItem('refresh_token');
-                localStorage.removeItem('user');
-                window.location.href = '/login';
+                // 刷新令牌失败，分发认证错误事件
+                window.dispatchEvent(new Event('auth-error'));
                 return Promise.reject(refreshError);
             }
         }
