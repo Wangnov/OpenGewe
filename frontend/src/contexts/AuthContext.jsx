@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, createContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import authService from '../services/authService';
 import useNotification from '../hooks/useNotification';
-import { AuthContext } from '../hooks/useAuth';
+
+// 创建认证上下文
+export const AuthContext = createContext(null);
 
 /**
  * 认证上下文提供者组件
