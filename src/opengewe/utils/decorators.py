@@ -120,23 +120,27 @@ def add_job_safe(
     if "timezone" not in trigger_args and trigger == "date":
         trigger_args["timezone"] = scheduler.timezone
 
+    # 检查 trigger_args 中是否已包含 'args'，如果没有，则使用默认值
+    if 'args' not in trigger_args:
+        trigger_args['args'] = [client]
+
     # 添加日志记录任务添加信息
     run_time_info = ""
     if trigger == "date" and "run_date" in trigger_args:
         run_time_info = f"计划执行时间: {trigger_args['run_date']}"
     elif trigger == "interval":
-        interval_desc = ", ".join([f"{k}={v}" for k, v in trigger_args.items()])
+        interval_desc = ", ".join([f"{k}={v}" for k, v in trigger_args.items() if k != 'args'])
         run_time_info = f"间隔: {interval_desc}"
     elif trigger == "cron":
         cron_desc = ", ".join(
-            [f"{k}={v}" for k, v in trigger_args.items() if k not in ["timezone"]]
+            [f"{k}={v}" for k, v in trigger_args.items() if k not in ["timezone", "args"]]
         )
         run_time_info = f"定时: {cron_desc}"
 
     logger.debug(f"添加定时任务: {job_id}, 触发器类型: {trigger}, {run_time_info}")
 
     # 添加任务
-    job = scheduler.add_job(func, trigger, args=[client], id=job_id, **trigger_args)
+    job = scheduler.add_job(func, trigger, id=job_id, **trigger_args)
 
     # 安全地获取下次执行时间
     try:
