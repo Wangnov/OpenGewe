@@ -15,28 +15,28 @@ logger = get_logger("CeleryTasks")
 
 
 def run_async_task(coro):
-    """安全地运行异步任务，自动处理事件循环"""
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
+    """
+    安全地运行异步任务，自动处理事件循环。
 
-    if loop.is_running():
-        # 如果事件循环正在运行，使用ensure_future
-        future = asyncio.ensure_future(coro)
-        # 在同步上下文中等待future完成
-        return loop.run_until_complete(future)
-    else:
-        # 否则，使用run_until_complete
+    此函数通过始终在新事件循环中运行协程来确保线程安全和避免与现有事件循环的冲突。
+    这在从同步代码（如Celery任务）调用异步代码时特别有用。
+    """
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
         return loop.run_until_complete(coro)
+    finally:
+        loop.close()
 
 
 def register_tasks(celery_app):
-    """动态注册Celery任务"""
+    """动态注册Celery任务
+
+    Raises:
+        ValueError: 如果celery_app为None，则无法注册任务
+    """
     if celery_app is None:
-        logger.error("无法注册Celery任务，因为celery_app为None")
-        return
+        raise ValueError("无法注册Celery任务，因为celery_app为None")
 
     @celery_app.task(name="opengewe.queue.tasks.send_text_message_task")
     def send_text_message_task(
