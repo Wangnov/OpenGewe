@@ -13,7 +13,7 @@ logger = get_logger(__name__)
 class DailyQuote(PluginBase):
     """每日一言插件"""
     description = "获取每日一言"
-    author = "Roo"
+    author = "Wangnov"
     version = "1.0.0"
 
     def __init__(self, config: dict):
