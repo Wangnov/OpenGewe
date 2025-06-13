@@ -11,7 +11,7 @@ logger = get_logger(__name__)
 class BotStatus(PluginBase):
     """一个简单的插件，用于响应机器人的状态查询"""
     description = "机器人状态查询插件"
-    author = "Roo"
+    author = "Wangnov"
     version = "1.0.0"
 
     def __init__(self, config: dict):

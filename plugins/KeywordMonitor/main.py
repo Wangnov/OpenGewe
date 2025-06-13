@@ -8,7 +8,7 @@ class KeywordMonitor(PluginBase):
     """关键词舆情监控"""
     name = "关键词舆情监控"
     description = "监控群聊中的关键词，当匹配到指定词语时，向负责人发送包含上下文的实时警报。"
-    author = "Roo"
+    author = "Wangnov"
     version = "0.1.1"
 
     def __init__(self, config):

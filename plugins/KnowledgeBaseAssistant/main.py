@@ -9,7 +9,7 @@ class KnowledgeBaseAssistant(PluginBase):
     """智能知识库助手"""
     name = "智能知识库助手"
     description = "通过关键词或指令，从知识库检索信息，并@提问者进行智能回复。"
-    author = "Roo"
+    author = "Wangnov"
     version = "0.3.1"
 
     def __init__(self, config):

@@ -14,7 +14,7 @@ class ScheduledTaskNotifier(PluginBase):
     """动态定时任务提醒"""
     name = "动态定时任务提醒"
     description = "通过聊天指令动态添加、管理定时或轮询任务，并使用持久化存储确保任务不丢失。"
-    author = "Roo"
+    author = "Wangnov"
     version = "0.2.3"
 
     def __init__(self, config):

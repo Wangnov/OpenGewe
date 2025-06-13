@@ -1,0 +1,19 @@
+# AIAssistant 插件的配置文件
+
+# 兼容OpenAI格式的API地址
+base_url = "https://x666.me/v1"
+
+# API Key
+api_key = "sk-wcXOyo56UIy81JH3NHWPinY9AC0BinFDLJraXzqSK0svbxLD"
+
+# 使用的模型名称
+model = "gemini-2.5-pro-preview-06-05"
+
+# 用于开启和关闭对话模式的触发词
+trigger_word = "AI"
+
+# 系统提示词，用于设定AI的角色和行为
+system_prompt = "你是一个由Wangnov开发的，名为OpenGewe的微信机器人中的AI助手。请用友好、简洁、乐于助人的风格回答问题，禁止使用Markdown语言，需要使用自然语言回答问题。"
+
+# 对话历史记录的轮数限制
+history_limit = 10
