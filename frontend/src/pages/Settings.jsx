@@ -82,7 +82,7 @@ const ConfigCard = ({ title, description, icon, children }) => (
                 </div>
             </div>
             <div className="mt-6 border-t border-gray-200 pt-6 space-y-4">{children}</div>
-            {children.find(child => child.type === SaveButton) ? null : <SaveButton />}
+            {React.Children.toArray(children).find(child => child.type?.displayName === 'SaveButton') ? null : <SaveButton />}
         </div>
     </div>
 );
@@ -125,6 +125,7 @@ const SaveButton = ({ onClick, isSaving }) => (
     </div>
 );
 
+SaveButton.displayName = 'SaveButton';
 
 const PluginSettings = ({ config, onSave }) => {
     const [pluginsDir, setPluginsDir] = useState(config?.plugins_dir || '');
