@@ -1,2 +1,11 @@
 # KnowledgeBaseAssistant 插件的配置文件
-# 目前无需配置
+
+# 触发机器人的命令关键词
+command_keywords = ["帮助", "知识库", "查询"]
+
+# 知识库内容，格式为 "问题" = "答案"
+[knowledge_base]
+"如何报销" = "请访问 a.com/reimbursement 提交报销申请。"
+"wifi密码" = "公司WiFi密码是 a-b-c-d。"
+"打印机" = "打印机驱动下载地址：a.com/printer-drivers"
+"联系IT" = "IT支持的邮箱是 support@example.com，电话是 12345。"
