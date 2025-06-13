@@ -11,7 +11,12 @@ from sqlalchemy import select
 from ...core.database import get_admin_session
 from ...core.security import require_superadmin
 from ...models.admin import GlobalPlugin
-from ...schemas.plugin import GlobalPluginInfo, GlobalPluginInfoResponse, UpdateGlobalPluginRequest
+from ...schemas.plugin import (
+    GlobalPluginInfo,
+    GlobalPluginInfoResponse,
+    UpdateGlobalPluginRequest,
+)
+from ...services.bot_manager import bot_manager
 from opengewe.logger import get_logger
 
 import ast
@@ -154,11 +159,14 @@ async def process_plugin_dir(plugin_path: Path, db_plugins: Dict[str, GlobalPlug
         config_schema = get_plugin_config_schema(plugin_path)
 
         db_plugin = db_plugins.get(plugin_id)
+        db_plugin = db_plugins.get(plugin_id)
         is_globally_enabled = db_plugin.is_globally_enabled if db_plugin else False
+        global_config = db_plugin.global_config if db_plugin else None
 
         return GlobalPluginInfo(
             plugin_id=plugin_id,
             is_globally_enabled=is_globally_enabled,
+            global_config=global_config,
             **metadata,
             readme=readme,
             config_schema=config_schema,
@@ -166,6 +174,54 @@ async def process_plugin_dir(plugin_path: Path, db_plugins: Dict[str, GlobalPlug
     except Exception as e:
         logger.error(f"处理插件目录失败 {plugin_path.name}: {e}")
         return None
+
+
+@router.put("/{plugin_id}/config", summary="更新插件的全局配置")
+async def update_global_plugin_config(
+    plugin_id: str,
+    config: Dict[str, Any],
+    current_user: dict = Depends(require_superadmin),
+    session: AsyncSession = Depends(get_admin_session),
+):
+    """
+    更新指定插件的全局配置，并自动热重载插件以应用新配置。
+    """
+    stmt = select(GlobalPlugin).where(GlobalPlugin.plugin_name == plugin_id)
+    result = await session.execute(stmt)
+    db_plugin = result.scalar_one_or_none()
+
+    if not db_plugin:
+        # 如果插件不存在，创建一个新的记录
+        db_plugin = GlobalPlugin(
+            plugin_name=plugin_id,
+            is_globally_enabled=True,  # 默认为启用
+            global_config=config,
+        )
+        session.add(db_plugin)
+    else:
+        db_plugin.global_config = config
+
+    await session.commit()
+    await session.refresh(db_plugin)
+
+    # 触发热重载
+    try:
+        await bot_manager.reload_all_clients_plugins_config()
+    except Exception as e:
+        logger.error(f"更新配置后热重载失败: {e}", exc_info=True)
+        # 注意：即使热重载失败，配置也已经保存成功。
+        # 返回一个警告信息给前端。
+        return {
+            "status": "warning",
+            "message": f"插件 '{plugin_id}' 的配置已保存，但热重载失败，请稍后手动重载。",
+            "data": db_plugin.global_config,
+        }
+
+    return {
+        "status": "success",
+        "message": f"插件 '{plugin_id}' 的配置已更新并成功热重载。",
+        "data": db_plugin.global_config,
+    }
 
 
 @router.put("/{plugin_id}", summary="更新插件的全局启用状态")
@@ -195,3 +251,26 @@ async def update_global_plugin_status(
     await session.commit()
 
     return {"status": "success", "message": f"插件 '{plugin_id}' 的全局状态已更新。"}
+
+
+@router.post("/reload", summary="热重载所有插件配置")
+async def reload_all_plugins_config(
+    current_user: dict = Depends(require_superadmin),
+):
+    """
+    触发所有正在运行的机器人客户端重新加载插件配置。
+    这会重新读取main_config.toml，并根据最新的禁用列表重载插件。
+    """
+    try:
+        reload_results = await bot_manager.reload_all_clients_plugins_config()
+        return {
+            "status": "success",
+            "message": "插件配置热重载任务已触发。",
+            "data": reload_results,
+        }
+    except Exception as e:
+        logger.error(f"热重载插件配置失败: {e}", exc_info=True)
+        return {
+            "status": "error",
+            "message": f"热重载插件配置时发生内部错误: {e}",
+        }

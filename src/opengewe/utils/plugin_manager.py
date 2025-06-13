@@ -57,7 +57,11 @@ class PluginManager(metaclass=Singleton):
         self.event_manager = EventManager()
 
         # 读取配置文件中的禁用插件列表
-        # 在 __init__ 方法中
+        self.excluded_plugins: List[str] = []
+        self._load_config()
+
+    def _load_config(self) -> None:
+        """从 main_config.toml 加载配置"""
         config_path = self._find_project_root() / "main_config.toml"
         try:
             with open(config_path, "rb") as f:
@@ -65,6 +69,8 @@ class PluginManager(metaclass=Singleton):
                 self.excluded_plugins = main_config.get("plugins", {}).get(
                     "disabled_plugins", []
                 )
+                logger.info(
+                    f"从 {config_path} 加载了禁用插件列表: {self.excluded_plugins}")
         except FileNotFoundError:
             logger.warning(f"未找到配置文件 {config_path}，使用空的禁用插件列表")
             self.excluded_plugins = []
@@ -97,11 +103,16 @@ class PluginManager(metaclass=Singleton):
         """
         self.client = client
 
-    async def load_plugin(self, plugin: Union[Type[PluginBase], str]) -> bool:
+    async def load_plugin(
+        self,
+        plugin: Union[Type[PluginBase], str],
+        override_config: Optional[Dict[str, Any]] = None,
+    ) -> bool:
         """加载单个插件
 
         Args:
             plugin: 插件类或插件名称
+            override_config: 用于覆盖插件默认配置的字典
 
         Returns:
             bool: 是否成功加载插件
@@ -110,9 +121,9 @@ class PluginManager(metaclass=Singleton):
         self._ensure_plugin_paths()
 
         if isinstance(plugin, str):
-            return await self._load_plugin_name(plugin)
+            return await self._load_plugin_name(plugin, override_config)
         elif isinstance(plugin, type) and issubclass(plugin, PluginBase):
-            return await self._load_plugin_class(plugin)
+            return await self._load_plugin_class(plugin, override_config=override_config)
         return False
 
     def _ensure_plugin_paths(self) -> None:
@@ -164,6 +175,7 @@ class PluginManager(metaclass=Singleton):
         self,
         plugin_class: Type[PluginBase],
         is_disabled: bool = False,
+        override_config: Optional[Dict[str, Any]] = None,
         retry_count: int = 0,
     ) -> bool:
         """加载单个插件类
@@ -171,18 +183,15 @@ class PluginManager(metaclass=Singleton):
         Args:
             plugin_class: 插件类
             is_disabled: 该插件是否被外部配置文件禁用
+            override_config: 用于覆盖插件默认配置的字典
             retry_count: 当前重试次数，用于错误恢复
 
         Returns:
             bool: 是否成功加载插件
-
-        Note:
-            插件会在以下两种情况下被跳过加载：
-            1. 当插件在外部配置中被禁用（is_disabled=True）
-            2. 当插件自身的配置中设置了enable=False
         """
         max_retries = 1  # 最大重试次数
         plugin_name = plugin_class.__name__
+        override_config = override_config or {}
 
         try:
             # 防止重复加载插件
@@ -213,12 +222,30 @@ class PluginManager(metaclass=Singleton):
                 "error": None,  # 记录插件可能的错误信息
             }
 
-            # 创建插件实例，以检查其自身配置
+            # --- 配置合并与插件实例化 ---
             try:
-                plugin = plugin_class()
+                # 1. 加载插件自带的默认配置 config.toml
+                default_config = {}
+                if directory != "unknown" and directory != "error":
+                    config_path = (
+                        self._find_project_root()
+                        / "plugins"
+                        / directory
+                        / "config.toml"
+                    )
+                    if config_path.exists():
+                        with open(config_path, "rb") as f:
+                            default_config = tomllib.load(f)
+
+                # 2. 合并默认配置和覆盖配置
+                final_config = {**default_config, **override_config}
+
+                # 3. 创建插件实例，并注入最终配置
+                plugin = plugin_class(config=final_config)
 
                 # 检查插件自身是否在配置中设置为禁用
-                plugin_self_disabled = hasattr(plugin, "enable") and not plugin.enable
+                plugin_self_disabled = hasattr(
+                    plugin, "enable") and not plugin.enable
             except Exception as e:
                 error_msg = f"初始化插件 {plugin_name} 实例时出错: {e}"
                 logger.error(error_msg)
@@ -314,11 +341,16 @@ class PluginManager(metaclass=Singleton):
                 )
             return False
 
-    async def _load_plugin_name(self, plugin_name: str) -> bool:
+    async def _load_plugin_name(
+        self,
+        plugin_name: str,
+        override_config: Optional[Dict[str, Any]] = None,
+    ) -> bool:
         """通过名称加载单个插件
 
         Args:
             plugin_name: 插件类名称
+            override_config: 用于覆盖插件默认配置的字典
 
         Returns:
             bool: 是否成功加载插件
@@ -337,7 +369,8 @@ class PluginManager(metaclass=Singleton):
                     main_file = os.path.join(plugin_path, "main.py")
 
                     if os.path.isdir(plugin_path) and os.path.exists(main_file):
-                        module = importlib.import_module(f"plugins.{dirname}.main")
+                        module = importlib.import_module(
+                            f"plugins.{dirname}.main")
                         importlib.reload(module)
 
                         for name, obj in inspect.getmembers(module):
@@ -348,7 +381,9 @@ class PluginManager(metaclass=Singleton):
                                 and obj.__name__ == plugin_name
                             ):
                                 found = True
-                                return await self._load_plugin_class(obj)
+                                return await self._load_plugin_class(
+                                    obj, override_config=override_config
+                                )
                 except Exception:
                     logger.error(
                         f"检查 {dirname} 时发生错误:\n{traceback.format_exc()}"
@@ -371,11 +406,17 @@ class PluginManager(metaclass=Singleton):
             return False
         return False
 
-    async def load_plugins(self, load_disabled: bool = False) -> List[str]:
+    async def load_plugins(
+        self,
+        load_disabled: bool = False,
+        bots_plugins_override_config: Optional[Dict[str,
+                                                    Dict[str, Any]]] = None,
+    ) -> List[str]:
         """加载所有插件
 
         Args:
             load_disabled: 是否加载被禁用的插件
+            bots_plugins_override_config: 包含所有插件覆盖配置的字典
 
         Returns:
             List[str]: 成功加载的插件名称列表
@@ -403,7 +444,8 @@ class PluginManager(metaclass=Singleton):
 
                 if os.path.isdir(plugin_path) and os.path.exists(main_file):
                     try:
-                        module = importlib.import_module(f"plugins.{dirname}.main")
+                        module = importlib.import_module(
+                            f"plugins.{dirname}.main")
                         # 重新加载模块，确保获取最新的代码
                         importlib.reload(module)
 
@@ -420,8 +462,15 @@ class PluginManager(metaclass=Singleton):
                                         or dirname in self.excluded_plugins
                                     )
 
+                                override_config = None
+                                if bots_plugins_override_config:
+                                    override_config = bots_plugins_override_config.get(
+                                        obj.__name__)
+
                                 if await self._load_plugin_class(
-                                    obj, is_disabled=is_disabled
+                                    obj,
+                                    is_disabled=is_disabled,
+                                    override_config=override_config,
                                 ):
                                     loaded_plugins.append(obj.__name__)
                     except Exception:
@@ -637,16 +686,21 @@ class PluginManager(metaclass=Singleton):
         # 返回所有插件信息的列表
         return list(self.plugin_info.values())
 
-    async def register_plugin(self, plugin: Union[Type[PluginBase], str]) -> bool:
+    async def register_plugin(
+        self,
+        plugin: Union[Type[PluginBase], str],
+        override_config: Optional[Dict[str, Any]] = None,
+    ) -> bool:
         """注册插件（加载插件的别名）
 
         Args:
             plugin: 插件类或插件名称
+            override_config: 用于覆盖插件默认配置的字典
 
         Returns:
             bool: 是否成功加载插件
         """
-        return await self.load_plugin(plugin)
+        return await self.load_plugin(plugin, override_config)
 
     async def load_plugins_from_directory(
         self, directory: str, prefix: str = ""
@@ -776,3 +830,44 @@ class PluginManager(metaclass=Singleton):
             logger.error(f"禁用插件 {plugin_name} 时出错: {e}")
             logger.error(traceback.format_exc())
             return False
+
+    async def reload_configuration(self) -> Tuple[List[str], List[str]]:
+        """
+        重新加载配置并重载所有插件。
+
+        1. 重新读取 main_config.toml 获取最新的禁用插件列表。
+        2. 卸载所有当前已加载的插件。
+        3. 根据新配置重新加载所有插件。
+
+        Returns:
+            Tuple[List[str], List[str]]: 成功加载的插件列表和加载失败的插件列表。
+        """
+        logger.info("开始热重载插件配置...")
+
+        # 1. 重新读取配置
+        self._load_config()
+
+        # 2. 卸载所有插件
+        unloaded_plugins, failed_unloads = await self.unload_plugins()
+        if failed_unloads:
+            logger.warning(f"部分插件卸载失败: {failed_unloads}")
+
+        # 3. 清除模块缓存，确保插件代码也是最新的
+        for module_name in list(sys.modules.keys()):
+            if module_name.startswith("plugins."):
+                try:
+                    del sys.modules[module_name]
+                except KeyError:
+                    pass
+        logger.debug("已清除插件相关的模块缓存。")
+
+        # 4. 根据新配置重新加载所有插件
+        loaded_plugins = await self.load_plugins()
+        failed_plugins_dict = await self.get_failed_plugins()
+        failed_plugins_list = list(failed_plugins_dict.keys())
+
+        logger.info(
+            f"插件配置热重载完成。成功加载: {len(loaded_plugins)}个, 失败: {len(failed_plugins_list)}个。"
+        )
+
+        return loaded_plugins, failed_plugins_list

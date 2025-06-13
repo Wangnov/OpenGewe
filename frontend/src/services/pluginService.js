@@ -42,6 +42,24 @@ const pluginService = {
     updateBotPluginConfig: async (botId, pluginId, configData) => {
         return api.put(`/bots/${botId}/plugins/${pluginId}`, configData);
     },
+
+    /**
+     * 触发后端热重载所有插件配置
+     * @returns {Promise} - 热重载操作的响应
+     */
+    reloadPluginConfig: async () => {
+        return api.post('/admin/plugins/reload');
+    },
+
+    /**
+     * 更新插件的全局配置
+     * @param {string} pluginId - 插件的唯一标识符
+     * @param {Object} config - 新的配置对象
+     * @returns {Promise} - 更新操作的响应
+     */
+    updateGlobalPluginConfig: async (pluginId, config) => {
+        return api.put(`/admin/plugins/${pluginId}/config`, config);
+    },
 };
 
 export default pluginService;

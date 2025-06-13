@@ -107,6 +107,23 @@ export const NotificationProvider = ({ children }) => {
      * @param {Object} notification - 通知配置
      * @returns {string} 通知ID
      */
+    /**
+     * 移除通知
+     * @param {string} id - 通知ID
+     */
+    const removeNotification = useCallback((id) => {
+        // 不立即移除，而是等待动画完成
+        // 让组件自己处理移除逻辑
+        setTimeout(() => {
+            setNotifications(prev => prev.filter(notification => notification.id !== id));
+        }, 600); // 给动画充足的时间（0.5s动画 + 0.1s缓冲）
+    }, []);
+
+    /**
+     * 添加通知
+     * @param {Object} notification - 通知配置
+     * @returns {string} 通知ID
+     */
     const addNotification = useCallback((notification) => {
         const newNotification = createNotification(notification);
 
@@ -147,18 +164,6 @@ export const NotificationProvider = ({ children }) => {
 
         return newNotification.id;
     }, [removeNotification, settings.maxHistoryCount]);
-
-    /**
-     * 移除通知
-     * @param {string} id - 通知ID
-     */
-    const removeNotification = useCallback((id) => {
-        // 不立即移除，而是等待动画完成
-        // 让组件自己处理移除逻辑
-        setTimeout(() => {
-            setNotifications(prev => prev.filter(notification => notification.id !== id));
-        }, 600); // 给动画充足的时间（0.5s动画 + 0.1s缓冲）
-    }, []);
 
     /**
      * 标记通知为已读
