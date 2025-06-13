@@ -4,6 +4,7 @@ import authService from '../services/authService';
 import useNotification from '../hooks/useNotification';
 
 // 创建认证上下文
+// eslint-disable-next-line react-refresh/only-export-components
 export const AuthContext = createContext(null);
 
 /**
@@ -31,6 +32,10 @@ export const AuthProvider = ({ children }) => {
         setLoading(true);
         try {
             await authService.logout();
+            // 仅在成功时显示成功通知
+            info('已退出登录', '您已安全退出系统，感谢使用！', {
+                duration: 2000
+            });
         } catch (err) {
             console.error('登出失败', err);
             setError('登出失败');
@@ -38,15 +43,12 @@ export const AuthProvider = ({ children }) => {
                 duration: 5000
             });
         } finally {
-            // 统一在这里清除认证信息
+            // 无论成功与否，都清除本地认证信息
             localStorage.removeItem('access_token');
             localStorage.removeItem('refresh_token');
             localStorage.removeItem('user');
             setUser(null);
             setLoading(false);
-            info('已退出登录', '您已安全退出系统，感谢使用！', {
-                duration: 2000
-            });
         }
     }, [info, notifyError]);
 

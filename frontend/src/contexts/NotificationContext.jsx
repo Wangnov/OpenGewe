@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useState, useEffect, useCallback, useMemo } from 'react';
 import notificationStorage from '../utils/notificationStorage';
 
@@ -145,7 +146,7 @@ export const NotificationProvider = ({ children }) => {
         }
 
         return newNotification.id;
-    }, [settings.maxHistoryCount]);
+    }, [removeNotification, settings.maxHistoryCount]);
 
     /**
      * 移除通知
