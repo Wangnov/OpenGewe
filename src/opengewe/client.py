@@ -19,8 +19,9 @@ from opengewe.mixin import MessageMixin
 from opengewe.callback.factory import MessageFactory
 from opengewe.utils.plugin_manager import PluginManager
 from opengewe.utils.decorators import scheduler
-from opengewe.logger import get_logger
+from opengewe.logger import init_default_logger, get_logger
 
+init_default_logger()
 # 获取客户端日志记录器
 logger = get_logger("GeweClient")
 
@@ -65,6 +66,10 @@ class GeweClient:
         # 判断是否为付费版gewe
         self.is_gewe = is_gewe or base_url == "http://www.geweapi.com/gewe/v2/api"
 
+        # 保存队列配置
+        self.queue_type = queue_type
+        self.queue_options = queue_options
+
         # 创建HTTP会话
         self._session: Optional[aiohttp.ClientSession] = None
 
@@ -81,7 +86,8 @@ class GeweClient:
         self.finder = FinderModule(self)
 
         # 创建并集成MessageMixin
-        self._message_mixin = MessageMixin(self.message, queue_type, **queue_options)
+        self._message_mixin = MessageMixin(
+            self.message, queue_type, **queue_options)
 
         # 将MessageMixin的方法注册到Client实例
         self._register_message_methods()
@@ -199,7 +205,8 @@ class GeweClient:
             try:
                 unloaded, failed = await self.plugin_manager.unload_plugins()
                 if unloaded:
-                    logger.info(f"已卸载 {len(unloaded)} 个插件: {', '.join(unloaded)}")
+                    logger.info(
+                        f"已卸载 {len(unloaded)} 个插件: {', '.join(unloaded)}")
                 if failed:
                     logger.warning(f"卸载失败的插件: {', '.join(failed)}")
             except Exception as e:

@@ -1,13 +1,13 @@
 """简单消息队列实现"""
 
-import asyncio
-import time
-from asyncio import Future, Queue, sleep
-from typing import Any, Awaitable, Callable, Dict, Optional
-
-from opengewe.logger import get_logger
-
 from .base import BaseMessageQueue, QueueError
+import asyncio
+from asyncio import Future, Queue, sleep
+from typing import Any, Awaitable, Callable, Dict
+
+from opengewe.logger import init_default_logger, get_logger
+
+init_default_logger()
 
 logger = get_logger("Queue.Simple")
 
@@ -15,16 +15,19 @@ logger = get_logger("Queue.Simple")
 class SimpleMessageQueue(BaseMessageQueue):
     """基于asyncio.Queue的简单消息队列实现"""
 
-    def __init__(self, delay: float = 1.0):
+    def __init__(self, delay: float = 1.0, **kwargs: Any):
         """初始化消息队列
 
         Args:
             delay: 消息处理间隔，单位为秒
+            **kwargs: 接受并忽略其他未使用的关键字参数
         """
         self._queue = Queue()
         self._is_processing = False
         self._delay = delay
         self._processed_messages = 0
+        if kwargs:
+            logger.debug(f"SimpleMessageQueue忽略了未使用的参数: {kwargs}")
 
     @property
     def is_processing(self) -> bool:
@@ -65,7 +68,7 @@ class SimpleMessageQueue(BaseMessageQueue):
         """
         try:
             cleared_count = 0
-            
+
             # 清空队列中的所有任务
             while not self._queue.empty():
                 try:
@@ -76,16 +79,18 @@ class SimpleMessageQueue(BaseMessageQueue):
                     cleared_count += 1
                 except asyncio.QueueEmpty:
                     break
-            
+
             logger.info(f"已清空简单队列，删除 {cleared_count} 个待处理任务")
             return cleared_count
-            
+
         except Exception as e:
             error_msg = f"清空简单队列失败: {str(e)}"
             logger.error(error_msg)
             raise QueueError(error_msg) from e
 
-    async def enqueue(self, func: Callable[..., Awaitable[Any]], *args: Any, **kwargs: Any) -> Any:
+    async def enqueue(
+        self, func: Callable[..., Awaitable[Any]], *args: Any, **kwargs: Any
+    ) -> Any:
         """将消息添加到队列
 
         Args:
@@ -111,7 +116,7 @@ class SimpleMessageQueue(BaseMessageQueue):
 
         self._is_processing = True
         logger.debug("开始处理消息队列")
-        
+
         try:
             while True:
                 if self._queue.empty():
@@ -137,4 +142,4 @@ class SimpleMessageQueue(BaseMessageQueue):
     async def stop_processing(self) -> None:
         """停止处理队列中的消息"""
         self._is_processing = False
-        logger.debug("停止处理消息队列") 
+        logger.debug("停止处理消息队列")

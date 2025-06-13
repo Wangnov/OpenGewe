@@ -4,8 +4,9 @@ import xml.etree.ElementTree as ET
 
 from opengewe.callback.types import MessageType
 from opengewe.callback.models.base import TextBaseMessage
-from opengewe.logger import get_logger
+from opengewe.logger import init_default_logger, get_logger
 
+init_default_logger()
 # 使用TYPE_CHECKING条件导入
 if TYPE_CHECKING:
     from opengewe.client import GeweClient
@@ -13,28 +14,39 @@ if TYPE_CHECKING:
 # 获取客户端日志记录器
 logger = get_logger("GeweClient")
 
+
 @dataclass
 class TextMessage(TextBaseMessage):
     """文本消息"""
-    
+
     # 设置消息类型类变量
     message_type = MessageType.TEXT
-    
-    async def _process_specific_data(self, data: Dict[str, Any], client: Optional["GeweClient"] = None) -> None:
+
+    async def _process_specific_data(
+        self, data: Dict[str, Any], client: Optional["GeweClient"] = None
+    ) -> None:
         """处理文本消息特有数据"""
-        if "Data" in data and "Content" in data["Data"] and "string" in data["Data"]["Content"]:
+        if (
+            "Data" in data
+            and "Content" in data["Data"]
+            and "string" in data["Data"]["Content"]
+        ):
             self.text = data["Data"]["Content"]["string"]
+
 
 @dataclass
 class QuoteMessage(TextBaseMessage):
     """引用消息"""
+
     quoted_msg_id: str = ""  # 被引用消息ID
     quoted_content: str = ""  # 被引用消息内容
-    
+
     # 设置消息类型类变量
     message_type = MessageType.QUOTE
-    
-    async def _process_specific_data(self, data: Dict[str, Any], client: Optional["GeweClient"] = None) -> None:
+
+    async def _process_specific_data(
+        self, data: Dict[str, Any], client: Optional["GeweClient"] = None
+    ) -> None:
         """处理引用消息特有数据"""
         try:
             # 解析引用消息内容

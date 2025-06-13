@@ -7,8 +7,9 @@ from functools import wraps
 from typing import Callable, Union
 import pytz
 from datetime import datetime
-from opengewe.logger import get_logger
+from opengewe.logger import init_default_logger, get_logger
 
+init_default_logger()
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger

@@ -15,10 +15,13 @@ import inspect
 # 尝试导入opengewe的logger，如果失败则使用print fallback
 _logger = None
 try:
-    from opengewe.logger import get_logger
+    from opengewe.logger import init_default_logger, get_logger
+
+    init_default_logger()
     _logger = get_logger("Plugins.Utils.Proxy")
 except ImportError:
     pass
+
 
 def _log_debug(message: str) -> None:
     """调试日志记录"""
@@ -28,12 +31,14 @@ def _log_debug(message: str) -> None:
     elif os.environ.get("OPENGEWE_DEBUG", "").lower() in ("true", "1", "yes"):
         print(f"[DEBUG] Plugins.Utils.Proxy: {message}")
 
+
 def _log_warning(message: str) -> None:
     """警告日志记录"""
     if _logger:
         _logger.warning(message)
     else:
         print(f"[WARNING] Plugins.Utils.Proxy: {message}")
+
 
 # 启用更详细的调试
 DEBUG = os.environ.get("OPENGEWE_DEBUG", "").lower() in ("true", "1", "yes")
@@ -135,7 +140,7 @@ def _import_all_from_opengewe():
                     if module_name not in sys.modules:
                         sys.modules[module_name] = attr
                         loaded_count += 1
-        
+
         if loaded_count > 0:
             _log_debug(f"成功从opengewe.utils预加载了{loaded_count}个模块")
     except ImportError:

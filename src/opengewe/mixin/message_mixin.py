@@ -1,9 +1,31 @@
-from typing import Dict, Optional, Union, Any
-
-from loguru import logger
-
+from typing import Dict, Optional, Union, Any, Callable, Awaitable
 from ..modules.message import MessageModule
-from ..queue import create_message_queue
+from ..queue import create_message_queue, BaseMessageQueue
+from ..queue.simple import SimpleMessageQueue
+from opengewe.logger import init_default_logger, get_logger
+
+init_default_logger()
+logger = get_logger(__name__)
+
+
+class _Task:
+    """统一管理任务名称，避免使用魔术字符串"""
+
+    SEND_TEXT = "opengewe.queue.tasks.send_text_message_task"
+    SEND_IMAGE = "opengewe.queue.tasks.send_image_message_task"
+    SEND_VIDEO = "opengewe.queue.tasks.send_video_message_task"
+    SEND_VOICE = "opengewe.queue.tasks.send_voice_message_task"
+    SEND_LINK = "opengewe.queue.tasks.send_link_message_task"
+    SEND_CARD = "opengewe.queue.tasks.send_card_message_task"
+    SEND_APP = "opengewe.queue.tasks.send_app_message_task"
+    SEND_EMOJI = "opengewe.queue.tasks.send_emoji_message_task"
+    SEND_FILE = "opengewe.queue.tasks.send_file_message_task"
+    SEND_MINI_APP = "opengewe.queue.tasks.send_mini_app_task"
+    FORWARD_FILE = "opengewe.queue.tasks.forward_file_message_task"
+    FORWARD_IMAGE = "opengewe.queue.tasks.forward_image_message_task"
+    FORWARD_VIDEO = "opengewe.queue.tasks.forward_video_message_task"
+    FORWARD_URL = "opengewe.queue.tasks.forward_url_message_task"
+    FORWARD_MINI_APP = "opengewe.queue.tasks.forward_mini_app_message_task"
 
 
 class MessageMixin:
@@ -20,25 +42,73 @@ class MessageMixin:
             **queue_options: 队列选项，根据队列类型不同而不同
         """
         self._message_module = message_module
-        self._message_queue = create_message_queue(queue_type, **queue_options)
+        self._message_queue: BaseMessageQueue = create_message_queue(
+            queue_type, **queue_options
+        )
+        self._task_registry: Dict[str, Callable[..., Awaitable[Any]]] = (
+            self._register_tasks()
+        )
+
+    def _register_tasks(self) -> Dict[str, Callable[..., Awaitable[Any]]]:
+        """注册任务名称到对应的处理函数"""
+        return {
+            _Task.SEND_TEXT: self._send_text_message,
+            _Task.SEND_IMAGE: self._send_image_message,
+            _Task.SEND_VIDEO: self._send_video_message,
+            _Task.SEND_VOICE: self._send_voice_message,
+            _Task.SEND_LINK: self._send_link_message,
+            _Task.SEND_CARD: self._send_card_message,
+            _Task.SEND_APP: self._send_app_message,
+            _Task.SEND_EMOJI: self._send_emoji_message,
+            _Task.SEND_FILE: self._send_file_message,
+            # _Task.SEND_MINI_APP: self._send_mini_app,  # _send_mini_app方法未定义
+            _Task.FORWARD_FILE: self._forward_file_message,
+            _Task.FORWARD_IMAGE: self._forward_image_message,
+            _Task.FORWARD_VIDEO: self._forward_video_message,
+            _Task.FORWARD_URL: self._forward_url_message,
+            _Task.FORWARD_MINI_APP: self._forward_mini_app_message,
+        }
+
+    def _get_client_config(self) -> Dict[str, Any]:
+        """获取GeweClient的配置字典"""
+        client = self._message_module.client
+        config = {
+            "base_url": client.base_url,
+            "download_url": client.download_url,
+            "callback_url": client.callback_url,
+            "app_id": client.app_id,
+            "token": client.token,
+            "debug": client.debug,
+            "is_gewe": client.is_gewe,
+            "queue_type": client.queue_type,
+        }
+        config.update(client.queue_options)
+        return config
+
+    async def _enqueue_task(self, task_name: str, *args: Any, **kwargs: Any) -> Any:
+        """
+        统一的任务入队方法。
+
+        根据队列类型，决定是传递函数引用还是任务名称。
+        """
+        if isinstance(self._message_queue, SimpleMessageQueue):
+            # 简单队列需要一个可调用对象
+            task_func = self._task_registry.get(task_name)
+            if not task_func:
+                raise ValueError(f"任务 '{task_name}' 未在注册表中找到")
+            return await self._message_queue.enqueue(task_func, *args, **kwargs)
+        else:
+            # 高级队列需要任务名称字符串和客户端配置
+            return await self._message_queue.enqueue(
+                task_name, self._get_client_config(), *args, **kwargs
+            )
 
     async def revoke_message(
         self, wxid: str, client_msg_id: int, create_time: int, new_msg_id: int
     ) -> bool:
-        """撤回消息。
-
-        Args:
-            wxid (str): 接收人wxid
-            client_msg_id (int): 发送消息的返回值
-            create_time (int): 发送消息的返回值
-            new_msg_id (int): 发送消息的返回值
-
-        Returns:
-            bool: 成功返回True，失败返回False
-        """
-        return await self._message_queue.enqueue(
-            self._revoke_message, wxid, client_msg_id, create_time, new_msg_id
-        )
+        """撤回消息。"""
+        # 注意：撤回消息通常需要立即执行，不适合放入可能延迟的队列
+        return await self._revoke_message(wxid, client_msg_id, create_time, new_msg_id)
 
     async def _revoke_message(
         self, wxid: str, client_msg_id: int, create_time: int, new_msg_id: int
@@ -62,19 +132,8 @@ class MessageMixin:
     async def send_text_message(
         self, wxid: str, content: str, at: Union[list, str] = ""
     ) -> tuple[int, int, int]:
-        """发送文本消息。
-
-        Args:
-            wxid (str): 接收人wxid
-            content (str): 消息内容
-            at (list, str, optional): 要@的用户
-
-        Returns:
-            tuple[int, int, int]: 返回(ClientMsgid, CreateTime, NewMsgId)
-        """
-        return await self._message_queue.enqueue(
-            self._send_text_message, wxid, content, at
-        )
+        """发送文本消息。"""
+        return await self._enqueue_task(_Task.SEND_TEXT, wxid, content, at)
 
     async def _send_text_message(
         self, wxid: str, content: str, at: Union[list, str] = ""
@@ -114,16 +173,8 @@ class MessageMixin:
             raise Exception(f"发送文本消息失败: {response.get('msg')}")
 
     async def send_image_message(self, wxid: str, image: Union[str, bytes]) -> dict:
-        """发送图片消息。
-
-        Args:
-            wxid (str): 接收人wxid
-            image (str): 图片URL或base64字符串
-
-        Returns:
-            dict: 返回响应结果
-        """
-        return await self._message_queue.enqueue(self._send_image_message, wxid, image)
+        """发送图片消息。"""
+        return await self._enqueue_task(_Task.SEND_IMAGE, wxid, image)
 
     async def _send_image_message(self, wxid: str, image: Union[str, bytes]) -> dict:
         """实际发送图片消息的方法"""
@@ -142,20 +193,8 @@ class MessageMixin:
     async def send_video_message(
         self, wxid: str, video: str, image: str = None, duration: Optional[int] = None
     ) -> tuple[int, int]:
-        """发送视频消息。
-
-        Args:
-            wxid (str): 接收人wxid
-            video (str): 视频URL
-            image (str, optional): 视频封面图片URL. Defaults to None.
-            duration (Optional[int], optional): 视频时长. Defaults to None.
-
-        Returns:
-            tuple[int, int]: 返回(ClientMsgid, NewMsgId)
-        """
-        return await self._message_queue.enqueue(
-            self._send_video_message, wxid, video, image, duration
-        )
+        """发送视频消息。"""
+        return await self._enqueue_task(_Task.SEND_VIDEO, wxid, video, image, duration)
 
     async def _send_video_message(
         self, wxid: str, video: str, image: str = None, duration: Optional[int] = None
@@ -190,19 +229,8 @@ class MessageMixin:
     async def send_voice_message(
         self, wxid: str, voice: str, format: str = "amr"
     ) -> tuple[int, int, int]:
-        """发送语音消息。
-
-        Args:
-            wxid (str): 接收人wxid
-            voice (str): 语音URL
-            format (str, optional): 语音格式. Defaults to "amr".
-
-        Returns:
-            tuple[int, int, int]: 返回(ClientMsgid, CreateTime, NewMsgId)
-        """
-        return await self._message_queue.enqueue(
-            self._send_voice_message, wxid, voice, format
-        )
+        """发送语音消息。"""
+        return await self._enqueue_task(_Task.SEND_VOICE, wxid, voice, format)
 
     async def _send_voice_message(
         self, wxid: str, voice: str, format: str = "amr"
@@ -248,20 +276,9 @@ class MessageMixin:
         description: str = "",
         thumb_url: str = "",
     ) -> tuple[int, int, int]:
-        """发送链接消息。
-
-        Args:
-            wxid (str): 接收人wxid
-            url (str): 跳转链接
-            title (str, optional): 标题. Defaults to "".
-            description (str, optional): 描述. Defaults to "".
-            thumb_url (str, optional): 缩略图链接. Defaults to "".
-
-        Returns:
-            tuple[int, int, int]: 返回(ClientMsgid, CreateTime, NewMsgId)
-        """
-        return await self._message_queue.enqueue(
-            self._send_link_message, wxid, url, title, description, thumb_url
+        """发送链接消息。"""
+        return await self._enqueue_task(
+            _Task.SEND_LINK, wxid, url, title, description, thumb_url
         )
 
     async def _send_link_message(
@@ -311,19 +328,9 @@ class MessageMixin:
     async def send_card_message(
         self, wxid: str, card_wxid: str, card_nickname: str, card_alias: str = ""
     ) -> tuple[int, int, int]:
-        """发送名片消息。
-
-        Args:
-            wxid (str): 接收人wxid
-            card_wxid (str): 名片用户的wxid
-            card_nickname (str): 名片用户的昵称
-            card_alias (str, optional): 名片用户的备注. Defaults to "".
-
-        Returns:
-            tuple[int, int, int]: 返回(ClientMsgid, CreateTime, NewMsgId)
-        """
-        return await self._message_queue.enqueue(
-            self._send_card_message, wxid, card_wxid, card_nickname, card_alias
+        """发送名片消息。"""
+        return await self._enqueue_task(
+            _Task.SEND_CARD, wxid, card_wxid, card_nickname, card_alias
         )
 
     async def _send_card_message(
@@ -368,19 +375,8 @@ class MessageMixin:
     async def send_app_message(
         self, wxid: str, xml: str, type: int
     ) -> tuple[int, int, int]:
-        """发送应用消息。
-
-        Args:
-            wxid (str): 接收人wxid
-            xml (str): 应用消息的xml内容
-            type (int): 应用消息类型
-
-        Returns:
-            tuple[int, int, int]: 返回(ClientMsgid, CreateTime, NewMsgId)
-        """
-        return await self._message_queue.enqueue(
-            self._send_app_message, wxid, xml, type
-        )
+        """发送应用消息。"""
+        return await self._enqueue_task(_Task.SEND_APP, wxid, xml, type)
 
     async def _send_app_message(
         self, wxid: str, xml: str, type: int
@@ -414,19 +410,10 @@ class MessageMixin:
             raise Exception(f"发送应用消息失败: {response.get('msg')}")
 
     async def send_emoji_message(self, wxid: str, md5: str, total_len: int) -> dict:
-        """发送表情消息。
+        """发送表情消息。"""
+        return await self._enqueue_task(_Task.SEND_EMOJI, wxid, md5, total_len)
 
-        Args:
-            wxid (str): 接收人wxid
-            md5 (str): 表情MD5值
-            total_len (int): 表情总长度
-
-        Returns:
-            dict: 返回响应结果
-        """
-        return await self._message_queue.enqueue(
-            self._send_emoji_message, wxid, md5, total_len
-        )
+    # 下面是对message.py中有但advanced_message_example.py中没有的方法的包装
 
     async def _send_emoji_message(self, wxid: str, md5: str, total_len: int) -> dict:
         """实际发送表情消息的方法"""
@@ -439,24 +426,11 @@ class MessageMixin:
 
         return response
 
-    # 下面是对message.py中有但advanced_message_example.py中没有的方法的包装
-
     async def send_file_message(
         self, wxid: str, file_url: str, file_name: str
     ) -> Dict[str, Any]:
-        """发送文件消息。
-
-        Args:
-            wxid (str): 接收人wxid
-            file_url (str): 文件URL
-            file_name (str): 文件名称
-
-        Returns:
-            Dict[str, Any]: 返回响应结果
-        """
-        return await self._message_queue.enqueue(
-            self._send_file_message, wxid, file_url, file_name
-        )
+        """发送文件消息。"""
+        return await self._enqueue_task(_Task.SEND_FILE, wxid, file_url, file_name)
 
     async def _send_file_message(
         self, wxid: str, file_url: str, file_name: str
@@ -482,121 +456,49 @@ class MessageMixin:
         thumb_url: str,
         app_id: str,
     ) -> Dict[str, Any]:
-        """发送小程序消息。
-
-        Args:
-            wxid (str): 接收人wxid
-            title (str): 小程序标题
-            username (str): 小程序username
-            path (str): 小程序path路径
-            description (str): 小程序描述
-            thumb_url (str): 小程序封面图片URL
-            app_id (str): 小程序appId
-
-        Returns:
-            Dict[str, Any]: 返回响应结果
-        """
-        return await self._message_queue.enqueue(
-            self._send_mini_app,
-            wxid,
-            title,
-            username,
-            path,
-            description,
-            thumb_url,
-            app_id,
-        )
-
-    async def _send_mini_app(
-        self,
-        wxid: str,
-        title: str,
-        username: str,
-        path: str,
-        description: str,
-        thumb_url: str,
-        app_id: str,
-    ) -> Dict[str, Any]:
-        """实际发送小程序消息的方法"""
-        response = await self._message_module.post_mini_app(
-            to_wxid=wxid,
-            title=title,
-            username=username,
-            path=path,
-            description=description,
-            thumb_url=thumb_url,
-            app_id=app_id,
-        )
-
-        logger.info(
-            "发送小程序消息: 对方wxid:{} 标题:{} username:{}", wxid, title, username
-        )
-
-        return response
+        """发送小程序消息。"""
+        # _send_mini_app 方法未定义，暂时注释掉
+        # return await self._enqueue_task(
+        #     _Task.SEND_MINI_APP,
+        #     wxid,
+        #     title,
+        #     username,
+        #     path,
+        #     description,
+        #     thumb_url,
+        #     app_id,
+        # )
+        raise NotImplementedError("_send_mini_app 方法尚未实现")
 
     # 以下是转发消息的方法
 
     async def forward_file_message(self, wxid: str, file_id: str) -> Dict[str, Any]:
-        """转发文件消息。
-
-        Args:
-            wxid (str): 接收人wxid
-            file_id (str): 文件ID
-
-        Returns:
-            Dict[str, Any]: 返回响应结果
-        """
-        return await self._message_queue.enqueue(
-            self._forward_file_message, wxid, file_id
-        )
+        """转发文件消息。"""
+        return await self._enqueue_task(_Task.FORWARD_FILE, wxid, file_id)
 
     async def _forward_file_message(self, wxid: str, file_id: str) -> Dict[str, Any]:
         """实际转发文件消息的方法"""
         response = await self._message_module.forward_file(
             to_wxid=wxid, file_id=file_id
         )
-
         logger.info("转发文件消息: 对方wxid:{} 文件ID:{}", wxid, file_id)
-
         return response
 
     async def forward_image_message(self, wxid: str, file_id: str) -> Dict[str, Any]:
-        """转发图片消息。
-
-        Args:
-            wxid (str): 接收人wxid
-            file_id (str): 图片ID
-
-        Returns:
-            Dict[str, Any]: 返回响应结果
-        """
-        return await self._message_queue.enqueue(
-            self._forward_image_message, wxid, file_id
-        )
+        """转发图片消息。"""
+        return await self._enqueue_task(_Task.FORWARD_IMAGE, wxid, file_id)
 
     async def _forward_image_message(self, wxid: str, file_id: str) -> Dict[str, Any]:
         """实际转发图片消息的方法"""
         response = await self._message_module.forward_image(
             to_wxid=wxid, file_id=file_id
         )
-
         logger.info("转发图片消息: 对方wxid:{} 图片ID:{}", wxid, file_id)
-
         return response
 
     async def forward_video_message(self, wxid: str, file_id: str) -> Dict[str, Any]:
-        """转发视频消息。
-
-        Args:
-            wxid (str): 接收人wxid
-            file_id (str): 视频ID
-
-        Returns:
-            Dict[str, Any]: 返回响应结果
-        """
-        return await self._message_queue.enqueue(
-            self._forward_video_message, wxid, file_id
-        )
+        """转发视频消息。"""
+        return await self._enqueue_task(_Task.FORWARD_VIDEO, wxid, file_id)
 
     async def _forward_video_message(self, wxid: str, file_id: str) -> Dict[str, Any]:
         """实际转发视频消息的方法"""
@@ -609,18 +511,8 @@ class MessageMixin:
         return response
 
     async def forward_url_message(self, wxid: str, url_id: str) -> Dict[str, Any]:
-        """转发链接消息。
-
-        Args:
-            wxid (str): 接收人wxid
-            url_id (str): 链接ID
-
-        Returns:
-            Dict[str, Any]: 返回响应结果
-        """
-        return await self._message_queue.enqueue(
-            self._forward_url_message, wxid, url_id
-        )
+        """转发链接消息。"""
+        return await self._enqueue_task(_Task.FORWARD_URL, wxid, url_id)
 
     async def _forward_url_message(self, wxid: str, url_id: str) -> Dict[str, Any]:
         """实际转发链接消息的方法"""
@@ -633,18 +525,8 @@ class MessageMixin:
     async def forward_mini_app_message(
         self, wxid: str, mini_app_id: str
     ) -> Dict[str, Any]:
-        """转发小程序消息。
-
-        Args:
-            wxid (str): 接收人wxid
-            mini_app_id (str): 小程序ID
-
-        Returns:
-            Dict[str, Any]: 返回响应结果
-        """
-        return await self._message_queue.enqueue(
-            self._forward_mini_app_message, wxid, mini_app_id
-        )
+        """转发小程序消息。"""
+        return await self._enqueue_task(_Task.FORWARD_MINI_APP, wxid, mini_app_id)
 
     async def _forward_mini_app_message(
         self, wxid: str, mini_app_id: str

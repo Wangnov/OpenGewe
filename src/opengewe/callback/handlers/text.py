@@ -5,10 +5,12 @@ import xml.etree.ElementTree as ET
 
 from opengewe.callback.models import BaseMessage, TextMessage, QuoteMessage
 from opengewe.callback.handlers.base import BaseHandler
-from opengewe.logger import get_logger
+from opengewe.logger import init_default_logger, get_logger
 
+init_default_logger()
 # 获取客户端日志记录器
 logger = get_logger("GeweClient")
+
 
 class TextMessageHandler(BaseHandler):
     """文本消息处理器"""
@@ -29,7 +31,9 @@ class TextMessageHandler(BaseHandler):
         try:
             logger.debug(f"TextMessageHandler开始处理消息: {data.get('TypeName')}")
             message = TextMessage.from_dict(data)
-            logger.debug(f"TextMessageHandler成功创建消息对象: {message.text[:20] if message.text else 'Empty text'}")
+            logger.debug(
+                f"TextMessageHandler成功创建消息对象: {message.text[:20] if message.text else 'Empty text'}"
+            )
             return message
         except Exception as e:
             logger.error(f"TextMessageHandler处理消息时出错: {e}", exc_info=True)
