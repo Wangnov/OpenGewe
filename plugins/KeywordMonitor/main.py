@@ -9,7 +9,7 @@ class KeywordMonitor(PluginBase):
     name = "KeywordMonitor"
     description = "监控群聊中的关键词并发送提醒"
     author = "Roo"
-    version = "0.1.0"
+    version = "0.1.1"
 
     def __init__(self, config):
         super().__init__(config)
@@ -31,27 +31,26 @@ class KeywordMonitor(PluginBase):
                 room_id = message.from_wxid
                 sender_id = message.sender_wxid
 
+                # 设置默认值，以防API请求失败
                 room_name = room_id
                 sender_name = sender_id
 
                 try:
-                    # 1. 获取群聊名称
-                    room_info_res = await client.contact.get_brief_info(wxids=[room_id])
-                    if room_info_res.get("ret") == 200:
-                        data_list = room_info_res.get("data", [])
-                        if data_list:
-                            contacts = data_list[0].get("contacts", [])
-                            if contacts:
-                                room_name = contacts[0].get(
-                                    "nickName", room_id)
+                    # 1. 获取群聊名称 (使用更可靠的专用方法)
+                    room_info_res = await client.group.get_chatroom_info(chatroom_id=room_id)
+                    if room_info_res.get("ret") == 200 and "data" in room_info_res:
+                        room_data = room_info_res["data"]
+                        # 尝试从多个可能的键获取群名，提高兼容性
+                        room_name = room_data.get("name") or room_data.get("nickName", room_id)
 
-                    # 2. 获取成员昵称
+                    # 2. 获取成员昵称 (优化解析逻辑，增加备选字段)
                     member_info_res = await client.group.get_chatroom_member_detail(chatroom_id=room_id, member_wxids=[sender_id])
-                    if member_info_res.get("ret") == 200:
+                    print(member_info_res)
+                    if member_info_res.get("ret") == 200 and "data" in member_info_res:
                         member_list = member_info_res.get("data", [])
                         if member_list:
-                            sender_name = member_list[0].get(
-                                "displayName", sender_id)
+                            # remark是备注, nickName是微信昵称, 作为备选
+                            sender_name = member_list[0].get("remark") or member_list[0].get("nickName", sender_id)
 
                 except Exception as e:
                     self.logger.error(f"获取群聊或成员信息时出错: {e}", exc_info=True)
