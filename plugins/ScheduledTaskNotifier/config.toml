@@ -1,15 +1,5 @@
 # ScheduledTaskNotifier 插件的配置文件
 
-# 任务列表
-# to_wxid: 接收者的微信ID（群聊或个人）
-# delay_seconds: 插件启动后多少秒发送
-# message: 要发送的消息内容
-[[tasks]]
-to_wxid = "wxid_mly499mvz23o21"
-delay_seconds = 10
-message = "项目A的周报将于今天下午5点截止，请尽快提交！"
-
-[[tasks]]
-to_wxid = "wxid_mly499mvz23o21"
-delay_seconds = 20
-message = "提醒：明天上午10点有全体会议，请准时参加。"
+# 用于触发任务管理指令的前缀
+# 例如，设置为 "提醒"，则可以通过 "提醒 添加定时 ..." 来创建任务
+command_prefix = "提醒"
