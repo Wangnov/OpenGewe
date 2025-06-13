@@ -1,6 +1,6 @@
 # OpenGewe
 
-![版本](https://img.shields.io/badge/版本-0.1.1-blue)
+![版本](https://img.shields.io/badge/版本-0.2.0-blue)
 ![Python](https://img.shields.io/badge/Python-3.9+-brightgreen)
 ![协议](https://img.shields.io/badge/协议-MIT-green)
 
@@ -9,6 +9,8 @@
 ## 简介
 
 OpenGewe 是一个基于 [GeWeAPI](https://geweapi.com) 的微信机器人框架，专注于提供个人微信二次开发能力。本框架采用微信iPad协议登录，提供稳定、安全的微信API访问能力。
+
+**请注意：** 项目配套的前后端管理面板仍在积极开发中，将在未来的版本中提供。
 
 
 ## 主要特性
