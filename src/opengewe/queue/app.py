@@ -39,10 +39,7 @@ def create_celery_app(
     return app
 
 
-try:
-    # 使用默认配置创建全局Celery应用实例
-    celery_app = create_celery_app()
-    logger.debug("全局Celery应用实例创建成功。")
-except Exception as e:
-    celery_app = None
-    logger.error(f"创建全局Celery应用实例失败: {e}")
+# 不再在模块级别创建全局实例，以避免配置问题
+# 实例将在需要时由 AdvancedMessageQueue 或 celery_worker 动态创建
+celery_app = None
+logger.debug("Celery app 将在需要时动态创建。")

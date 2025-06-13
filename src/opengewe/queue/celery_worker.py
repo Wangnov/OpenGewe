@@ -178,13 +178,18 @@ def main():
     logger.info(f"日志级别: {config['log_level']}")
     logger.info("-" * 50)
 
-    # 动态导入celery_app，确保它在配置后创建
+    # 动态导入celery_app和任务注册函数
     from opengewe.queue.app import create_celery_app
+    from opengewe.queue.tasks import register_tasks
+
     celery_app = create_celery_app(
         broker=config["broker"],
         backend=config["backend"],
         queue_name=config["queue_name"],
     )
+
+    # 注册任务
+    register_tasks(celery_app)
 
     try:
         # 构建启动参数
