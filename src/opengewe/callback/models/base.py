@@ -1,6 +1,7 @@
 import time
 from dataclasses import dataclass, field
 from typing import Dict, Any, Optional, Type, TypeVar, ClassVar, TYPE_CHECKING
+
 from opengewe.callback.types import MessageType
 from opengewe.logger import init_default_logger, get_logger
 
@@ -59,32 +60,35 @@ class BaseMessage:
         """处理群消息发送者信息
 
         在群聊中：
-        1. 保存群ID到room_wxid字段
-        2. 识别真实发送者ID并更新from_wxid
-        3. 去除content中的发送者前缀
+        1. 识别真实发送者ID并更新sender_wxid
+        2. 去除content中的发送者前缀
         """
-        # 如果不是群消息，写好sender_wxid后直接返回
         self.sender_wxid = self.from_wxid
         if not self.is_group_message:
             return
 
-        # 处理content中的发送者信息
-        if ":" in self.content:
-            # 尝试分离发送者ID和实际内容
-            parts = self.content.split(":", 1)
-            if len(parts) == 2:
-                sender_id = parts[0].strip()
-                real_content = parts[1].strip()
+        # 优先使用 ":\n" 作为分隔符，更精确
+        if ":\n" in self.content:
+            separator = ":\n"
+        elif ":" in self.content:
+            separator = ":"
+        else:
+            return # 没有找到分隔符，不处理
 
-                # 确保sender_id是一个有效的wxid格式（简单验证）
-                if sender_id and (
-                    sender_id.startswith("wxid_")
-                    or sender_id.endswith("@chatroom")
-                    or "@" in sender_id
-                ):
-                    # 更新发送者和内容
-                    self.sender_wxid = sender_id
-                    self.content = real_content
+        parts = self.content.split(separator, 1)
+        if len(parts) == 2:
+            sender_id = parts[0].strip()
+            real_content = parts[1].strip()
+
+            # 确保sender_id是一个有效的wxid格式（简单验证）
+            if sender_id and (
+                sender_id.startswith("wxid_")
+                or sender_id.endswith("@chatroom")
+                or "@" in sender_id
+            ):
+                # 更新发送者和内容
+                self.sender_wxid = sender_id
+                self.content = real_content
 
     @classmethod
     async def from_dict(

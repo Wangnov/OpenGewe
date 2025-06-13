@@ -6,7 +6,7 @@ from opengewe.client import GeweClient
 
 class KeywordMonitor(PluginBase):
     """关键词舆情监控"""
-    name = "KeywordMonitor"
+    name = "关键词舆情监控"
     description = "监控群聊中的关键词并发送提醒"
     author = "Roo"
     version = "0.1.1"
