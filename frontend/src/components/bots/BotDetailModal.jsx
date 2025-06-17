@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 // Font Awesome icons are loaded via CDN in index.html
 import botService from '../../services/botService';
 import LoadingSpinner from '../common/LoadingSpinner';
 import CachedImage from '../common/CachedImage';
+import Modal from '../common/Modal';
 import useApiLoading from '../../hooks/useApiLoading';
 import { useProxiedImage } from '../../utils/imageProxy';
 import useNotification from '../../hooks/useNotification';
@@ -64,11 +64,8 @@ const BotDetailModal = ({ bot, isOpen, onClose, onUpdate, onDelete }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [copiedField, setCopiedField] = useState(null);
   const [generalError, setGeneralError] = useState('');
-  const [isClosing, setIsClosing] = useState(false);
   const { loading: saving, executeWithLoading } = useApiLoading();
   const { success, error: notifyError } = useNotification();
-  const backdropRef = useRef(null);
-  const contentRef = useRef(null);
 
   // 初始化编辑表单
   useEffect(() => {
@@ -309,518 +306,481 @@ const BotDetailModal = ({ bot, isOpen, onClose, onUpdate, onDelete }) => {
     }
   };
 
+  // 格式化相对时间
+  const formatRelativeTime = (timestamp) => {
+    if (!timestamp) return 'N/A';
+
+    try {
+      const date = new Date(timestamp);
+      if (isNaN(date.getTime())) return 'N/A';
+
+      const now = new Date();
+      const diff = now - date;
+      const seconds = Math.floor(diff / 1000);
+      const minutes = Math.floor(seconds / 60);
+      const hours = Math.floor(minutes / 60);
+      const days = Math.floor(hours / 24);
+
+      if (seconds < 60) return '刚刚';
+      if (minutes < 60) return `${minutes}分钟前`;
+      if (hours < 24) return `${hours}小时前`;
+      if (days < 7) return `${days}天前`;
+      if (days < 30) return `${Math.floor(days / 7)}周前`;
+      if (days < 365) return `${Math.floor(days / 30)}个月前`;
+      return `${Math.floor(days / 365)}年前`;
+    } catch {
+      return formatTime(timestamp);
+    }
+  };
+
   /**
    * 处理主弹窗关闭
    */
   const handleClose = () => {
-    if (isClosing) return; // 防止重复触发
-
-    setIsClosing(true);
-
-    // 添加退出动画类
-    if (backdropRef.current && contentRef.current) {
-      backdropRef.current.classList.add('animate-modal-backdrop-exit');
-      backdropRef.current.classList.remove('animate-modal-backdrop-enter');
-
-      contentRef.current.classList.add('animate-modal-content-exit');
-      contentRef.current.classList.remove('animate-modal-content-enter');
-
-      // 监听动画结束事件
-      const handleAnimationEnd = () => {
-        contentRef.current?.removeEventListener('animationend', handleAnimationEnd);
-        setIsClosing(false);
-        onClose(); // 真正关闭弹窗
-      };
-
-      contentRef.current.addEventListener('animationend', handleAnimationEnd);
-
-      // 备用：如果动画事件没有触发，使用定时器
-      setTimeout(() => {
-        if (contentRef.current) {
-          contentRef.current.removeEventListener('animationend', handleAnimationEnd);
-          setIsClosing(false);
-          onClose();
-        }
-      }, 300);
-    } else {
-      // 如果DOM元素不存在，直接关闭
-      setIsClosing(false);
-      onClose();
-    }
+    onClose();
   };
 
-  // 重置关闭状态
-  useEffect(() => {
-    if (isOpen) {
-      setIsClosing(false);
-    }
-  }, [isOpen]);
+  // 生成复制按钮
+  const CopyButton = ({ text, fieldName }) => (
+    <button
+      onClick={() => copyToClipboard(text)}
+      className={`ml-2 p-1.5 rounded-lg transition-all duration-200 ${copiedField === fieldName
+        ? 'bg-green-100 text-green-600'
+        : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+        }`}
+      title={copiedField === fieldName ? '已复制' : '复制'}
+    >
+      <motion.div
+        key={copiedField === fieldName ? 'check' : 'copy'}
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.8, opacity: 0 }}
+        transition={{ duration: 0.2 }}
+      >
+        {copiedField === fieldName ? (
+          <i className="fas fa-check h-4 w-4"></i>
+        ) : (
+          <i className="fas fa-copy h-4 w-4"></i>
+        )}
+      </motion.div>
+    </button>
+  );
 
-  // 动画变体
-  const backdropVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { duration: 0.3, ease: "easeOut" }
-    },
-    exit: {
-      opacity: 0,
-      transition: { duration: 0.2, ease: "easeIn" }
-    }
-  };
+  // 信息项组件
+  const InfoItem = ({ label, value, icon, canCopy = false, fieldName }) => (
+    <div className="flex flex-col space-y-1">
+      <div className="flex items-center text-xs text-gray-500">
+        {icon && <i className={`${icon} mr-1.5 w-4`}></i>}
+        <span>{label}</span>
+      </div>
+      <div className="flex items-center">
+        <span className="text-sm text-gray-900 font-medium">{value || 'N/A'}</span>
+        {canCopy && value && <CopyButton text={value} fieldName={fieldName} />}
+      </div>
+    </div>
+  );
 
-  const modalVariants = {
-    hidden: {
-      opacity: 0,
-      scale: 0.9,
-      y: 20
-    },
-    visible: {
-      opacity: 1,
-      scale: 1,
-      y: 0,
-      transition: {
-        duration: 0.3,
-        ease: "easeOut"
-      }
-    },
-    exit: {
-      opacity: 0,
-      scale: 0.95,
-      y: 10,
-      transition: {
-        duration: 0.2,
-        ease: "easeIn"
-      }
-    }
-  };
+  // 底部操作按钮
+  const footer = (
+    <>
+      {isEditing ? (
+        <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">
+          <button
+            onClick={testConnection}
+            disabled={testing || !editForm.gewe_app_id || !editForm.gewe_token}
+            className={`inline-flex items-center px-5 py-2.5 border rounded-xl text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed ${testing
+              ? 'border-purple-300 bg-purple-50 text-purple-700'
+              : testPassed
+                ? 'border-green-300 bg-green-50 text-green-700 hover:bg-green-100'
+                : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-300 focus:ring-gray-200'
+              }`}
+          >
+            {testing ? (
+              <>
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  className="mr-2"
+                >
+                  <i className="fas fa-spinner h-4 w-4"></i>
+                </motion.div>
+                测试中...
+              </>
+            ) : testPassed ? (
+              <>
+                <i className="fas fa-check-circle mr-2 text-green-600"></i>
+                测试通过
+              </>
+            ) : (
+              <>
+                <i className="fas fa-plug mr-2"></i>
+                测试连接
+              </>
+            )}
+          </button>
+          <button
+            onClick={saveEdit}
+            disabled={!testPassed}
+            className="inline-flex items-center px-5 py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 border border-transparent rounded-xl text-sm font-medium text-white hover:from-purple-700 hover:to-purple-800 shadow-md hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <i className="fas fa-check mr-2"></i>
+            保存
+          </button>
+          <button
+            onClick={() => {
+              setIsEditing(false);
+              setTestPassed(false);
+              setGeneralError('');
+              setEditForm({
+                gewe_app_id: bot.gewe_app_id || '',
+                gewe_token: bot.gewe_token || '',
+                base_url: bot.base_url || 'https://www.geweapi.com/gewe/v2/api'
+              });
+            }}
+            className="inline-flex items-center px-5 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-200"
+          >
+            <i className="fas fa-times mr-2"></i>
+            取消
+          </button>
+        </div>
+      ) : (
+        <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">
+          <button
+            onClick={() => setIsEditing(true)}
+            className="inline-flex items-center px-5 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-200"
+          >
+            <i className="fas fa-edit mr-2"></i>
+            编辑
+          </button>
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="inline-flex items-center px-5 py-2.5 bg-gradient-to-r from-red-600 to-red-700 border border-transparent rounded-xl text-sm font-medium text-white hover:from-red-700 hover:to-red-800 shadow-md hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+          >
+            <i className="fas fa-trash mr-2"></i>
+            删除
+          </button>
+        </div>
+      )}
+    </>
+  );
 
-  const confirmModalVariants = {
-    hidden: {
-      opacity: 0,
-      scale: 0.8,
-      y: 30
-    },
-    visible: {
-      opacity: 1,
-      scale: 1,
-      y: 0,
-      transition: {
-        duration: 0.25,
-        ease: "easeOut"
-      }
-    },
-    exit: {
-      opacity: 0,
-      scale: 0.9,
-      y: 20,
-      transition: {
-        duration: 0.2,
-        ease: "easeIn"
-      }
-    }
-  };
+  return (
+    <>
+      <Modal
+        isOpen={isOpen}
+        onClose={handleClose}
+        title="机器人详情"
+        size="2xl"
+        footer={footer}
+      >
+        {/* 机器人头部信息卡片 */}
+        <div className={`relative rounded-2xl overflow-hidden mb-6 ${bot.sns_bg_img ? 'bg-gray-900' : 'bg-gradient-to-br from-purple-50 to-pink-50'
+          }`}>
+          {/* 背景图片 */}
+          {bot.sns_bg_img && (
+            <div className="absolute inset-0">
+              <BotBackgroundImage imageUrl={bot.sns_bg_img} />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20"></div>
+            </div>
+          )}
 
-  if (!isOpen || !bot) return null;
+          {/* 机器人信息 */}
+          <div className="relative z-10 p-6">
+            <div className="flex items-center space-x-4">
+              <div className="relative">
+                <CachedImage
+                  src={bot.big_head_img_url || bot.avatar_url || '/default-avatar.png'}
+                  alt={bot.nickname || '机器人头像'}
+                  className="w-20 h-20 rounded-2xl object-cover shadow-xl ring-4 ring-white/90"
+                />
+                <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-3 border-white ${bot.is_online ? 'bg-green-500' : 'bg-gray-400'
+                  } shadow-lg`}></div>
+              </div>
+              <div className="flex-1">
+                {/* 信息容器 - 添加毛玻璃背景 */}
+                <div className={`${bot.sns_bg_img
+                  ? 'bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20'
+                  : ''
+                  }`}>
+                  <h2 className={`text-2xl font-bold mb-1 ${bot.sns_bg_img ? 'text-white drop-shadow-lg' : 'text-gray-900'
+                    }`}>
+                    {bot.nickname || '未设置昵称'}
+                  </h2>
+                  <p className={`text-sm mb-3 ${bot.sns_bg_img ? 'text-white/90 drop-shadow' : 'text-gray-600'
+                    }`}>
+                    {bot.signature || '这个人很懒，什么都没留下'}
+                  </p>
+                  <div className="flex items-center text-sm">
+                    <div className={`inline-flex items-center px-3 py-1 rounded-full ${bot.is_online
+                      ? bot.sns_bg_img
+                        ? 'bg-green-500/20 backdrop-blur-sm text-green-100 border border-green-400/30'
+                        : 'bg-green-100 text-green-700'
+                      : bot.sns_bg_img
+                        ? 'bg-gray-500/20 backdrop-blur-sm text-gray-100 border border-gray-400/30'
+                        : 'bg-gray-100 text-gray-600'
+                      }`}>
+                      <i className={`fas fa-circle text-xs mr-1.5 ${bot.is_online
+                        ? bot.sns_bg_img ? 'text-green-300' : 'text-green-500'
+                        : bot.sns_bg_img ? 'text-gray-300' : 'text-gray-400'
+                        }`}></i>
+                      {bot.is_online ? '在线' : '离线'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
-  return createPortal(
-    <AnimatePresence mode="wait">
-      {isOpen && (
-        <motion.div
-          className="fixed inset-0 z-50 overflow-y-auto"
-          initial="hidden"
-          animate="visible"
-          exit="exit"
-        >
-          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            {/* 背景遮罩 */}
-            <motion.div
-              ref={backdropRef}
-              variants={backdropVariants}
-              className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity animate-modal-backdrop-enter"
-              onClick={(e) => e.target === e.currentTarget && handleClose()}
-            />
+        {/* 信息区域 */}
+        <div className="space-y-6">
+          {/* 基本信息卡片 */}
+          <div className="bg-gray-50 rounded-xl p-5 hover:shadow-lg transition-all duration-300 group">
+            <h3 className="flex items-center text-sm font-semibold text-gray-900 mb-4 group-hover:text-purple-700 transition-colors duration-200">
+              <i className="fas fa-user-circle mr-2 text-purple-600 group-hover:scale-110 transition-transform duration-200"></i>
+              基本信息
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <InfoItem
+                label="微信号"
+                value={bot.wxid}
+                icon="fas fa-at"
+                canCopy={true}
+                fieldName="wxid"
+              />
+              <InfoItem
+                label="手机号"
+                value={bot.mobile}
+                icon="fas fa-mobile-alt"
+              />
+              <InfoItem
+                label="性别"
+                value={getSexText(bot.sex)}
+                icon="fas fa-venus-mars"
+              />
+              <InfoItem
+                label="地区"
+                value={[bot.country, bot.province, bot.city].filter(Boolean).join(' ')}
+                icon="fas fa-map-marker-alt"
+              />
+            </div>
+          </div>
 
-            {/* 弹窗内容 */}
-            <motion.div
-              ref={contentRef}
-              variants={modalVariants}
-              className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all relative sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full animate-modal-content-enter"
-            >
-              {/* 显示加载遮罩 */}
-              {(saving || testing) && (
-                <div className="absolute inset-0 bg-white bg-opacity-80 backdrop-blur-sm flex items-center justify-center z-50">
-                  <LoadingSpinner
-                    size="md"
-                    text={testing ? '测试连接中...' : '保存中...'}
-                  />
+          {/* Gewe信息卡片 */}
+          <div className="bg-purple-50 rounded-xl p-5 hover:shadow-lg transition-all duration-300 group">
+            <h3 className="flex items-center text-sm font-semibold text-gray-900 mb-4 group-hover:text-purple-700 transition-colors duration-200">
+              <i className="fas fa-robot mr-2 text-purple-600 group-hover:scale-110 transition-transform duration-200"></i>
+              Gewe信息
+            </h3>
+            <div className="space-y-4">
+              {/* App ID */}
+              <div className="bg-white rounded-lg p-3">
+                <label className="block text-xs font-medium text-gray-600 mb-1">App ID</label>
+                <div className="flex items-center justify-between">
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={editForm.gewe_app_id}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      disabled
+                    />
+                  ) : (
+                    <span className="text-sm font-mono text-gray-900">{bot.gewe_app_id}</span>
+                  )}
+                  {!isEditing && <CopyButton text={bot.gewe_app_id} fieldName="gewe_app_id" />}
+                </div>
+              </div>
+
+              {/* Token */}
+              <div className="bg-white rounded-lg p-3">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Token</label>
+                <div className="flex items-center justify-between">
+                  {isEditing ? (
+                    <div className="flex-1 relative">
+                      <input
+                        type="password"
+                        value={editForm.gewe_token}
+                        onChange={(e) => {
+                          setEditForm({ ...editForm, gewe_token: e.target.value });
+                          setGeneralError('');
+                          setTestPassed(false);
+                        }}
+                        className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg text-sm font-mono bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                        placeholder="输入新的Token"
+                      />
+                      {editForm.gewe_token && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className="absolute right-2 top-1/2 -translate-y-1/2"
+                        >
+                          <i className="fas fa-key text-purple-500"></i>
+                        </motion.div>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-sm font-mono text-gray-900">••••••••••••••••</span>
+                  )}
+                  {!isEditing && bot.gewe_token && <CopyButton text={bot.gewe_token} fieldName="gewe_token" />}
+                </div>
+              </div>
+
+              {/* Base URL */}
+              <div className="bg-white rounded-lg p-3">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Base URL</label>
+                <div className="flex items-center justify-between">
+                  {isEditing ? (
+                    <div className="flex-1 relative">
+                      <input
+                        type="url"
+                        value={editForm.base_url}
+                        onChange={(e) => {
+                          setEditForm({ ...editForm, base_url: e.target.value });
+                          setGeneralError('');
+                          setTestPassed(false);
+                        }}
+                        className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg text-sm font-mono bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                        placeholder="输入Base URL"
+                      />
+                      {editForm.base_url && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className="absolute right-2 top-1/2 -translate-y-1/2"
+                        >
+                          <i className="fas fa-link text-purple-500"></i>
+                        </motion.div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex-1 overflow-hidden">
+                      <span className="text-sm font-mono text-gray-900 block truncate" title={bot.base_url}>
+                        {bot.base_url}
+                      </span>
+                    </div>
+                  )}
+                  {!isEditing && <CopyButton text={bot.base_url} fieldName="base_url" />}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 编辑模式下的状态提示 */}
+          {isEditing && (
+            <div className="space-y-3">
+              {generalError && (
+                <div className="flex items-start p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <i className="fas fa-exclamation-triangle text-red-500 mr-3 mt-0.5"></i>
+                  <div className="flex-1">
+                    <p className="text-sm text-red-700">{generalError}</p>
+                  </div>
+                  <button
+                    onClick={() => setGeneralError('')}
+                    className="text-red-400 hover:text-red-600 ml-2"
+                  >
+                    <i className="fas fa-times"></i>
+                  </button>
                 </div>
               )}
 
-              {/* 弹窗头部 */}
-              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg leading-6 font-medium text-gray-900">
-                    机器人详情
-                  </h3>
-                  <button
-                    onClick={handleClose}
-                    disabled={isClosing}
-                    className="text-gray-400 hover:text-gray-600 focus:outline-none disabled:opacity-50"
-                  >
-                    <i className="fas fa-times h-6 w-6 align-middle"></i>
-                  </button>
+              {testPassed && (
+                <div className="flex items-center p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <i className="fas fa-check-circle text-green-500 mr-3"></i>
+                  <span className="text-sm text-green-700">连接测试通过，可以保存机器人</span>
                 </div>
+              )}
+            </div>
+          )}
 
-                {/* 机器人卡片 */}
-                <div className="relative bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 rounded-lg overflow-hidden mb-6 h-48">
-                  {/* SNS背景图 */}
-                  {bot.sns_bg_img && (
-                    <div className="absolute inset-0">
-                      <BotBackgroundImage imageUrl={bot.sns_bg_img} />
-                    </div>
-                  )}
-
-                  {/* 用户信息区域 */}
-                  <div className="absolute bottom-0 left-0 right-0 backdrop-blur-md bg-white bg-opacity-20 p-4 rounded-none">
-                    <div className="flex items-center space-x-4">
-                      <CachedImage
-                        src={bot.big_head_img_url || bot.avatar_url || '/default-avatar.png'}
-                        alt={bot.nickname || '机器人头像'}
-                        className="w-16 h-16 rounded-full object-cover shadow-lg"
-                      />
-                      <div className="flex-1">
-                        <h4 className="text-xl font-bold text-gray-900">
-                          {bot.nickname || '未设置昵称'}
-                        </h4>
-                        <p className="text-gray-600">{bot.signature || '这个人很懒，什么都没留下'}</p>
-                        <div className="flex items-center mt-2">
-                          <div className={`w-3 h-3 rounded-full mr-2 ${bot.is_online ? 'bg-green-500' : 'bg-gray-400'
-                            }`}></div>
-                          <span className="text-sm text-gray-600">
-                            {bot.is_online ? '在线' : '离线'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 详细信息 */}
-                <div className="space-y-4">
-                  {/* 基本信息 */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">微信号</label>
-                      <div className="flex items-center space-x-2">
-                        <span className="text-sm text-gray-900">{bot.wxid || 'N/A'}</span>
-                        {bot.wxid && (
-                          <button
-                            onClick={() => copyToClipboard(bot.wxid)}
-                            className="p-1 hover:bg-gray-100 rounded"
-                          >
-                            {copiedField === 'wxid' ? (
-                              <i className="fas fa-check h-4 w-4 text-green-500 "></i>
-                            ) : (
-                              <i className="fas fa-copy h-4 w-4 text-gray-400 "></i>
-                            )}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">手机号</label>
-                      <span className="text-sm text-gray-900">{bot.mobile || 'N/A'}</span>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">性别</label>
-                      <span className="text-sm text-gray-900">{getSexText(bot.sex)}</span>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">地区</label>
-                      <span className="text-sm text-gray-900">
-                        {[bot.country, bot.province, bot.city].filter(Boolean).join(' ') || 'N/A'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Gewe信息 */}
-                  <div className="border-t pt-4">
-                    <h5 className="text-sm font-medium text-gray-700 mb-3">Gewe信息</h5>
-                    <div className="space-y-3">
-                      {/* App ID */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">App ID</label>
-                        <div className="flex items-center space-x-2">
-                          {isEditing ? (
-                            <input
-                              type="text"
-                              value={editForm.gewe_app_id}
-                              onChange={(e) => {
-                                setEditForm({ ...editForm, gewe_app_id: e.target.value });
-                                setGeneralError(''); // 清除错误状态
-                                setTestPassed(false); // 重置测试状态
-                              }}
-                              className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                              disabled
-                            />
-                          ) : (
-                            <>
-                              <span className="text-sm text-gray-900 font-mono">{bot.gewe_app_id}</span>
-                              <button
-                                onClick={() => copyToClipboard(bot.gewe_app_id)}
-                                className="p-1 hover:bg-gray-100 rounded"
-                              >
-                                {copiedField === 'gewe_app_id' ? (
-                                  <i className="fas fa-check h-4 w-4 text-green-500 "></i>
-                                ) : (
-                                  <i className="fas fa-copy h-4 w-4 text-gray-400 "></i>
-                                )}
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Token */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Token</label>
-                        <div className="flex items-center space-x-2">
-                          {isEditing ? (
-                            <input
-                              type="password"
-                              value={editForm.gewe_token}
-                              onChange={(e) => {
-                                setEditForm({ ...editForm, gewe_token: e.target.value });
-                                setGeneralError(''); // 清除错误状态
-                                setTestPassed(false); // 重置测试状态
-                              }}
-                              className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                              placeholder="输入新的Token"
-                            />
-                          ) : (
-                            <>
-                              <span className="text-sm text-gray-900 font-mono">••••••••••••••••</span>
-                              <button
-                                onClick={() => copyToClipboard(bot.gewe_token)}
-                                className="p-1 hover:bg-gray-100 rounded"
-                              >
-                                {copiedField === 'gewe_token' ? (
-                                  <i className="fas fa-check h-4 w-4 text-green-500 "></i>
-                                ) : (
-                                  <i className="fas fa-copy h-4 w-4 text-gray-400 "></i>
-                                )}
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Base URL */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Base URL</label>
-                        <div className="flex items-center space-x-2">
-                          {isEditing ? (
-                            <input
-                              type="url"
-                              value={editForm.base_url}
-                              onChange={(e) => {
-                                setEditForm({ ...editForm, base_url: e.target.value });
-                                setGeneralError(''); // 清除错误状态
-                                setTestPassed(false); // 重置测试状态
-                              }}
-                              className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                              placeholder="输入Base URL"
-                            />
-                          ) : (
-                            <>
-                              <span className="text-sm text-gray-900 font-mono">{bot.base_url}</span>
-                              <button
-                                onClick={() => copyToClipboard(bot.base_url)}
-                                className="p-1 hover:bg-gray-100 rounded"
-                              >
-                                {copiedField === 'base_url' ? (
-                                  <i className="fas fa-check h-4 w-4 text-green-500 "></i>
-                                ) : (
-                                  <i className="fas fa-copy h-4 w-4 text-gray-400 "></i>
-                                )}
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 编辑模式下的错误和状态显示 */}
-                  {isEditing && (
-                    <div className="space-y-3">
-                      {/* 通用错误显示 */}
-                      {generalError && (
-                        <div className="flex items-start p-3 bg-red-50 border border-red-200 rounded-md">
-                          <i className="fas fa-exclamation-triangle h-5 w-5 text-red-500 mr-2 flex-shrink-0 mt-0.5"></i>
-                          <div className="flex-1">
-                            <span className="text-sm text-red-700 break-words">{generalError}</span>
-                            <button
-                              onClick={() => setGeneralError('')}
-                              className="ml-2 text-red-400 hover:text-red-600 focus:outline-none"
-                            >
-                              <i className="fas fa-times h-4 w-4"></i>
-                            </button>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* 测试状态提示 */}
-                      {testPassed && (
-                        <div className="flex items-center p-3 bg-green-50 border border-green-200 rounded-md">
-                          <i className="fas fa-check h-5 w-5 text-green-500 mr-2 flex items-center"></i>
-                          <span className="text-sm text-green-700">连接测试通过，可以保存机器人</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* 时间信息 */}
-                  <div className="border-t pt-4">
-                    <h5 className="text-sm font-medium text-gray-700 mb-3">时间信息</h5>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="text-gray-600">创建时间:</span>
-                        <span className="ml-2 text-gray-900">{formatTime(bot.created_at)}</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">更新时间:</span>
-                        <span className="ml-2 text-gray-900">{formatTime(bot.updated_at)}</span>
-                      </div>
-                      <div className="col-span-2">
-                        <span className="text-gray-600">最后在线:</span>
-                        <span className="ml-2 text-gray-900">{formatTime(bot.last_seen_at)}</span>
-                      </div>
-                    </div>
-                  </div>
+          {/* 时间信息卡片 */}
+          <div className="bg-blue-50 rounded-xl p-5 hover:shadow-lg transition-all duration-300 group">
+            <h3 className="flex items-center text-sm font-semibold text-gray-900 mb-4 group-hover:text-blue-700 transition-colors duration-200">
+              <i className="fas fa-clock mr-2 text-blue-600 group-hover:scale-110 transition-transform duration-200"></i>
+              时间信息
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="bg-white rounded-lg p-3 hover:shadow-md transition-shadow duration-200 cursor-default group">
+                <div className="text-xs text-gray-600 mb-1">创建时间</div>
+                <div className="text-sm text-gray-900 font-medium">{formatRelativeTime(bot.created_at)}</div>
+                <div className="text-xs text-gray-500 mt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                  {formatTime(bot.created_at)}
                 </div>
               </div>
-
-              {/* 弹窗底部操作按钮 */}
-              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                {isEditing ? (
-                  <div className="flex space-x-3">
-                    <button
-                      onClick={testConnection}
-                      disabled={testing || !editForm.gewe_app_id || !editForm.gewe_token}
-                      className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {testing ? '测试中...' : '测试连接'}
-                    </button>
-                    <button
-                      onClick={saveEdit}
-                      disabled={!testPassed}
-                      className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <i className="fas fa-check h-4 w-4 mr-2 flex items-center"></i>
-                      保存
-                    </button>
-                    <button
-                      onClick={() => {
-                        setIsEditing(false);
-                        setTestPassed(false);
-                        setGeneralError(''); // 清除错误状态
-                        setEditForm({
-                          gewe_app_id: bot.gewe_app_id || '',
-                          gewe_token: bot.gewe_token || '',
-                          base_url: bot.base_url || 'https://www.geweapi.com/gewe/v2/api'
-                        });
-                      }}
-                      className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-                    >
-                      <i className="fas fa-times-circle h-4 w-4 mr-2 flex items-center"></i>
-                      取消
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex space-x-3">
-                    <button
-                      onClick={() => setIsEditing(true)}
-                      className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
-                    >
-                      <i className="fas fa-edit h-4 w-4 mr-2 flex items-center"></i>
-                      编辑
-                    </button>
-                    <button
-                      onClick={() => setShowDeleteConfirm(true)}
-                      className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                    >
-                      <i className="fas fa-trash h-4 w-4 mr-2 flex items-center"></i>
-                      删除
-                    </button>
-                  </div>
-                )}
+              <div className="bg-white rounded-lg p-3 hover:shadow-md transition-shadow duration-200 cursor-default group">
+                <div className="text-xs text-gray-600 mb-1">更新时间</div>
+                <div className="text-sm text-gray-900 font-medium">{formatRelativeTime(bot.updated_at)}</div>
+                <div className="text-xs text-gray-500 mt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                  {formatTime(bot.updated_at)}
+                </div>
               </div>
-            </motion.div>
+              <div className="bg-white rounded-lg p-3 sm:col-span-2 hover:shadow-md transition-shadow duration-200 cursor-default group">
+                <div className="text-xs text-gray-600 mb-1 flex items-center">
+                  最后在线
+                  {bot.is_online && <span className="ml-2 flex items-center">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                    </span>
+                  </span>}
+                </div>
+                <div className="text-sm text-gray-900 font-medium">{formatRelativeTime(bot.last_seen_at)}</div>
+                <div className="text-xs text-gray-500 mt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                  {formatTime(bot.last_seen_at)}
+                </div>
+              </div>
+            </div>
           </div>
+        </div>
+      </Modal>
 
-          {/* 删除确认弹窗 */}
-          <AnimatePresence>
-            {showDeleteConfirm && (
-              <motion.div
-                className="fixed inset-0 z-60 overflow-y-auto"
-                initial="hidden"
-                animate="visible"
-                exit="exit"
-              >
-                <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                  <motion.div
-                    variants={backdropVariants}
-                    className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
-                    onClick={(e) => e.target === e.currentTarget && setShowDeleteConfirm(false)}
-                  />
-                  <motion.div
-                    variants={confirmModalVariants}
-                    className="inline-block align-middle bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all relative sm:my-8 sm:align-middle sm:max-w-lg sm:w-full"
-                  >
-                    <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                      <div className="sm:flex sm:items-start">
-                        <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
-                          <i className="fas fa-trash h-6 w-6 text-red-600 flex items-center justify-center"></i>
-                        </div>
-                        <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-                          <h3 className="text-lg leading-6 font-medium text-gray-900">
-                            删除机器人
-                          </h3>
-                          <div className="mt-2">
-                            <p className="text-sm text-gray-500">
-                              确定要删除机器人 "{bot.nickname || bot.gewe_app_id}" 吗？此操作不可撤销。
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                      <button
-                        onClick={handleDelete}
-                        disabled={saving}
-                        className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
-                      >
-                        {saving ? '删除中...' : '确认删除'}
-                      </button>
-                      <button
-                        onClick={() => setShowDeleteConfirm(false)}
-                        disabled={saving}
-                        className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
-                      >
-                        取消
-                      </button>
-                    </div>
-                  </motion.div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
-      )}
-    </AnimatePresence>,
-    document.body
+      {/* 删除确认弹窗 */}
+      <Modal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        title=""
+        size="sm"
+        footer={
+          <div className="flex gap-3 justify-end">
+            <button
+              onClick={() => setShowDeleteConfirm(false)}
+              disabled={saving}
+              className="px-4 py-2 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-200 disabled:opacity-50"
+            >
+              取消
+            </button>
+            <button
+              onClick={handleDelete}
+              disabled={saving}
+              className="px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 border border-transparent rounded-xl text-sm font-medium text-white hover:from-red-700 hover:to-red-800 shadow-md hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50"
+            >
+              {saving ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2 inline-block"></div>
+                  删除中...
+                </>
+              ) : (
+                '确认删除'
+              )}
+            </button>
+          </div>
+        }
+      >
+        <div className="text-center py-4">
+          <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-4">
+            <i className="fas fa-trash text-red-600 text-2xl"></i>
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            删除机器人
+          </h3>
+          <p className="text-gray-600">
+            确定要删除机器人 <span className="font-semibold">"{bot?.nickname || bot?.gewe_app_id}"</span> 吗？
+          </p>
+          <p className="text-sm text-red-600 mt-2">
+            此操作不可撤销
+          </p>
+        </div>
+      </Modal>
+    </>
   );
 };
 

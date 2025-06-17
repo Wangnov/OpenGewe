@@ -318,7 +318,7 @@ const CreateBotModal = ({ isOpen, onClose, onSuccess }) => {
         {/* 背景遮罩 */}
         <div
           ref={backdropRef}
-          className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity animate-modal-backdrop-enter"
+          className="fixed inset-0 bg-gray-500/75 transition-opacity animate-modal-backdrop-enter"
           onClick={handleBackdropClick}
         />
 

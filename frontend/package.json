@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@tailwindcss/vite": "^4.1.10",
     "axios": "^1.9.0",
     "framer-motion": "^12.15.0",
     "github-markdown-css": "^5.8.1",
@@ -17,7 +18,8 @@
     "react-dom": "^19.1.0",
     "react-hot-toast": "^2.5.2",
     "react-markdown": "^10.1.0",
-    "react-router-dom": "^7.6.1"
+    "react-router-dom": "^7.6.1",
+    "tailwindcss": "^4.1.10"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",

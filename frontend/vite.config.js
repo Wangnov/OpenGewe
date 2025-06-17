@@ -1,12 +1,16 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react({
-    // 确保JSX运行时正确配置
-    jsxRuntime: 'automatic'
-  })],
+  plugins: [
+    react({
+      // 确保JSX运行时正确配置
+      jsxRuntime: 'automatic'
+    }),
+    tailwindcss()
+  ],
   optimizeDeps: {
     // 预构建framer-motion以避免运行时问题
     include: ['framer-motion', 'react', 'react-dom']

@@ -1,355 +1,99 @@
 # OpenGewe
 
-![版本](https://img.shields.io/badge/版本-0.2.0-blue)
+![版本](https://img.shields.io/badge/版本-0.2.1-blue)
 ![Python](https://img.shields.io/badge/Python-3.9+-brightgreen)
 ![协议](https://img.shields.io/badge/协议-MIT-green)
 
-> 基于 GeWeAPI 和 GeWe 私有部署方案的异步 Python 微信机器人框架，提供高性能的微信自动化解决方案
+> OpenGewe 是一个功能强大的、基于 GeWeAPI 的异步 Python 微信机器人框架，现已包含一个现代化的前后端分离管理面板，为您提供开箱即用的微信自动化和智能管理解决方案。
 
-## 简介
+## 🌟 项目亮点
 
-OpenGewe 是一个基于 [GeWeAPI](https://geweapi.com) 的微信机器人框架，专注于提供个人微信二次开发能力。本框架采用微信iPad协议登录，提供稳定、安全的微信API访问能力。
+- 🚀 **全异步核心**: 基于 `asyncio` 构建，为高并发场景提供卓越性能。
+- 💻 **现代化Web面板**: 使用 **React 19 + FastAPI** 构建，提供响应式、用户友好的机器人和插件管理界面。
+- 🔌 **强大的插件系统**: 易于扩展的插件架构，支持动态加载、热重载和全局/机器人级别的独立配置。
+- 🤖 **企业级多租户**: 为每个机器人实例创建独立的数据库 Schema，实现安全的数据隔离。
+- 📨 **全面的消息处理**: 内置所有31种微信回调消息类型的解析和处理，从文本到系统通知，无一遗漏。
+- 🛠️ **一键启动**: 提供 `start.sh` 脚本，一键并发启动前后端开发环境。
+- 큐 **灵活的消息队列**: 支持轻量级的 `simple` 模式和基于 `Celery` 的 `advanced` 高级模式，满足不同场景需求。
 
-**请注意：** 项目配套的前后端管理面板仍在积极开发中，将在未来的版本中提供。
+## 📸 界面概览
 
+*(这里可以插入Web管理面板的截图，例如机器人列表、插件管理页面等)*
 
-## 主要特性
+**登录页面:**
+![Login Page](https://your-image-host.com/login.png)
 
-- 🚀 **完全异步** - 使用原生 asyncio 实现，支持高并发和大数据量处理
-- 📨 **全面消息处理** - 实现所有31种回调消息类型的处理
-- 💬 **多媒体支持** - 支持文本、图片、语音、视频等多种消息类型
-- 👥 **完整群管理** - 自动入群、退群、邀请好友、群成员管理等
-- 🔌 **插件系统** - 可扩展的插件架构，支持动态加载/卸载插件
-- 🔄 **API集成** - 提供RESTful API，方便与其他系统集成
-- 📊 **消息队列** - 支持简单队列和高级队列（Celery）两种消息处理模式
-- 📱 **朋友圈操作** - 支持发布朋友圈内容、浏览朋友圈等
-- 🎵 **视频号交互** - 支持视频号相关的操作
-- 📦 **轻量化安装** - 支持基础和完整两种安装方式，按需选择功能
+**机器人管理:**
+![Bots Dashboard](https://your-image-host.com/bots.png)
 
-## 兼容性说明
-
-⚠️ **注意：由于原免费私有部署方案[Gewechat](https://github.com/Devo919/Gewechat)原项目暂停维护，本项目虽然兼容Gewechat，但不推荐使用。**
-
-本项目**计划**完全兼容Gewechat付费版本[GeWeAPI](https://geweapi.com)。由于原项目暂停维护，我们建议用户转向使用GeWeAPI以获得持续的支持和更新。使用GeWeAPI只需修改`base_url`为：`http://www.geweapi.com/gewe/v2/api`，系统会自动识别并切换到付费版模式。
-
-## 迁移到GeWeAPI
-
-如果您希望继续使用本项目的功能，可以按照以下步骤迁移到GeWeAPI:
-
-1. 访问[GeWeAPI官方网站](https://geweapi.com)注册账号
-2. 获取GeWeAPI的token
-3. 在配置中将`base_url`修改为Gewe API地址：`http://www.geweapi.com/gewe/v2/api` 或备用地址（GeWeAPI管理后台中显示的）
-4. 在GeWeAPI管理后台中扫码登录微信账号，获得app_id
-5. 在GeWeAPI管理后台中对此token设置回调服务器的地址
-
-## 安装
-
-OpenGewe 提供两种安装方式，您可以根据自己的需求选择：
-
-### 🔸 基础安装（推荐给大多数用户）
-
-适合只需要基础功能的用户，安装包更小，依赖更少：
-
-```bash
-# 使用 pip 安装基础版本
-pip install opengewe
-
-# 或从源码安装基础功能
-git clone https://github.com/Wangnov/OpenGewe.git
-cd OpenGewe
-pip install -r requirements.txt
-pip install -e .
-```
-
-**基础版本包含的功能：**
-- ✅ 完整的微信机器人功能
-- ✅ 简单消息队列 (SimpleMessageQueue)
-- ✅ 插件系统
-- ✅ 日志系统
-- ✅ 任务调度器
-- ✅ 所有API模块（登录、消息、群聊等）
-
-**基础版本不包含：**
-- ❌ 高级消息队列 (AdvancedMessageQueue)
-- ❌ Celery 分布式任务处理
-- ❌ Redis/RabbitMQ 支持
-
-### 🔸 完整安装（需要高级功能的用户）
-
-适合需要分布式处理、高并发场景的用户：
-
-```bash
-# 使用 pip 安装完整版本（推荐）
-pip install opengewe[advanced]
-
-# 或使用完整依赖文件
-git clone https://github.com/Wangnov/OpenGewe.git
-cd OpenGewe
-pip install -r requirements-advanced.txt
-pip install -e .
-
-# 或手动安装依赖
-pip install opengewe
-pip install celery redis amqp joblib lz4
-```
-
-**完整版本额外包含：**
-- ✅ 高级消息队列 (AdvancedMessageQueue)
-- ✅ Celery 分布式任务处理
-- ✅ Redis/RabbitMQ 消息代理支持
-- ✅ 高性能序列化 (joblib + lz4)
-
-### 📋 依赖对比
-
-| 依赖包 | 基础安装 | 完整安装 | 用途 |
-|--------|----------|----------|------|
-| qrcode | ✅ | ✅ | 二维码生成 |
-| aiohttp | ✅ | ✅ | 异步HTTP客户端 |
-| pytz | ✅ | ✅ | 时区处理 |
-| apscheduler | ✅ | ✅ | 任务调度 |
-| loguru | ✅ | ✅ | 日志记录 |
-| tomli | ✅ | ✅ | TOML配置解析 |
-| celery | ❌ | ✅ | 分布式任务队列 |
-| redis | ❌ | ✅ | Redis客户端 |
-| amqp | ❌ | ✅ | AMQP协议支持 |
-| joblib | ❌ | ✅ | 高效序列化 |
-| lz4 | ❌ | ✅ | 快速压缩 |
-
-### 🤔 如何选择？
-
-**选择基础安装，如果您：**
-- 是新用户，想快速体验
-- 项目规模较小
-- 单机部署
-- 消息量不大
-- 不需要分布式处理
-
-**选择完整安装，如果您：**
-- 需要生产环境部署
-- 需要分布式处理
-- 高并发场景
-- 需要消息持久化
-- 多worker协作
+**插件中心:**
+![Plugins Marketplace](https://your-image-host.com/plugins.png)
 
 ## 快速开始
 
-### 基本使用
-
-```python
-import asyncio
-from opengewe import GeweClient
-
-async def main():
-    # 创建客户端实例
-    client = GeweClient(
-        base_url="http://www.geweapi.com/gewe/v2/api",  # GeWeAPI服务的基础URL，GeWe服务器只要没有问题就不会变化。极少数情况下可能会变化，可在GeWeAPI管理后台查看最新的base_url
-        download_url="",  # 使用GeWeAPI无需填写
-        callback_url="",  # 在GeWeAPI设置回调服务器URL，此处无需设置
-        app_id="your_app_id",  # 在GeWeAPI登录成功后返回的app_id
-        token="your_token",  # 在GeWeAPI创建的token
-        is_gewe=True,  # 使用付费版GeWeAPI
-        queue_type="simple",  # 消息队列类型：simple（基础安装）或 advanced（完整安装）
-    )
-    
-    # 发送文本消息
-    await client.send_text_message("filehelper", "你好，这是一条测试消息")
-    
-    # 获取通讯录列表
-    contacts = await client.contact.get_contact_list()
-    
-    # 关闭客户端
-    await client.close()
-
-if __name__ == "__main__":
-    asyncio.run(main())
-```
-
-### 消息队列使用
-
-OpenGewe 支持两种消息队列模式，根据您的安装方式自动选择：
-
-#### 简单队列模式（基础安装）
-```python
-from opengewe import GeweClient
-
-# 创建使用简单队列的客户端
-client = GeweClient(
-    base_url="your_base_url",
-    token="your_token",
-    app_id="your_app_id",
-    queue_type="simple",  # 使用简单队列
-    delay=1.0,  # 消息发送间隔（秒）
-)
-```
-
-#### 高级队列模式（完整安装）
-```python
-from opengewe import GeweClient
-
-# 创建使用高级队列的客户端（需要 pip install opengewe[advanced]）
-client = GeweClient(
-    base_url="your_base_url", 
-    token="your_token",
-    app_id="your_app_id",
-    queue_type="advanced",  # 使用高级队列
-    broker="redis://localhost:6379/0",  # Redis/RabbitMQ 地址
-    backend="redis://localhost:6379/0",  # 结果存储地址
-    queue_name="opengewe_messages",  # 队列名称
-)
-```
-
-#### 队列功能对比
-
-| 功能特性 | 简单队列 | 高级队列 |
-|----------|----------|----------|
-| 安装要求 | 基础安装 | 完整安装 |
-| 部署复杂度 | 简单 | 需要 Redis/RabbitMQ |
-| 分布式支持 | ❌ | ✅ |
-| 消息持久化 | ❌ | ✅ |
-| 多 Worker | ❌ | ✅ |
-| 高并发 | 适中 | 高性能 |
-| 适用场景 | 小型项目、单机 | 生产环境、分布式 |
-
-#### 错误处理示例
-```python
-try:
-    # 尝试创建高级队列
-    client = GeweClient(
-        base_url="your_base_url",
-        token="your_token", 
-        app_id="your_app_id",
-        queue_type="advanced"
-    )
-except ImportError as e:
-    print("高级队列功能不可用，请安装: pip install opengewe[advanced]")
-    # 降级到简单队列
-    client = GeweClient(
-        base_url="your_base_url",
-        token="your_token",
-        app_id="your_app_id", 
-        queue_type="simple"
-    )
-```
-
-### 配置文件
-
-OpenGewe 使用 TOML 格式的配置文件，默认为 `main_config.toml`：
-
-```toml
-[gewe_apps]
-# 多设备配置
-[gewe_apps.1]
-name = "默认设备"
-base_url = "http://www.geweapi.com/gewe/v2/api"
-app_id = "your_app_id"
-token = "your_token"
-is_gewe = true
-
-[plugins]
-plugins_dir = "plugins"
-enabled_plugins = ["ExamplePlugin"]
-
-[queue]
-queue_type = "simple"  # 可选 "simple" 或 "advanced"
-# 简单队列配置
-delay = 1.0
-
-# 高级队列配置（仅当 queue_type = "advanced" 时需要）
-# broker = "redis://localhost:6379/0"
-# backend = "redis://localhost:6379/0" 
-# queue_name = "opengewe_messages"
-
-[logging]
-level = "INFO"
-format = "color"
-path = "./logs"
-stdout = true
-```
-
-### 命令行工具
-
-OpenGewe提供了一个简单的命令行工具，可以通过以下方式启动：
+我们提供了一键式脚本来简化开发环境的启动。
 
 ```bash
-# 显示版本信息
-opengewe version
+# 1. 克隆项目
+git clone https://github.com/Wangnov/OpenGewe.git
+cd OpenGewe
 
-# 启动客户端（使用配置文件中的设置）
-opengewe client --config main_config.toml --device 1
+# 2. (首次运行) 安装依赖
+# 该脚本会自动安装前端和后端所需的所有依赖
+./start.sh --install
+
+# 3. (日常启动) 启动开发服务器
+# 该脚本会并发启动前端Vite服务和后端FastAPI服务
+./start.sh
 ```
 
-## 插件开发
+启动后，请访问：
+- **前端管理面板**: `http://localhost:5173`
+- **后端API文档**: `http://localhost:5432/docs`
 
-创建一个自定义插件：
+## 架构
 
-1. 在 `plugins` 目录下创建插件文件夹
-2. 编写插件主类，继承 `PluginBase`
-3. 可以使用装饰器注册消息处理和定时任务，也可以直接引入opengewe的handler模块来注册消息处理
-4. 在配置文件中启用插件
-5. 可以以兼容XYBot和XXXBot的插件格式来编写
+OpenGewe 采用先进的前后端分离架构，确保了高内聚、低耦合的模块化设计。
 
-示例插件：
+*(这里可以插入架构图)*
+![Architecture Diagram](https://your-image-host.com/architecture.png)
 
-```python
-from utils.plugin_base import PluginBase
-from utils.decorators import on_text_message, schedule
+- **前端 (Frontend)**: 基于 **React 19** 和 **Vite** 构建，负责所有用户交互和数据展示。
+- **后端 (Backend)**: 基于 **FastAPI** 构建，提供 RESTful API，处理所有业务逻辑、数据库交互和机器人控制。
+- **核心库 (src/opengewe)**: 独立、可发布的 Python 包，封装了与 GeWeAPI 的所有通信和消息处理逻辑。
+- **插件 (Plugins)**: 独立的插件目录，允许开发者轻松扩展机器人功能。
+- **数据库**: 使用 **MySQL**，通过 SQLAlchemy 进行异步操作，并为每个机器人实例创建独立的 Schema。
 
-class MyPlugin(PluginBase):
-    """自定义插件示例"""
-    
-    description = "这是我的第一个插件"
-    author = "您的名字"
-    version = "1.0.0"
-    
-    def __init__(self):
-        super().__init__()
-        self.enable = True
-        
-    @on_text_message()
-    async def handle_text(self, client, message):
-        if message.text == "你好":
-            await client.send_text(message.from_wxid, "你好！我是OpenGewe机器人")
-    
-    @schedule("interval", minutes=30)
-    async def periodic_task(self, client):
-        # 执行定期任务的代码
-        pass
-```
+## 插件生态
 
-## 模块说明
+插件是 OpenGewe 的核心扩展方式。我们提供了一系列官方插件，您也可以轻松开发自己的插件。
 
-OpenGewe包含以下核心模块：
+### 官方插件
 
-- **login**: 登录相关功能
-- **contact**: 通讯录管理
-- **group**: 群聊管理
-- **message**: 消息收发
-- **tag**: 标签管理
-- **personal**: 个人信息管理
-- **favorite**: 收藏功能
-- **account**: 账号管理
-- **sns**: 朋友圈功能
-- **finder**: 视频号功能
+- **AIAssistant**: 对接大语言模型，提供智能对话能力。
+- **KeywordMonitor**: 监控群聊关键词，实时发送舆情警报。
+- **ScheduledTaskNotifier**: 支持通过聊天指令动态创建和管理定时任务。
+- **FileAnalyzerAssistant**: 智能分析用户发送的文本文件并生成摘要。
+- **DailyQuote**: 提供每日一言功能。
+- ... 更多插件正在开发中！
 
-## 贡献指南
+### 开发自己的插件
 
-可以Fork本项目进行修改和改进
+1.  在 `plugins` 目录下创建一个新的文件夹，例如 `MyAwesomePlugin`。
+2.  在文件夹中创建 `main.py` 和 `config.toml`。
+3.  在 `main.py` 中，创建一个继承自 `PluginBase` 的类。
+4.  使用 `@on_text_message`, `@schedule` 等装饰器来定义您的事件处理函数和定时任务。
 
-## 致谢
+详细的插件开发指南请参考 [插件开发文档](link-to-plugin-dev-doc.md)。
 
-- 特别感谢[Gewechat](https://github.com/Devo919/Gewechat)项目的开源精神
-- 感谢[XYBot](https://github.com/HenryXiaoYang/XYBotV2)项目的异步实现给本项目以启发
-- 感谢[XXXBot](https://github.com/NanSsye/xxxbot-pad)项目的管理后台前端实现给本项目以启发，和丰富的插件开发生态
-- 感谢所有对本项目提供支持和反馈的用户
+## 发展蓝图
+
+本项目正处于高速迭代中，我们有一个清晰的未来发展计划。更多细节请参考我们的 [**未来开发计划文档**](./OpenGewe-WebPanel-Development-Plan.md)。
+
+## 贡献
+
+我们欢迎任何形式的贡献！无论是提交 Issue、发起 Pull Request，还是改进文档，都对我们至关重要。
 
 ## 许可证
 
-本项目采用 [MIT 许可证](LICENSE)
-
-## 免责声明
-
-本项目仅供学习研究使用，请勿用于非法用途。使用本项目导致的任何问题与开发者无关。请遵守微信使用条款和相关法律法规。
-
-## 联系方式
-
-有问题或建议？请在GitHub上提交Issue或Pull Request。
+本项目采用 [MIT 许可证](./LICENSE)。
