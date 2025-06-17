@@ -72,7 +72,7 @@ def create_message_queue(
                 error_msg = (
                     "高级消息队列功能不可用！\n"
                     "请安装所需依赖: pip install opengewe[advanced]\n"
-                    "或者安装单个包: pip install celery redis amqp joblib lz4\n"
+                    "或者安装单个包: pip install celery redis amqp\n"
                     "如果不需要高级功能，请使用 queue_type='simple'"
                 )
                 logger.error(error_msg)
