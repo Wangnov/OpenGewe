@@ -2,7 +2,6 @@
 __pycache__/
 *.py[cod]
 *$py.class
-test*.py
 .python-version
 
 # 分发与打包
@@ -38,7 +37,10 @@ nosetests.xml
 coverage.xml
 *.cover
 .hypothesis/
-test*.*
+
+# 测试配置
+test_config.toml
+!test_config.example.toml
 
 # 日志
 *.log
@@ -70,6 +72,7 @@ uv.lock
 
 # 配置文件
 main_config.toml
+!main_config.example.toml
 
 # 旧版本文件
 old/

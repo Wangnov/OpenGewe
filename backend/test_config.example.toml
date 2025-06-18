@@ -1,0 +1,29 @@
+# OpenGewe 测试配置文件示例
+# 复制此文件为 test_config.toml 并修改为您的测试环境配置
+# 注意：不要将 test_config.toml 提交到版本控制系统中
+
+[test_database]
+# 测试数据库配置
+type = "mysql"
+host = "localhost"
+port = 3306
+username = "root"
+password = "your_test_db_password"
+database = "opengewe_test"
+echo_sql = false
+
+[test_redis]
+# 测试 Redis 配置
+host = "localhost"
+port = 6379
+db = 1             # 使用不同的数据库避免与生产环境冲突
+# password = ""  # 如果需要密码，取消注释
+
+[test_auth]
+# 测试认证配置
+secret_key = "test-secret-key-for-testing-only"
+jwt_expiration_hours = 1
+
+[test_settings]
+# 其他测试设置
+debug = true

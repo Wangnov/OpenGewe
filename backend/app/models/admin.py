@@ -56,7 +56,8 @@ class AdminLoginLog(AdminBase):
 
     id: Mapped[int] = mapped_column(
         Integer, primary_key=True, autoincrement=True)
-    admin_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    admin_id: Mapped[Optional[int]] = mapped_column(
+        Integer, nullable=True, index=True)
     login_ip: Mapped[Optional[str]] = mapped_column(String(45))
     user_agent: Mapped[Optional[str]] = mapped_column(Text)
     login_at: Mapped[datetime] = mapped_column(

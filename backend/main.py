@@ -278,9 +278,18 @@ def setup_exception_handlers(app: FastAPI):
     ):
         """处理请求验证错误"""
         logger.warning(f"请求验证失败: {exc}")
+
+        # 清理错误信息，移除不能被JSON序列化的对象
+        errors = exc.errors()
+        for error in errors:
+            if 'ctx' in error and 'error' in error['ctx']:
+                # 将 ValueError 对象转换为字符串
+                if isinstance(error['ctx']['error'], Exception):
+                    error['ctx']['error'] = str(error['ctx']['error'])
+
         return JSONResponse(
             status_code=422,
-            content={"error": "请求数据验证失败", "details": exc.errors()},
+            content={"error": "请求数据验证失败", "details": errors},
         )
 
     @app.exception_handler(SQLAlchemyError)

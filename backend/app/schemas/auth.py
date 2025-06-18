@@ -3,7 +3,7 @@
 """
 
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class LoginRequest(BaseModel):
@@ -46,8 +46,16 @@ class ChangePasswordRequest(BaseModel):
     new_password: str = Field(..., min_length=8, description="新密码")
     confirm_password: str = Field(..., min_length=8, description="确认新密码")
 
-    def validate_passwords_match(self):
+    @field_validator('confirm_password')
+    @classmethod
+    def passwords_match(cls, v, info):
         """验证两次密码输入是否一致"""
+        if info.data.get('new_password') and v != info.data['new_password']:
+            raise ValueError("新密码与确认密码不一致")
+        return v
+
+    def validate_passwords_match(self):
+        """为了向后兼容，保留这个方法"""
         if self.new_password != self.confirm_password:
             raise ValueError("新密码与确认密码不一致")
         return True
