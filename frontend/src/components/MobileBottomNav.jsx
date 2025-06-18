@@ -44,9 +44,9 @@ const MobileBottomNav = () => {
                             onClick={() => setShowUserTooltip(false)}
                         />
                         {/* tooltip内容 */}
-                        <div className="absolute bottom-20 right-4 bg-white/95 backdrop-blur-xl rounded-xl shadow-xl border border-white/30 p-4 min-w-[200px]">
+                        <div className="absolute bottom-20 right-4 bg-white/60 backdrop-blur-xl rounded-xl shadow-xl border border-gray-200/50 p-4 min-w-[200px]">
                             <div className="flex items-center space-x-3 mb-3">
-                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold shadow-lg">
+                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold shadow-lg">
                                     {user?.username?.charAt(0).toUpperCase() || 'U'}
                                 </div>
                                 <div>
@@ -56,19 +56,19 @@ const MobileBottomNav = () => {
                             </div>
                             <button
                                 onClick={handleLogout}
-                                className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-all duration-200 text-sm font-medium"
+                                className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-xl transition-all duration-200 text-sm font-medium shadow-lg hover:shadow-xl"
                             >
                                 <i className="fas fa-sign-out-alt"></i>
                                 <span>退出登录</span>
                             </button>
                             {/* 小三角箭头 */}
-                            <div className="absolute bottom-[-6px] right-6 w-3 h-3 bg-white/95 border-r border-b border-white/30 transform rotate-45"></div>
+                            <div className="absolute bottom-[-6px] right-6 w-3 h-3 bg-white/60 border-r border-b border-gray-200/50 transform rotate-45"></div>
                         </div>
                     </>
                 )}
 
                 {/* 底部导航栏主体 */}
-                <div className="bg-white/95 backdrop-blur-xl border-t border-white/30 shadow-xl">
+                <div className="bg-white/60 backdrop-blur-xl border-t border-gray-200/50 shadow-xl">
                     <div className="flex items-center">
                         {/* 可滚动的导航项容器 */}
                         <div className="flex-1 overflow-x-auto scrollbar-hide">
@@ -78,9 +78,9 @@ const MobileBottomNav = () => {
                                         key={item.to}
                                         to={item.to}
                                         className={({ isActive }) =>
-                                            `flex flex-col items-center justify-center min-w-[70px] p-3 my-2 rounded-xl transition-all duration-300 ${isActive
-                                                ? 'bg-white/70 shadow-lg backdrop-blur-sm'
-                                                : 'hover:bg-white/40'
+                                            `flex flex-col items-center justify-center min-w-[70px] p-3 my-2 rounded-xl transition-all duration-300 relative ${isActive
+                                                ? 'bg-white/80 shadow-lg backdrop-blur-sm border border-gray-200/50'
+                                                : 'hover:bg-white/50'
                                             }`
                                         }
                                     >
@@ -117,10 +117,10 @@ const MobileBottomNav = () => {
                         </div>
 
                         {/* 固定的用户头像 */}
-                        <div className="flex-shrink-0 ml-2 pl-2 border-l border-gray-200">
+                        <div className="flex-shrink-0 ml-2 pl-2 border-l border-gray-200/50">
                             <button
                                 onClick={toggleUserTooltip}
-                                className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold shadow-lg transition-all duration-300 hover:scale-105 active:scale-95"
+                                className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold shadow-lg transition-all duration-300 hover:scale-105 active:scale-95"
                             >
                                 {user?.username?.charAt(0).toUpperCase() || 'U'}
                             </button>

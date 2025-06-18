@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import useAuth from '../hooks/useAuth';
 import useNotification from '../hooks/useNotification';
@@ -17,23 +17,6 @@ const MainLayout = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-    const [scrollY, setScrollY] = useState(0);
-
-    // 优化滚动事件监听，使用节流
-    useEffect(() => {
-        let ticking = false;
-        const handleScroll = () => {
-            if (!ticking) {
-                requestAnimationFrame(() => {
-                    setScrollY(window.scrollY);
-                    ticking = false;
-                });
-                ticking = true;
-            }
-        };
-        window.addEventListener('scroll', handleScroll, { passive: true });
-        return () => window.removeEventListener('scroll', handleScroll);
-    }, []);
 
     // 处理登出 - 使用useCallback优化性能
     const handleLogout = useCallback(async () => {
@@ -54,55 +37,49 @@ const MainLayout = () => {
         { to: '/settings', icon: 'fas fa-sliders-h', label: '系统设置', gradient: 'from-violet-400 to-violet-600' }
     ], []);
 
-    // 计算滚动变换值 - 使用useMemo优化性能
-    const scrollTransforms = useMemo(() => ({
-        sidebar: `translateY(${scrollY * 0.01}px)`,
-        header: `translateY(${scrollY * 0.005}px)`,
-        content: `translateY(${scrollY * 0.02}px)`
-    }), [scrollY]);
-
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20 flex">
+        <div className="min-h-screen bg-gradient-to-br from-blue-100/70 via-purple-100/50 to-indigo-100/40 flex relative overflow-hidden">
+            {/* 动态背景装饰 - 与Login页面一致 */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                <div className="absolute top-20 left-20 w-64 h-64 bg-blue-500/50 rounded-full mix-blend-multiply filter blur-3xl animate-float"></div>
+                <div className="absolute bottom-20 right-20 w-96 h-96 bg-purple-500/50 rounded-full mix-blend-multiply filter blur-3xl animate-float animation-delay-2000"></div>
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-indigo-500/40 rounded-full mix-blend-multiply filter blur-3xl animate-float animation-delay-4000"></div>
+            </div>
+
             {/* 侧边栏 - 桌面端显示，移动端隐藏 */}
             <aside
-                className={`hidden md:flex backdrop-blur-xl bg-white/80 border-r border-white/20 shadow-xl transition-all duration-500 ease-out ${isSidebarOpen ? 'w-60' : 'w-20'
-                    } flex-col relative overflow-hidden`}
-                style={{
-                    transform: scrollTransforms.sidebar,
-                }}
+                className={`hidden md:flex backdrop-blur-xl bg-white/60 border-r border-gray-200/50 shadow-xl transition-all duration-500 ease-out ${isSidebarOpen ? 'w-60' : 'w-20'
+                    } flex-col relative z-10`}
             >
-                {/* 背景装饰 - 简化以提升性能 */}
-                <div className="absolute inset-0 bg-gradient-to-b from-blue-500/3 to-purple-500/3 pointer-events-none" />
-
                 {/* 侧边栏头部 */}
-                <div className={`p-6 flex items-center relative z-10 ${isSidebarOpen ? 'justify-between' : 'flex-col space-y-4'}`}>
+                <div className={`p-6 flex items-center relative ${isSidebarOpen ? 'justify-between' : 'flex-col space-y-4'}`}>
                     {isSidebarOpen ? (
                         <div className="flex items-center space-x-3">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg flex-shrink-0">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg flex-shrink-0">
                                 <i className="fas fa-robot text-white text-lg"></i>
                             </div>
                             <div>
-                                <h1 className="text-xl font-bold bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
+                                <h1 className="text-xl font-bold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
                                     OpenGewe
                                 </h1>
                                 <p className="text-xs text-gray-500 font-medium">智能管理平台</p>
                             </div>
                         </div>
                     ) : (
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg flex-shrink-0">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg flex-shrink-0">
                             <i className="fas fa-robot text-white text-lg"></i>
                         </div>
                     )}
                     <button
                         onClick={toggleSidebar}
-                        className="p-2 rounded-lg hover:bg-white/50 transition-all duration-300 text-gray-600 hover:text-gray-800 hover:scale-110 flex-shrink-0"
+                        className="p-2 rounded-xl hover:bg-white/70 backdrop-blur-sm transition-all duration-300 text-gray-600 hover:text-blue-600 hover:scale-110 flex-shrink-0"
                     >
                         <i className={`fas ${isSidebarOpen ? 'fa-chevron-left' : 'fa-chevron-right'} text-sm`}></i>
                     </button>
                 </div>
 
                 {/* 导航菜单 */}
-                <nav className="flex-1 px-4 py-2 relative z-10">
+                <nav className="flex-1 px-4 py-2 relative">
                     <ul className="space-y-2">
                         {navItems.map((item) => (
                             <li key={item.to}>
@@ -110,8 +87,8 @@ const MainLayout = () => {
                                     to={item.to}
                                     className={({ isActive }) =>
                                         `group flex items-center ${isSidebarOpen ? 'px-4 py-3' : 'p-3 justify-center w-12 h-12'} rounded-xl transition-all duration-300 relative overflow-hidden ${isActive
-                                            ? 'bg-white/70 shadow-lg backdrop-blur-sm border-white/30 text-gray-800'
-                                            : 'text-gray-600 hover:bg-white/40 hover:text-gray-800 hover:shadow-md'
+                                            ? 'bg-white/80 shadow-lg backdrop-blur-sm border border-gray-200/50 text-gray-800'
+                                            : 'text-gray-600 hover:bg-white/50 hover:text-gray-800 hover:shadow-md'
                                         }`
                                     }
                                 >
@@ -150,10 +127,10 @@ const MainLayout = () => {
                 </nav>
 
                 {/* 侧边栏底部 */}
-                <div className="p-4 relative z-10">
-                    <div className={`flex items-center p-3 rounded-xl bg-white/50 backdrop-blur-sm border border-white/30 transition-all duration-300 ${isSidebarOpen ? 'justify-start' : 'justify-center'
+                <div className="p-4 relative">
+                    <div className={`flex items-center p-3 rounded-xl bg-white/60 backdrop-blur-sm border border-gray-200/50 transition-all duration-300 ${isSidebarOpen ? 'justify-start' : 'justify-center'
                         }`}>
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold shadow-lg flex-shrink-0">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold shadow-lg flex-shrink-0">
                             {user?.username?.charAt(0).toUpperCase() || 'U'}
                         </div>
                         {isSidebarOpen && (
@@ -173,20 +150,12 @@ const MainLayout = () => {
             </aside>
 
             {/* 主内容区 */}
-            <main className="flex-1 flex flex-col overflow-hidden relative">
-                {/* 背景装饰 - 简化以提升性能 */}
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-50/20 to-purple-50/20 pointer-events-none" />
-
+            <main className="flex-1 flex flex-col overflow-hidden relative z-10">
                 {/* 顶部导航栏 */}
-                <header
-                    className="backdrop-blur-xl bg-white/70 border-b border-white/20 shadow-sm z-20 relative"
-                    style={{
-                        transform: scrollTransforms.header,
-                    }}
-                >
+                <header className="backdrop-blur-xl bg-white/60 border-b border-gray-200/50 shadow-sm relative">
                     <div className="px-6 py-4 flex items-center justify-between">
                         <div>
-                            <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-800 via-gray-700 to-gray-600 bg-clip-text text-transparent">
+                            <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
                                 {location.pathname === '/dashboard' && '仪表盘'}
                                 {location.pathname === '/bots' && '机器人管理'}
                                 {location.pathname === '/plugins' && '插件管理'}
@@ -202,12 +171,12 @@ const MainLayout = () => {
                         <div className="flex items-center space-x-3">
                             <button
                                 onClick={toggleHistory}
-                                className="relative w-12 h-12 rounded-lg bg-white/50 backdrop-blur-sm border border-white/30 text-gray-600 hover:text-blue-600 hover:bg-white/70 transition-all duration-300 hover:scale-105 shadow-sm flex items-center justify-center"
+                                className="relative w-12 h-12 rounded-xl bg-white/60 backdrop-blur-sm border border-gray-200/50 text-gray-600 hover:text-blue-600 hover:bg-white/80 transition-all duration-300 hover:scale-105 shadow-sm flex items-center justify-center"
                             >
                                 <i className="fas fa-bell text-lg"></i>
                                 <NotificationBadge count={unreadCount} />
                             </button>
-                            <button className="w-12 h-12 rounded-lg bg-white/50 backdrop-blur-sm border border-white/30 text-gray-600 hover:text-purple-600 hover:bg-white/70 transition-all duration-300 hover:scale-105 shadow-sm flex items-center justify-center">
+                            <button className="w-12 h-12 rounded-xl bg-white/60 backdrop-blur-sm border border-gray-200/50 text-gray-600 hover:text-purple-600 hover:bg-white/80 transition-all duration-300 hover:scale-105 shadow-sm flex items-center justify-center">
                                 <i className="fas fa-question-circle text-lg"></i>
                             </button>
                         </div>
@@ -215,15 +184,8 @@ const MainLayout = () => {
                 </header>
 
                 {/* 内容区 */}
-                <div className="flex-1 overflow-auto p-6 md:p-6 pb-24 md:pb-6 relative z-10">
-                    <div
-                        className="transition-transform duration-300 ease-out"
-                        style={{
-                            transform: scrollTransforms.content,
-                        }}
-                    >
-                        <Outlet />
-                    </div>
+                <div className="flex-1 overflow-auto p-6 md:p-6 pb-24 md:pb-6 relative">
+                    <Outlet />
                 </div>
             </main>
 

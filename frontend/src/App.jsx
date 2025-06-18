@@ -9,6 +9,7 @@ import Bots from './pages/Bots';
 import Settings from './pages/Settings';
 import Plugins from './pages/Plugins';
 import ProtectedRoute from './components/auth/ProtectedRoute';
+import Dashboard from './pages/Dashboard';
 
 /**
  * 应用主组件
@@ -29,7 +30,7 @@ function App() {
             <Route element={<ProtectedRoute />}>
               <Route element={<MainLayout />}>
                 {/* 仪表盘 */}
-                <Route path="/dashboard" element={<div>仪表盘页面（待实现）</div>} />
+                <Route path="/dashboard" element={<Dashboard />} />
 
                 {/* 机器人管理 */}
                 <Route path="/bots" element={<Bots />} />
