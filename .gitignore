@@ -37,6 +37,7 @@ nosetests.xml
 coverage.xml
 *.cover
 .hypothesis/
+_test*.*
 
 # 测试配置
 test_config.toml
