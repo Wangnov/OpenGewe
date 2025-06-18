@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import dashboardService from '../services/dashboardService';
 
 /**
  * 仪表盘页面
@@ -7,38 +8,62 @@ import { useNavigate } from 'react-router-dom';
  */
 const Dashboard = () => {
     const navigate = useNavigate();
+    const [loading, setLoading] = useState(true);
+    const [statsData, setStatsData] = useState({
+        online_bots: 0,
+        enabled_plugins: 0,
+        today_callbacks: 0,
+        today_sent_messages: 0
+    });
+
+    // 获取统计数据
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                setLoading(true);
+                const data = await dashboardService.getStats();
+                setStatsData(data);
+            } catch (error) {
+                console.error('获取统计数据失败:', error);
+                // 如果失败，使用默认值
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchStats();
+        // 每30秒刷新一次数据
+        const interval = setInterval(fetchStats, 30000);
+        return () => clearInterval(interval);
+    }, []);
 
     // 统计卡片数据
     const stats = [
         {
             icon: 'fab fa-weixin',
             title: '在线机器人',
-            value: '3',
-            total: '5',
+            value: loading ? '-' : statsData.online_bots.toString(),
             gradient: 'from-blue-500 to-indigo-500',
             bgGradient: 'from-blue-100 to-indigo-100'
         },
         {
             icon: 'fas fa-puzzle-piece',
             title: '已启用插件',
-            value: '12',
-            total: '20',
+            value: loading ? '-' : statsData.enabled_plugins.toString(),
             gradient: 'from-indigo-500 to-purple-500',
             bgGradient: 'from-indigo-100 to-purple-100'
         },
         {
             icon: 'fas fa-comments',
-            title: '今日消息',
-            value: '1,258',
-            trend: '+12%',
+            title: '今日回调',
+            value: loading ? '-' : statsData.today_callbacks.toLocaleString(),
             gradient: 'from-purple-500 to-pink-500',
             bgGradient: 'from-purple-100 to-pink-100'
         },
         {
-            icon: 'fas fa-users',
-            title: '活跃用户',
-            value: '356',
-            trend: '+5%',
+            icon: 'fas fa-paper-plane',
+            title: '今日发送',
+            value: loading ? '-' : statsData.today_sent_messages.toLocaleString(),
             gradient: 'from-pink-500 to-blue-500',
             bgGradient: 'from-pink-100 to-blue-100'
         }
@@ -78,14 +103,6 @@ const Dashboard = () => {
                             <h3 className="text-sm text-gray-600 font-medium mb-1">{stat.title}</h3>
                             <div className="flex items-baseline space-x-2">
                                 <span className="text-2xl font-bold text-gray-800">{stat.value}</span>
-                                {stat.total && (
-                                    <span className="text-sm text-gray-500">/ {stat.total}</span>
-                                )}
-                                {stat.trend && (
-                                    <span className={`text-sm font-medium ${stat.trend.startsWith('+') ? 'text-green-500' : 'text-red-500'}`}>
-                                        {stat.trend}
-                                    </span>
-                                )}
                             </div>
                         </div>
                     </div>

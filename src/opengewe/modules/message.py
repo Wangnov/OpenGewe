@@ -1,4 +1,50 @@
 from typing import Dict, Any
+import json
+import functools
+from opengewe.utils.event_emitter import message_event_emitter
+
+
+def log_message_sent(method_name: str):
+    """装饰器：记录消息发送事件"""
+    def decorator(func):
+        @functools.wraps(func)
+        async def wrapper(self, *args, **kwargs):
+            # 执行原始方法
+            result = await func(self, *args, **kwargs)
+            
+            # 如果发送成功，发射事件
+            if result and result.get("ret") == 200:
+                try:
+                    # 提取参数，过滤敏感内容
+                    event_data = {
+                        "app_id": self.client.app_id,
+                        "method_name": method_name,
+                        "to_wxid": kwargs.get("to_wxid") or (args[0] if args else None),
+                    }
+                    
+                    # 根据方法名提取其他非敏感参数
+                    safe_params = {}
+                    if method_name == "post_text" and "ats" in kwargs:
+                        safe_params["ats"] = kwargs["ats"]
+                    elif method_name == "post_file":
+                        safe_params["file_name"] = kwargs.get("file_name") or (args[2] if len(args) > 2 else None)
+                    elif method_name == "post_voice":
+                        safe_params["voice_time"] = kwargs.get("voice_time") or (args[2] if len(args) > 2 else None)
+                    elif method_name in ["forward_file", "forward_image", "forward_video", "forward_url", "forward_mini_app"]:
+                        safe_params["file_id"] = kwargs.get("file_id") or kwargs.get("url_id") or kwargs.get("mini_app_id") or (args[1] if len(args) > 1 else None)
+                    
+                    event_data["params"] = safe_params
+                    
+                    # 非阻塞发射事件
+                    message_event_emitter.emit_nowait("message_sent", event_data)
+                    
+                except Exception as e:
+                    # 记录错误但不影响消息发送
+                    pass
+            
+            return result
+        return wrapper
+    return decorator
 
 
 class MessageModule:
@@ -99,6 +145,7 @@ class MessageModule:
         data = {"appId": self.client.app_id, "url": url}
         return await self.client.request("/message/downloadCdn", data)
 
+    @log_message_sent("post_text")
     async def post_text(
         self, to_wxid: str, content: str, ats: str = ""
     ) -> Dict[str, Any]:
@@ -124,6 +171,7 @@ class MessageModule:
         }
         return await self.client.request("/message/postText", data)
 
+    @log_message_sent("post_file")
     async def post_file(
         self, to_wxid: str, file_url: str, file_name: str
     ) -> Dict[str, Any]:
@@ -148,6 +196,7 @@ class MessageModule:
         }
         return await self.client.request("/message/postFile", data)
 
+    @log_message_sent("post_image")
     async def post_image(self, to_wxid: str, image_url: str) -> Dict[str, Any]:
         """发送图片消息
 
@@ -164,6 +213,7 @@ class MessageModule:
         data = {"appId": self.client.app_id, "toWxid": to_wxid, "imageUrl": image_url}
         return await self.client.request("/message/postImage", data)
 
+    @log_message_sent("post_voice")
     async def post_voice(self, to_wxid: str, voice_url: str, voice_time: int) -> Dict[str, Any]:
         """发送语音消息
 
@@ -186,6 +236,7 @@ class MessageModule:
         }
         return await self.client.request("/message/postVoice", data)
 
+    @log_message_sent("post_video")
     async def post_video(self, to_wxid: str, video_url: str, thumb_url: str = "") -> Dict[str, Any]:
         """发送视频消息
 
@@ -208,6 +259,7 @@ class MessageModule:
         }
         return await self.client.request("/message/postVideo", data)
 
+    @log_message_sent("post_link")
     async def post_link(
         self, to_wxid: str, title: str, desc: str, url: str, image_url: str = ""
     ) -> Dict[str, Any]:
@@ -236,6 +288,7 @@ class MessageModule:
         }
         return await self.client.request("/message/postLink", data)
 
+    @log_message_sent("post_name_card")
     async def post_name_card(self, to_wxid: str, card_wxid: str) -> Dict[str, Any]:
         """发送名片消息
 
@@ -256,6 +309,7 @@ class MessageModule:
         }
         return await self.client.request("/message/postNameCard", data)
 
+    @log_message_sent("post_emoji")
     async def post_emoji(self, to_wxid: str, emoji_url: str, emoji_md5: str = "") -> Dict[str, Any]:
         """发送emoji消息
 
@@ -278,6 +332,7 @@ class MessageModule:
         }
         return await self.client.request("/message/postEmoji", data)
 
+    @log_message_sent("post_app_msg")
     async def post_app_msg(self, to_wxid: str, app_msg: str) -> Dict[str, Any]:
         """发送appmsg消息
 
@@ -298,6 +353,7 @@ class MessageModule:
         }
         return await self.client.request("/message/postAppMsg", data)
 
+    @log_message_sent("post_mini_app")
     async def post_mini_app(
         self, 
         to_wxid: str, 
@@ -337,6 +393,7 @@ class MessageModule:
         }
         return await self.client.request("/message/postMiniApp", data)
 
+    @log_message_sent("forward_file")
     async def forward_file(self, to_wxid: str, file_id: str) -> Dict[str, Any]:
         """转发文件
 
@@ -357,6 +414,7 @@ class MessageModule:
         }
         return await self.client.request("/message/forwardFile", data)
 
+    @log_message_sent("forward_image")
     async def forward_image(self, to_wxid: str, file_id: str) -> Dict[str, Any]:
         """转发图片
 
@@ -377,6 +435,7 @@ class MessageModule:
         }
         return await self.client.request("/message/forwardImage", data)
 
+    @log_message_sent("forward_video")
     async def forward_video(self, to_wxid: str, file_id: str) -> Dict[str, Any]:
         """转发视频
 
@@ -397,6 +456,7 @@ class MessageModule:
         }
         return await self.client.request("/message/forwardVideo", data)
 
+    @log_message_sent("forward_url")
     async def forward_url(self, to_wxid: str, url_id: str) -> Dict[str, Any]:
         """转发链接
 
@@ -417,6 +477,7 @@ class MessageModule:
         }
         return await self.client.request("/message/forwardUrl", data)
 
+    @log_message_sent("forward_mini_app")
     async def forward_mini_app(self, to_wxid: str, mini_app_id: str) -> Dict[str, Any]:
         """转发小程序
 
@@ -437,6 +498,7 @@ class MessageModule:
         }
         return await self.client.request("/message/forwardMiniApp", data)
 
+    @log_message_sent("revoke_msg")
     async def revoke_msg(
         self, to_wxid: str, msgid: str, new_msg_id: str, create_time: str
     ) -> Dict[str, Any]:
@@ -463,6 +525,7 @@ class MessageModule:
         }
         return await self.client.request("/message/revokeMsg", data)
 
+    @log_message_sent("send_finder_msg")
     async def send_finder_msg(self, finder_username: str, content: str) -> Dict[str, Any]:
         """发送视频号消息
 

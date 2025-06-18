@@ -247,3 +247,27 @@ class SnsPost(BotBase):
 
     def __repr__(self) -> str:
         return f"<SnsPost(gewe_app_id='{self.gewe_app_id}', sns_id={self.sns_id}, author='{self.author_wxid}')>"
+
+
+class MessageSentLog(BotBase):
+    """消息发送记录表"""
+
+    __tablename__ = "message_sent_log"
+
+    id: Mapped[int] = mapped_column(
+        BigInteger, primary_key=True, autoincrement=True)
+    sent_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=lambda: to_app_timezone(datetime.now(timezone.utc)),
+        index=True,
+    )
+    gewe_app_id: Mapped[str] = mapped_column(
+        String(100), nullable=False, index=True)
+    method_name: Mapped[str] = mapped_column(
+        String(50), nullable=False, index=True)  # post_text, post_image等
+    to_wxid: Mapped[str] = mapped_column(
+        String(100), nullable=False, index=True)
+    params_json: Mapped[Optional[str]] = mapped_column(Text)  # 除了消息内容外的参数
+
+    def __repr__(self) -> str:
+        return f"<MessageSentLog(gewe_app_id='{self.gewe_app_id}', method='{self.method_name}', to='{self.to_wxid}')>"

@@ -134,6 +134,16 @@ async def lifespan(app: FastAPI):
             logger.error(f"插件配置初始化失败: {e}", exc_info=True)
             # 插件初始化失败不影响应用启动
 
+        # 初始化消息日志服务
+        try:
+            from app.services.initializers.bot_initializer import initialize_message_logger
+            
+            logger.info("初始化消息日志服务...")
+            await initialize_message_logger()
+        except Exception as e:
+            logger.error(f"消息日志服务初始化失败: {e}", exc_info=True)
+            # 消息日志服务初始化失败不影响应用启动
+
         # 确保调度器启动
         try:
             from app.utils.scheduler_manager import scheduler_manager

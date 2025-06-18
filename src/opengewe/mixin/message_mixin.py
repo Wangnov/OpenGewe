@@ -1,8 +1,8 @@
 from typing import Dict, Optional, Union, Any, Callable, Awaitable
 from ..modules.message import MessageModule
-from ..queue import create_message_queue, BaseMessageQueue
 from ..queue.simple import SimpleMessageQueue
 from opengewe.logger import init_default_logger, get_logger
+from ..utils.event_emitter import message_event_emitter
 
 init_default_logger()
 logger = get_logger(__name__)
@@ -42,12 +42,40 @@ class MessageMixin:
             **queue_options: 队列选项，根据队列类型不同而不同
         """
         self._message_module = message_module
-        self._message_queue: BaseMessageQueue = create_message_queue(
-            queue_type, **queue_options
-        )
-        self._task_registry: Dict[str, Callable[..., Awaitable[Any]]] = (
-            self._register_tasks()
-        )
+        self._queue_type = queue_type
+        self._queue_options = queue_options
+
+        # 根据队列类型创建消息队列
+        if queue_type == "simple":
+            from ..queue.simple import SimpleMessageQueue
+
+            self._message_queue = SimpleMessageQueue()
+            # 注册所有任务
+            self._task_registry = self._register_tasks()
+        else:
+            from ..queue.advanced import AdvancedMessageQueue
+
+            self._message_queue = AdvancedMessageQueue(**queue_options)
+            self._task_registry = {}  # 高级队列不需要任务注册表
+
+        # 创建任务名称到方法名的映射
+        self._task_to_method_map = {
+            _Task.SEND_TEXT: "send_text",
+            _Task.SEND_IMAGE: "send_image",
+            _Task.SEND_VIDEO: "send_video",
+            _Task.SEND_VOICE: "send_voice",
+            _Task.SEND_LINK: "send_link",
+            _Task.SEND_CARD: "send_card",
+            _Task.SEND_APP: "send_app",
+            _Task.SEND_EMOJI: "send_emoji",
+            _Task.SEND_FILE: "send_file",
+            _Task.SEND_MINI_APP: "send_mini_app",
+            _Task.FORWARD_FILE: "forward_file",
+            _Task.FORWARD_IMAGE: "forward_image",
+            _Task.FORWARD_VIDEO: "forward_video",
+            _Task.FORWARD_URL: "forward_url",
+            _Task.FORWARD_MINI_APP: "forward_mini_app",
+        }
 
     def _register_tasks(self) -> Dict[str, Callable[..., Awaitable[Any]]]:
         """注册任务名称到对应的处理函数"""
@@ -90,17 +118,48 @@ class MessageMixin:
 
         根据队列类型，决定是传递函数引用还是任务名称。
         """
+        result = None
+        
         if isinstance(self._message_queue, SimpleMessageQueue):
             # 简单队列需要一个可调用对象
             task_func = self._task_registry.get(task_name)
             if not task_func:
                 raise ValueError(f"任务 '{task_name}' 未在注册表中找到")
-            return await self._message_queue.enqueue(task_func, *args, **kwargs)
+            result = await self._message_queue.enqueue(task_func, *args, **kwargs)
         else:
             # 高级队列需要任务名称字符串和客户端配置
-            return await self._message_queue.enqueue(
+            result = await self._message_queue.enqueue(
                 task_name, self._get_client_config(), *args, **kwargs
             )
+        
+        # 任务完成后，在主进程中发射事件
+        if result is not None:
+            method_name = self._task_to_method_map.get(task_name)
+            if method_name:
+                try:
+                    # wxid 总是第一个参数
+                    to_wxid = args[0] if args else None
+                    
+                    event_data = {
+                        "app_id": self._get_client_config().get("app_id"),
+                        "method_name": method_name,
+                        "to_wxid": to_wxid,
+                    }
+                    
+                    # 对于文本消息，包含@信息
+                    if method_name == "send_text" and len(args) >= 3:
+                        at_param = args[2]
+                        if isinstance(at_param, list):
+                            event_data["ats"] = ",".join(at_param)
+                        elif at_param:
+                            event_data["ats"] = at_param
+                    
+                    message_event_emitter.emit_nowait("message_sent", event_data)
+                    logger.debug(f"[主进程] 发射消息发送事件: {event_data}")
+                except Exception as e:
+                    logger.error(f"[主进程] 发射消息发送事件失败: {e}", exc_info=True)
+        
+        return result
 
     async def revoke_message(
         self, wxid: str, client_msg_id: int, create_time: int, new_msg_id: int
@@ -167,6 +226,19 @@ class MessageMixin:
             except (ValueError, TypeError):
                 new_msg_id = data.get("newMsgId", 0)
 
+            # 发射消息发送事件
+            try:
+                event_data = {
+                    "app_id": self._get_client_config().get("app_id"),
+                    "method_name": "send_text",
+                    "to_wxid": wxid,
+                    "ats": ats if ats else None,
+                }
+                message_event_emitter.emit_nowait("message_sent", event_data)
+                logger.debug(f"发射消息发送事件: {event_data}")
+            except Exception as e:
+                logger.error(f"发射消息发送事件失败: {e}", exc_info=True)
+
             return client_msg_id, create_time, new_msg_id
         else:
             raise Exception(f"发送文本消息失败: {response.get('msg')}")
@@ -186,6 +258,19 @@ class MessageMixin:
         # 假设image是URL
         response = await self._message_module.post_image(to_wxid=wxid, image_url=image)
         logger.info("发送图片消息: 对方wxid:{} 图片base64略", wxid)
+
+        # 发射消息发送事件
+        if response.get("ret") == 200:
+            try:
+                event_data = {
+                    "app_id": self._get_client_config().get("app_id"),
+                    "method_name": "send_image",
+                    "to_wxid": wxid,
+                }
+                message_event_emitter.emit_nowait("message_sent", event_data)
+                logger.debug(f"发射消息发送事件: {event_data}")
+            except Exception as e:
+                logger.error(f"发射消息发送事件失败: {e}", exc_info=True)
 
         return response
 
@@ -220,6 +305,18 @@ class MessageMixin:
                 new_msg_id = int(data.get("newMsgId", 0))
             except (ValueError, TypeError):
                 new_msg_id = data.get("newMsgId", 0)
+
+            # 发射消息发送事件
+            try:
+                event_data = {
+                    "app_id": self._get_client_config().get("app_id"),
+                    "method_name": "send_video",
+                    "to_wxid": wxid,
+                }
+                message_event_emitter.emit_nowait("message_sent", event_data)
+                logger.debug(f"发射消息发送事件: {event_data}")
+            except Exception as e:
+                logger.error(f"发射消息发送事件失败: {e}", exc_info=True)
 
             return client_msg_id, new_msg_id
         else:
@@ -262,6 +359,18 @@ class MessageMixin:
                 new_msg_id = int(data.get("newMsgId", 0))
             except (ValueError, TypeError):
                 new_msg_id = data.get("newMsgId", 0)
+
+            # 发射消息发送事件
+            try:
+                event_data = {
+                    "app_id": self._get_client_config().get("app_id"),
+                    "method_name": "send_voice",
+                    "to_wxid": wxid,
+                }
+                message_event_emitter.emit_nowait("message_sent", event_data)
+                logger.debug(f"发射消息发送事件: {event_data}")
+            except Exception as e:
+                logger.error(f"发射消息发送事件失败: {e}", exc_info=True)
 
             return client_msg_id, create_time, new_msg_id
         else:
@@ -320,6 +429,18 @@ class MessageMixin:
             except (ValueError, TypeError):
                 new_msg_id = data.get("newMsgId", 0)
 
+            # 发射消息发送事件
+            try:
+                event_data = {
+                    "app_id": self._get_client_config().get("app_id"),
+                    "method_name": "send_link",
+                    "to_wxid": wxid,
+                }
+                message_event_emitter.emit_nowait("message_sent", event_data)
+                logger.debug(f"发射消息发送事件: {event_data}")
+            except Exception as e:
+                logger.error(f"发射消息发送事件失败: {e}", exc_info=True)
+
             return client_msg_id, create_time, new_msg_id
         else:
             raise Exception(f"发送链接消息失败: {response.get('msg')}")
@@ -367,6 +488,18 @@ class MessageMixin:
             except (ValueError, TypeError):
                 new_msg_id = data.get("newMsgId", 0)
 
+            # 发射消息发送事件
+            try:
+                event_data = {
+                    "app_id": self._get_client_config().get("app_id"),
+                    "method_name": "send_card",
+                    "to_wxid": wxid,
+                }
+                message_event_emitter.emit_nowait("message_sent", event_data)
+                logger.debug(f"发射消息发送事件: {event_data}")
+            except Exception as e:
+                logger.error(f"发射消息发送事件失败: {e}", exc_info=True)
+
             return client_msg_id, create_time, new_msg_id
         else:
             raise Exception(f"发送名片消息失败: {response.get('msg')}")
@@ -404,6 +537,18 @@ class MessageMixin:
             except (ValueError, TypeError):
                 new_msg_id = data.get("newMsgId", 0)
 
+            # 发射消息发送事件
+            try:
+                event_data = {
+                    "app_id": self._get_client_config().get("app_id"),
+                    "method_name": "send_app",
+                    "to_wxid": wxid,
+                }
+                message_event_emitter.emit_nowait("message_sent", event_data)
+                logger.debug(f"发射消息发送事件: {event_data}")
+            except Exception as e:
+                logger.error(f"发射消息发送事件失败: {e}", exc_info=True)
+
             return client_msg_id, create_time, new_msg_id
         else:
             raise Exception(f"发送应用消息失败: {response.get('msg')}")
@@ -411,8 +556,6 @@ class MessageMixin:
     async def send_emoji_message(self, wxid: str, md5: str, total_len: int) -> dict:
         """发送表情消息。"""
         return await self._enqueue_task(_Task.SEND_EMOJI, wxid, md5, total_len)
-
-    # 下面是对message.py中有但advanced_message_example.py中没有的方法的包装
 
     async def _send_emoji_message(self, wxid: str, md5: str, total_len: int) -> dict:
         """实际发送表情消息的方法"""
@@ -422,6 +565,19 @@ class MessageMixin:
         )
 
         logger.info("发送表情消息: 对方wxid:{} MD5:{} 大小:{}", wxid, md5, total_len)
+
+        # 发射消息发送事件
+        if response.get("ret") == 200:
+            try:
+                event_data = {
+                    "app_id": self._get_client_config().get("app_id"),
+                    "method_name": "send_emoji",
+                    "to_wxid": wxid,
+                }
+                message_event_emitter.emit_nowait("message_sent", event_data)
+                logger.debug(f"发射消息发送事件: {event_data}")
+            except Exception as e:
+                logger.error(f"发射消息发送事件失败: {e}", exc_info=True)
 
         return response
 
@@ -442,6 +598,19 @@ class MessageMixin:
         logger.info(
             "发送文件消息: 对方wxid:{} 文件URL:{} 文件名:{}", wxid, file_url, file_name
         )
+
+        # 发射消息发送事件
+        if response.get("ret") == 200:
+            try:
+                event_data = {
+                    "app_id": self._get_client_config().get("app_id"),
+                    "method_name": "send_file",
+                    "to_wxid": wxid,
+                }
+                message_event_emitter.emit_nowait("message_sent", event_data)
+                logger.debug(f"发射消息发送事件: {event_data}")
+            except Exception as e:
+                logger.error(f"发射消息发送事件失败: {e}", exc_info=True)
 
         return response
 
@@ -621,12 +790,25 @@ class MessageMixin:
             raise Exception(f"转发视频消息失败: {response.get('msg')}")
 
     async def sync_message(self) -> dict:
-        """同步消息。
-
-        Returns:
-            dict: 返回同步到的消息数据
+        """同步聊天记录
+        第一次连接同步最近三天消息，其他通过内置计时器同步到本地。
         """
-        # 这个方法不包装到消息队列中，因为它是查询操作
-        # 这个方法在message.py中不存在，这里返回一个模拟的结果
-        logger.warning("sync_message方法在MessageModule中不存在，返回模拟结果")
-        return True, {"message": "这是一个模拟的同步消息结果"}
+        response = await self._message_module.sync_msg()
+        logger.info("同步聊天记录")
+        return response
+    
+    # 添加新的 send_at_message 方法
+    async def send_at_message(
+        self, wxid: str, content: str, at_wxids: Union[list, str]
+    ) -> tuple[int, int, int]:
+        """发送@消息（便捷方法）
+        
+        Args:
+            wxid: 接收消息的群wxid
+            content: 消息内容
+            at_wxids: 要@的wxid，可以是单个wxid字符串或wxid列表
+            
+        Returns:
+            tuple: (client_msg_id, create_time, new_msg_id)
+        """
+        return await self.send_text_message(wxid, content, at_wxids)

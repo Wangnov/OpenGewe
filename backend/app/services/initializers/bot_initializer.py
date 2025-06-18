@@ -7,9 +7,9 @@
 import os
 from typing import Dict, Any, List
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, inspect
 from ...core.session_manager import admin_session, session_manager
-from ...models.bot import BotInfo
+from ...models.bot import BotInfo, MessageSentLog
 from opengewe.logger import init_default_logger, get_logger
 
 init_default_logger()
@@ -169,3 +169,75 @@ async def get_bot_configs_from_file() -> List[Dict[str, Any]]:
             )
 
     return configs
+
+
+async def ensure_message_sent_log_table() -> None:
+    """确保所有机器人数据库中都存在MessageSentLog表"""
+    from sqlalchemy import inspect
+    from ...models.bot import MessageSentLog
+    
+    logger.info("开始检查MessageSentLog表...")
+    
+    async with admin_session() as session:
+        # 获取所有机器人
+        stmt = select(BotInfo.gewe_app_id)
+        result = await session.execute(stmt)
+        app_ids = [row[0] for row in result.all()]
+        
+        if not app_ids:
+            logger.info("没有找到任何机器人，跳过表检查")
+            return
+        
+        created_count = 0
+        for app_id in app_ids:
+            try:
+                async with session_manager.get_bot_session(app_id) as bot_session:
+                    # 获取数据库引擎
+                    engine = bot_session.bind
+                    
+                    # 使用异步方式检查表是否存在
+                    async with engine.begin() as conn:
+                        # 获取表列表
+                        def check_table(connection):
+                            inspector = inspect(connection)
+                            return inspector.get_table_names()
+                        
+                        tables = await conn.run_sync(check_table)
+                        
+                        if "message_sent_log" not in tables:
+                            logger.info(f"为机器人 {app_id} 创建MessageSentLog表")
+                            # 创建表
+                            from ...core.bases import BotBase
+                            await conn.run_sync(
+                                BotBase.metadata.create_all,
+                                tables=[MessageSentLog.__table__],
+                                checkfirst=True
+                            )
+                            created_count += 1
+                        else:
+                            logger.debug(f"机器人 {app_id} 已存在MessageSentLog表")
+                            
+            except Exception as e:
+                logger.error(f"检查机器人 {app_id} 的MessageSentLog表失败: {e}", exc_info=True)
+                continue
+        
+        if created_count > 0:
+            logger.info(f"成功创建了 {created_count} 个MessageSentLog表")
+        else:
+            logger.info("所有机器人都已存在MessageSentLog表")
+
+
+async def initialize_message_logger() -> None:
+    """初始化消息日志服务"""
+    from ..message_logger import message_logger
+    
+    try:
+        # 确保表存在
+        await ensure_message_sent_log_table()
+        
+        # 订阅事件
+        message_logger.subscribe_events()
+        logger.info("消息日志服务初始化成功")
+        
+    except Exception as e:
+        logger.error(f"初始化消息日志服务失败: {e}", exc_info=True)

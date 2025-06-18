@@ -7,6 +7,7 @@ from .auth import router as auth_router
 from .bots import router as bots_router
 from .webhooks import router as webhooks_router
 from .proxy import router as proxy_router
+from .dashboard import router as dashboard_router
 from .admin.config import router as admin_config_router
 from .admin.plugins import router as admin_plugins_router
 
@@ -19,6 +20,7 @@ api_router.include_router(bots_router, prefix="/bots", tags=["机器人管理"])
 api_router.include_router(
     webhooks_router, prefix="/webhooks", tags=["Webhooks"])
 api_router.include_router(proxy_router, prefix="/proxy", tags=["代理服务"])
+api_router.include_router(dashboard_router, prefix="/dashboard", tags=["仪表盘"])
 api_router.include_router(
     admin_config_router, prefix="/admin/config", tags=["后台-配置管理"]
 )
