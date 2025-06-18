@@ -18,7 +18,7 @@ logger = get_logger(__name__)
 try:
     import tomllib
 except ImportError:
-    import tomli as tomllib
+    import tomli as tomllib # type: ignore
 
 
 async def initialize_bots_from_config() -> None:
@@ -165,7 +165,6 @@ async def get_bot_configs_from_file() -> List[Dict[str, Any]]:
                     "name": app_config.get("name", f"机器人_{app_key}"),
                     "callback_url": app_config.get("callback_url"),
                     "base_url": app_config.get("base_url"),
-                    "is_gewe": app_config.get("is_gewe", True),
                 }
             )
 

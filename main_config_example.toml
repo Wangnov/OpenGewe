@@ -12,7 +12,6 @@ download_url = ""                                   # 使用geweapi无需传值�
 callback_url = ""                                   # 使用geweapi无需传值，而是在geweapi后台中设置，私有化部署则根据部署的后端回调服务填写回调地址
 app_id = "wx_12345ABCdeFGhi6789"                    # 设备id，在geweapi的管理后台内扫码登录创建设备时生成
 token = "1234abcd-1234-1234-1234-1234abcd1234"      # geweapi平台分配的token
-is_gewe = true                                      # 是否使用geweapi，设置为false则切换至私有化部署
 
 # 设备2示例配置
 [gewe_apps.2]
@@ -22,7 +21,6 @@ download_url = ""
 callback_url = "http://yourserver.com/callbacks/device2"
 app_id = "wx_another_device_id"
 token = "another-token-value"
-is_gewe = true
 
 # 设备3示例配置 - 私有化部署
 [gewe_apps.3]
@@ -32,7 +30,6 @@ download_url = "http://192.168.1.100:8080/download"
 callback_url = "http://yourserver.com/callbacks/device3"
 app_id = "wx_private_device_id"
 token = "private-token-value"
-is_gewe = false
 
 # 注意：此部分配置在系统首次启动时会迁移到数据库。
 # 后续的插件管理请在Web管理后台的“插件管理”和每个单独机器人的“插件管理”中进行。

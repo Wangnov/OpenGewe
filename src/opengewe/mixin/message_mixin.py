@@ -79,7 +79,6 @@ class MessageMixin:
             "app_id": client.app_id,
             "token": client.token,
             "debug": client.debug,
-            "is_gewe": client.is_gewe,
             "queue_type": client.queue_type,
         }
         config.update(client.queue_options)

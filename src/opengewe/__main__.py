@@ -5,7 +5,6 @@ OpenGewe 模块入口点
 """
 
 import os
-import sys
 import argparse
 import asyncio
 
@@ -84,7 +83,6 @@ async def client_command(config_path: str, device_id: str) -> None:
         app_id=device_config.get("app_id", ""),
         token=device_config.get("token", ""),
         debug=device_config.get("debug", False),
-        is_gewe=device_config.get("is_gewe", False),
         queue_type=device_config.get("queue_type", "simple"),
         **device_config.get("queue_options", {}),
     )
