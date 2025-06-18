@@ -385,6 +385,39 @@
       transform: scale(1);
     }
   }
+  
+  /* Blob 动画关键帧 */
+  @keyframes blob {
+    0% {
+      transform: translate(0px, 0px) scale(1);
+    }
+    33% {
+      transform: translate(30px, -50px) scale(1.1);
+    }
+    66% {
+      transform: translate(-20px, 20px) scale(0.9);
+    }
+    100% {
+      transform: translate(0px, 0px) scale(1);
+    }
+  }
+
+  /* Blob 动画工具类 */
+  .animate-blob {
+    animation: blob 7s infinite;
+  }
+  
+  .animation-delay-2000 {
+    animation-delay: 2s;
+  }
+  
+  .animation-delay-4000 {
+    animation-delay: 4s;
+  }
+  
+  .animation-delay-6000 {
+    animation-delay: 6s;
+  }
 
   /* Framer Motion 替代动画工具类 */
   .motion-default {
@@ -412,5 +445,64 @@
     .hero-number {
       font-size: clamp(3rem, 5vw, 6rem);
     }
+  }
+
+  /* Blob 样式 */
+  .blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    mix-blend-mode: multiply;
+    opacity: 0.7;
+  }
+
+  .blob-1 {
+    width: 400px;
+    height: 400px;
+    top: -100px;
+    left: -100px;
+    animation: blob 20s infinite;
+  }
+
+  .blob-2 {
+    width: 350px;
+    height: 350px;
+    bottom: -100px;
+    right: -100px;
+    animation: blob 25s infinite reverse;
+  }
+
+  .blob-3 {
+    width: 300px;
+    height: 300px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    animation: blob 30s infinite;
+    animation-delay: 5s;
+  }
+
+  /* 文字滑动动画 */
+  @keyframes text-slide {
+    0%, 33% {
+        transform: translateY(0);
+    }
+    33.33%, 66% {
+        transform: translateY(-100%);
+    }
+    66.66%, 100% {
+        transform: translateY(-200%);
+    }
+  }
+
+  .animate-text-slide {
+    animation: text-slide 6s ease-in-out infinite;
+  }
+
+  .animate-text-slide p {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 }
