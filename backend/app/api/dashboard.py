@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_
 
-from ..core.session_manager import get_admin_session, admin_session, session_manager
+from ..core.session_manager import get_admin_session, session_manager
 from ..models.bot import BotInfo, BotPlugin, RawCallbackLog
 from ..models.admin import GlobalPlugin
 from ..services.message_logger import message_logger
@@ -40,7 +40,7 @@ async def get_dashboard_stats(
         
         online_bots_stmt = select(func.count(BotInfo.gewe_app_id)).where(
             and_(
-                BotInfo.is_online == True,
+                BotInfo.is_online,
                 BotInfo.last_seen_at >= cutoff_time
             )
         )
@@ -50,7 +50,7 @@ async def get_dashboard_stats(
         # 2. 统计已启用插件数（去重）
         # 获取全局启用的插件
         global_plugins_stmt = select(GlobalPlugin.plugin_name).where(
-            GlobalPlugin.is_globally_enabled == True
+            GlobalPlugin.is_globally_enabled
         )
         global_plugins_result = await session.execute(global_plugins_stmt)
         global_plugin_names = set(row[0] for row in global_plugins_result.all())
@@ -67,7 +67,7 @@ async def get_dashboard_stats(
             try:
                 async with session_manager.get_bot_session(bot_id) as bot_session:
                     bot_plugins_stmt = select(BotPlugin.plugin_name).where(
-                        BotPlugin.is_enabled == True
+                        BotPlugin.is_enabled
                     )
                     bot_plugins_result = await bot_session.execute(bot_plugins_stmt)
                     bot_plugin_names = [row[0] for row in bot_plugins_result.all()]
