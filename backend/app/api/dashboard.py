@@ -11,6 +11,7 @@ from ..core.session_manager import get_admin_session, admin_session, session_man
 from ..models.bot import BotInfo, BotPlugin, RawCallbackLog
 from ..models.admin import GlobalPlugin
 from ..services.message_logger import message_logger
+from ..services.system_status import system_status_service
 from ..utils.timezone_utils import get_app_timezone
 from opengewe.logger import get_logger
 
@@ -121,3 +122,25 @@ async def get_dashboard_stats(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="获取统计数据失败"
         ) 
+
+
+@router.get("/system-status", summary="获取系统状态")
+async def get_system_status():
+    """
+    获取系统状态信息
+    
+    返回：
+    - CPU使用率
+    - 内存使用率和详细信息
+    - 系统运行时间
+    """
+    try:
+        status_data = await system_status_service.get_system_status()
+        return status_data
+        
+    except Exception as e:
+        logger.error(f"获取系统状态失败: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="获取系统状态失败"
+        )

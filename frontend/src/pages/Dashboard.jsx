@@ -15,6 +15,36 @@ const Dashboard = () => {
         today_callbacks: 0,
         today_sent_messages: 0
     });
+    const [systemStatus, setSystemStatus] = useState({
+        cpu_usage: 0,
+        memory_usage: 0,
+        memory_total: 0,
+        memory_used: 0,
+        memory_available: 0,
+        uptime: 0
+    });
+
+    // 动态颜色指示函数
+    const getUsageColor = (percentage) => {
+        if (percentage < 50) return 'text-green-600';
+        if (percentage < 80) return 'text-yellow-600';
+        return 'text-red-600';
+    };
+
+    // 格式化运行时间
+    const formatUptime = (seconds) => {
+        const days = Math.floor(seconds / 86400);
+        const hours = Math.floor((seconds % 86400) / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+
+        if (days > 0) {
+            return `${days}天${hours}小时`;
+        } else if (hours > 0) {
+            return `${hours}小时${minutes}分钟`;
+        } else {
+            return `${minutes}分钟`;
+        }
+    };
 
     // 获取统计数据
     useEffect(() => {
@@ -34,6 +64,24 @@ const Dashboard = () => {
         fetchStats();
         // 每30秒刷新一次数据
         const interval = setInterval(fetchStats, 30000);
+        return () => clearInterval(interval);
+    }, []);
+
+    // 获取系统状态数据
+    useEffect(() => {
+        const fetchSystemStatus = async () => {
+            try {
+                const data = await dashboardService.getSystemStatus();
+                setSystemStatus(data);
+            } catch (error) {
+                console.error('获取系统状态失败:', error);
+                // 使用默认值
+            }
+        };
+
+        fetchSystemStatus();
+        // 每30秒刷新一次系统状态
+        const interval = setInterval(fetchSystemStatus, 30000);
         return () => clearInterval(interval);
     }, []);
 
@@ -147,14 +195,36 @@ const Dashboard = () => {
                                 <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
                                 <span className="text-gray-700">CPU 使用率</span>
                             </div>
-                            <span className="text-gray-600 font-medium">23%</span>
+                            <span className={`font-medium ${getUsageColor(systemStatus.cpu_usage)}`}>
+                                {systemStatus.cpu_usage.toFixed(1)}%
+                            </span>
                         </div>
                         <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-3">
                                 <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
                                 <span className="text-gray-700">内存使用率</span>
                             </div>
-                            <span className="text-gray-600 font-medium">45%</span>
+                            <span className={`font-medium ${getUsageColor(systemStatus.memory_usage)}`}>
+                                {systemStatus.memory_usage.toFixed(1)}%
+                            </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                                <div className="w-3 h-3 bg-indigo-500 rounded-full"></div>
+                                <span className="text-gray-700">运行时间</span>
+                            </div>
+                            <span className="text-gray-600 font-medium">
+                                {formatUptime(systemStatus.uptime)}
+                            </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                                <div className="w-3 h-3 bg-cyan-500 rounded-full"></div>
+                                <span className="text-gray-700">内存详情</span>
+                            </div>
+                            <span className="text-gray-600 font-medium text-sm">
+                                {(systemStatus.memory_used / 1024).toFixed(1)}GB / {(systemStatus.memory_total / 1024).toFixed(1)}GB
+                            </span>
                         </div>
                     </div>
                 </div>

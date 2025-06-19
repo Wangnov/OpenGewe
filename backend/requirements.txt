@@ -25,6 +25,7 @@ loguru>=0.7.0
 # 其他工具
 python-dateutil>=2.9.0
 aiofiles>=24.0.0
+psutil>=6.0.0
 
 # 开发和测试
 pytest>=8.4.0
